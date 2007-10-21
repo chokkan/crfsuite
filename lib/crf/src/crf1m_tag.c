@@ -21,7 +21,7 @@
  *
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #ifdef	HAVE_CONFIG_H
 #include <config.h>
@@ -45,10 +45,8 @@ static int attrs_get(crf_dictionary_t* dic, const char *str)
 
 static int attrs_to_id(crf_dictionary_t* dic, const char *str)
 {
-	int aid = 0;
 	crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
-	crf1mm_to_aid(crf1mm, str, &aid);
-	return aid;
+	return crf1mm_to_aid(crf1mm, str);
 }
 
 static int attrs_to_string(crf_dictionary_t* dic, int id, char **pstr)
@@ -58,10 +56,8 @@ static int attrs_to_string(crf_dictionary_t* dic, int id, char **pstr)
 
 static int attrs_num(crf_dictionary_t* dic)
 {
-	int num;
 	crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
-	crf1mm_get_num_attrs(crf1mm, &num);
-	return num;
+	return crf1mm_get_num_attrs(crf1mm);
 }
 
 static void attrs_free(crf_dictionary_t* dic, char *str)
@@ -83,37 +79,27 @@ static int labels_get(crf_dictionary_t* dic, const char *str)
 
 static int labels_to_id(crf_dictionary_t* dic, const char *str)
 {
-	int lid = -1;
 	crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
-
-	if (crf1mm_to_lid(crf1mm, str, &lid) != 0) {
-		lid = -1;
-	}
-
-	return lid;
+	return crf1mm_to_lid(crf1mm, str);
 }
 
 static int labels_to_string(crf_dictionary_t* dic, int id, char **pstr)
 {
-	int lid = -1;
 	crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
-
-	if (crf1mm_to_label(crf1mm, id, pstr) != 0) {
-		*pstr = NULL;
-	}
-
+	const char *str = crf1mm_to_label(crf1mm, id);
+	*pstr = str;
 	return 0;
 }
 
 static int labels_num(crf_dictionary_t* dic)
 {
-	return 0;
+	crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
+	return crf1mm_get_num_labels(crf1mm);
 }
 
 static void labels_free(crf_dictionary_t* dic, char *str)
 {
-	/* Not supported. */
-	free(str);
+	/* Unnecessary. */
 }
 
 static int labels_release(crf_dictionary_t* dic)
@@ -131,15 +117,15 @@ int crf_create_tagger(
 	crf_dictionary_t** ptr_labels
 	)
 {
-	crf1mm_t* crf1mm = NULL;
+	crf1mm_t* model = NULL;
 	crf_dictionary_t *attrs = NULL, *labels = NULL;
 
-	crf1mm = crf1mm_open(filename, 0);
+	model = crf1mm(filename);
 
 	attrs = (crf_dictionary_t*)calloc(1, sizeof(crf_dictionary_t));
 	if (attrs == NULL) {
 	}
-	attrs->internal = crf1mm;
+	attrs->internal = model;
 	attrs->get = attrs_get;
 	attrs->to_id = attrs_to_id;
 	attrs->to_string = attrs_to_string;
@@ -151,7 +137,7 @@ int crf_create_tagger(
 	labels = (crf_dictionary_t*)calloc(1, sizeof(crf_dictionary_t));
 	if (labels == NULL) {
 	}
-	labels->internal = crf1mm;
+	labels->internal = model;
 	labels->get = labels_get;
 	labels->to_id = labels_to_id;
 	labels->to_string = labels_to_string;

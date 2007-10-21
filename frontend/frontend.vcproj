@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(SolutionDir)include;$(SolutionDir)lib\include"
+				AdditionalIncludeDirectories="$(SolutionDir)include;$(SolutionDir)win32;$(SolutionDir)lib\crf\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -117,7 +117,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="$(SolutionDir)include;$(SolutionDir)lib\include"
+				AdditionalIncludeDirectories="$(SolutionDir)include;$(SolutionDir)win32;$(SolutionDir)lib\crf\include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -214,6 +214,10 @@
 			</File>
 			<File
 				RelativePath=".\option.h"
+				>
+			</File>
+			<File
+				RelativePath="..\include\os.h"
 				>
 			</File>
 			<File

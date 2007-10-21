@@ -29,7 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #ifndef	__CRF1M_H__
 #define	__CRF1M_H__
@@ -132,27 +132,6 @@ float_t crf1mc_viterbi(crf1m_context_t* ctx);
 void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp);
 
 
-/* crf1m_model.c */
-struct tag_crf1mm;
-typedef struct tag_crf1mm crf1mm_t;
-
-typedef struct {
-	int		dst;
-	float_t	weight;
-} crf1mm_feature_t;
-
-crf1mm_t* crf1mm_open(const char *filename, int storing);
-void crf1mm_close(crf1mm_t* model);
-int crf1mm_put_num_attrs(crf1mm_t* model, int num_attrs);
-int crf1mm_get_num_attrs(crf1mm_t* model, int* ptr_num_attrs);
-int crf1mm_put_label(crf1mm_t* model, int lid, const char *value);
-int crf1mm_to_label(crf1mm_t* model, int lid, char **ptr_value);
-int crf1mm_to_lid(crf1mm_t* model, const char *value, int *ptr_lid);
-int crf1mm_put_attribute(crf1mm_t* model, int aid, const char *value);
-int crf1mm_to_aid(crf1mm_t* model, const char *value, int *ptr_aid);
-int crf1mm_put_feature(crf1mm_t* model, int type, int src, const crf1mm_feature_t* feature);
-int crf1mm_get_features(crf1mm_t* model, int type, int src, crf1mm_feature_t** ptr_features, int *ptr_n);
-
 /* crf1m_train.c */
 struct tag_crf1mt;
 typedef struct tag_crf1mt crf1mt_t;
@@ -239,6 +218,50 @@ crf1mt_features_t* crf1mt_generate_features(
 	crf_logging_callback func,
 	void *instance
 	);
+
+/* crf1m_model.c */
+struct tag_crf1mm;
+typedef struct tag_crf1mm crf1mm_t;
+
+struct tag_crf1mmw;
+typedef struct tag_crf1mmw crf1mmw_t;
+
+typedef struct {
+	int		dst;
+	float_t	weight;
+} crf1mm_feature_t;
+
+crf1mmw_t* crf1mmw(const char *filename);
+int crf1mmw_close(crf1mmw_t* writer);
+
+int crf1mmw_open_labels(crf1mmw_t* writer, int num_labels);
+int crf1mmw_close_labels(crf1mmw_t* writer);
+int crf1mmw_put_label(crf1mmw_t* writer, int lid, const char *value);
+
+int crf1mmw_open_attrs(crf1mmw_t* writer, int num_attributes);
+int crf1mmw_close_attrs(crf1mmw_t* writer);
+int crf1mmw_put_attr(crf1mmw_t* writer, int aid, const char *value);
+
+int crf1mmw_open_labelrefs(crf1mmw_t* writer, int num_labels);
+int crf1mmw_close_labelrefs(crf1mmw_t* writer);
+int crf1mmw_put_labelref(crf1mmw_t* writer, int lid, const feature_refs_t* ref, int *map);
+
+int crf1mmw_open_attrrefs(crf1mmw_t* writer, int num_attrs);
+int crf1mmw_close_attrrefs(crf1mmw_t* writer);
+int crf1mmw_put_attrref(crf1mmw_t* writer, int aid, const feature_refs_t* ref, int *map);
+
+int crf1mmw_open_features(crf1mmw_t* writer);
+int crf1mmw_close_features(crf1mmw_t* writer);
+int crf1mmw_put_feature(crf1mmw_t* writer, int fid, float_t weight);
+
+
+crf1mm_t* crf1mm(const char *filename);
+void crf1mm_close(crf1mm_t* model);
+int crf1mm_get_num_attrs(crf1mm_t* model);
+int crf1mm_get_num_labels(crf1mm_t* model);
+const char *crf1mm_to_label(crf1mm_t* model, int lid);
+int crf1mm_to_lid(crf1mm_t* model, const char *value);
+int crf1mm_to_aid(crf1mm_t* model, const char *value);
 
 
 

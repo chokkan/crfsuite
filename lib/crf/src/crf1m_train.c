@@ -21,7 +21,7 @@
  *
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #ifdef	HAVE_CONFIG_H
 #include <config.h>
@@ -787,110 +787,166 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dictionary_t* attrs, crf_dictionary_t* labels)
 {
 	crf1mt_t *crf1mt = (crf1mt_t*)trainer->internal;
-	int a, k, l, *amap = NULL;
-	crf1mm_t* crf1mm = NULL;
+	int a, k, l, ret;
+	int *fmap = NULL, *amap = NULL;
+	crf1mmw_t* writer = NULL;
+	const feature_refs_t *edge = NULL, *attr = NULL;
 	const float_t threshold = 0.01;
 	const int L = crf1mt->num_labels;
 	const int A = crf1mt->num_attributes;
-	int B = 0;
+	const int K = crf1mt->num_features;
+	int J = 0, B = 0;
 
-	/* Allocate the attribute mapping. */
+	/* Allocate and initialize the feature mapping. */
+	fmap = (int*)calloc(K, sizeof(int));
+	if (fmap == NULL) {
+		goto error_exit;
+	}
+	for (k = 0;k < K;++k) fmap[k] = -1;
+
+	/* Allocate and initialize the attribute mapping. */
 	amap = (int*)calloc(A, sizeof(int));
 	if (amap == NULL) {
-		return -1;
+		goto error_exit;
+	}
+	for (a = 0;a < A;++a) amap[a] = -1;
+
+	/*
+	 *	Open a model writer.
+	 */
+	writer = crf1mmw(filename);
+	if (writer == NULL) {
+		goto error_exit;
 	}
 
-	/* Initialize the attribute mapping. */
-	for (a = 0;a < A;++a) {
-		amap[a] = -1;
+	/* Open a feature chunk in the model file. */
+	if (ret = crf1mmw_open_features(writer)) {
+		goto error_exit;
 	}
 
-	/* Determine a set of attributes relevant to valid features. */
-	for (k = 0;k < crf1mt->num_features;++k) {
-		crf1mt_feature_t* f = &crf1mt->features[k];
-		if (f->type == FT_STATE && f->lambda != 0) {
-			a = f->src;
-			if (amap[a] < 0) amap[a] = B++;
-		}		
-	}
-
-	logging(crf1mt->lg, "Attribute pruning %d -> %d\n", A, B);
-
-	crf1mm = crf1mm_open(filename, 1);
-
-	logging(crf1mt->lg, "Writing attributes %s, %d\n", filename, crf1mm);
-
-	/* Output attributes. */
-	for (a = 0;a < A;++a) {
-		if (0 <= amap[a]) {
-			char *str = NULL;
-			attrs->to_string(attrs, a, &str);
-			crf1mm_put_attribute(crf1mm, amap[a], str);
-			attrs->free(attrs, str);
-		}
-	}
-
-	logging(crf1mt->lg, "Writing labels\n");
-
-	/* Output labels. */
-	for (l = 0;l < L;++l) {
-		char *str = NULL;
-		labels->to_string(labels, l, &str);
-		crf1mm_put_label(crf1mm, l, str);
-		labels->free(labels, str);
-	}
-
-	logging(crf1mt->lg, "Writing features\n");
-
-	/* Output features. */
-	for (k = 0;k < crf1mt->num_features;++k) {
+	/* Determine a set of active features and attributes. */
+	for (k = 0, J = 0;k < crf1mt->num_features;++k) {
 		crf1mt_feature_t* f = &crf1mt->features[k];
 		if (f->lambda != 0) {
-			int src = (f->type == FT_STATE) ? amap[f->src] : f->src;
-			crf1mm_feature_t crf1mmf;
+			/* The feature (f) will have a new feature id (#J). */
+			fmap[k] = J++;		/* Feature #k -> #fmap[k]. */
 
-			crf1mmf.dst = f->dst;
-			crf1mmf.weight = f->type;
-			crf1mm_put_feature(crf1mm, f->type, src, &crf1mmf);
-		}		
+			/* Write the feature. */
+			if (ret = crf1mmw_put_feature(writer, fmap[k], f->lambda)) {
+				goto error_exit;
+			}
+
+			if (f->type == FT_STATE) {
+				a = f->src;
+				if (amap[a] < 0) amap[a] = B++;	/* Attribute #a -> #amap[a]. */
+			}
+		}
 	}
 
-	crf1mm_close(crf1mm);
+	/* Close the feature chunk. */
+	if (ret = crf1mmw_close_features(writer)) {
+		goto error_exit;
+	}
 
-	free(amap);
+	logging(crf1mt->lg, "Feature pruning %d -> %d\n", K, J);
+	logging(crf1mt->lg, "Attribute pruning %d -> %d\n", A, B);
 
-#if 0
-	FILE *fp = fopen(filename, "w");
-	/* Output attributes. */
+	/* Write labels. */
+	logging(crf1mt->lg, "Writing %d labels\n", L);
+	if (ret = crf1mmw_open_labels(writer, L)) {
+		goto error_exit;
+	}
+	for (l = 0;l < L;++l) {
+		char *str = NULL;
+		labels->to_string(labels, l, &str);
+		if (str != NULL) {
+			if (ret = crf1mmw_put_label(writer, l, str)) {
+				goto error_exit;
+			}
+			labels->free(labels, str);
+		}
+	}
+	if (ret = crf1mmw_close_labels(writer)) {
+		goto error_exit;
+	}
+
+	/* Write attributes. */
+	logging(crf1mt->lg, "Writing %d attributes\n", B);
+	if (ret = crf1mmw_open_attrs(writer, B)) {
+		goto error_exit;
+	}
 	for (a = 0;a < A;++a) {
 		if (0 <= amap[a]) {
 			char *str = NULL;
 			attrs->to_string(attrs, a, &str);
-			fprintf(fp, "A %d %s\n", amap[a], str);
-			attrs->free(attrs, str);
+			if (str != NULL) {
+				if (ret = crf1mmw_put_attr(writer, amap[a], str)) {
+					goto error_exit;
+				}
+				attrs->free(attrs, str);
+			}
 		}
 	}
+	if (ret = crf1mmw_close_attrs(writer)) {
+		goto error_exit;
+	}
 
-	/* Output labels. */
+	/* Write label feature references. */
+	logging(crf1mt->lg, "Writing label feature references\n");
+	if (ret = crf1mmw_open_labelrefs(writer, L+2)) {
+		goto error_exit;
+	}
 	for (l = 0;l < L;++l) {
-		char *str = NULL;
-		labels->to_string(labels, l, &str);
-		fprintf(fp, "L %d %s\n", l, str);
-		labels->free(labels, str);
+		edge = TRANSITION_FROM(crf1mt, l);
+		if (ret = crf1mmw_put_labelref(writer, l, edge, fmap)) {
+			goto error_exit;
+		}
+	}
+	edge = TRANSITION_BOS(crf1mt);
+	if (ret = crf1mmw_put_labelref(writer, L, edge, fmap)) {
+		goto error_exit;
+	}
+	edge = TRANSITION_EOS(crf1mt);
+	if (ret = crf1mmw_put_labelref(writer, L+1, edge, fmap)) {
+		goto error_exit;
+	}
+	if (ret = crf1mmw_close_labelrefs(writer)) {
+		goto error_exit;
 	}
 
-	/* Output features. */
-	for (k = 0;k < crf1mt->num_features;++k) {
-		crf1mt_feature_t* f = &crf1mt->features[k];
-		if (threshold <= fabs(f->lambda)) {
-			int src = (f->type == FT_STATE) ? amap[f->src] : f->src;
-			fprintf(fp, "F %d %d %d %f\n", f->type, src, f->dst, f->lambda);
-		}		
+	/* Write attribute feature references. */
+	logging(crf1mt->lg, "Writing attribute feature references\n");
+	if (ret = crf1mmw_open_attrrefs(writer, B)) {
+		goto error_exit;
 	}
-	fclose(fp);
-#endif
+	for (a = 0;a < A;++a) {
+		if (0 <= amap[a]) {
+			attr = ATTRIBUTE(crf1mt, amap[a]);
+			if (ret = crf1mmw_put_attrref(writer, amap[a], attr, fmap)) {
+				goto error_exit;
+			}
+		}
+	}
+	if (ret = crf1mmw_close_attrrefs(writer)) {
+		goto error_exit;
+	}
 
+	crf1mmw_close(writer);
+	free(amap);
+	free(fmap);
 	return 0;
+
+error_exit:
+	if (writer != NULL) {
+		crf1mmw_close(writer);
+	}
+	if (amap != NULL) {
+		free(amap);
+	}
+	if (fmap != NULL) {
+		free(fmap);
+	}
+	return ret;
 }
 
 static int crf_train_addref(crf_trainer_t* trainer)

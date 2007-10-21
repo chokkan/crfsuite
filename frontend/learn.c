@@ -349,8 +349,8 @@ int learn(int argc, char *argv[])
 	trainer->set_evaluate_callback(trainer, &ed, evaluate_callback);
 	trainer->trainer(trainer, &data);
 
-	if (opt.output != NULL) {
-		trainer->save(trainer, opt.output, attrs, labels);
+	if (opt.model != NULL) {
+		trainer->save(trainer, opt.model, attrs, labels);
 	}
 
 force_exit:

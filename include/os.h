@@ -5,11 +5,6 @@
 typedef double float_t;
 #define	FLOAT_MAX	DBL_MAX
 
-#define	alloca	_alloca
-#define	strdup	_strdup
-#define	open	_open
-
-#define	_CRT_SECURE_NO_WARNINGS 1
 
 //#define	__SSE__ 1
 #define	LBFGS_FLOAT		64
@@ -18,7 +13,12 @@ typedef double float_t;
 #ifdef	_MSC_VER
 /* Microsoft Visual C/C++ specific */
 
-typedef unsigned int uint32_t;
+#define	_CRT_SECURE_NO_WARNINGS 1
+#pragma warning(disable : 4996)
+
+#define	alloca	_alloca
+#define	strdup	_strdup
+#define	open	_open
 
 #ifndef	__cplusplus
 /* Microsoft Visual C specific */

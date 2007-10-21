@@ -8,6 +8,9 @@ extern "C" {
 #include <stdarg.h>
 
 /* Forward declarations */
+struct tag_crf_model;
+typedef struct tag_crf_model crf_model_t;
+
 struct tag_crf_trainer;
 typedef struct tag_crf_trainer crf_trainer_t;
 
@@ -19,6 +22,13 @@ typedef struct tag_crf_dictionary crf_dictionary_t;
 
 struct tag_crf_params;
 typedef struct tag_crf_params crf_params_t;
+
+enum {
+	CRF_SUCCESS = 0,
+	CRFERR_UNKNOWN = 0x80000000,
+	CRFERR_OUTOFMEMORY,
+	CRFERR_INTERNAL_LOGIC,
+};
 
 
 /**
@@ -87,6 +97,34 @@ typedef struct {
 
 typedef int (*crf_logging_callback)(void *instance, const char *format, va_list args);
 typedef int (*crf_evaluate_callback)(void *instance, crf_tagger_t* tagger);
+
+
+struct tag_crf_model {
+	/**
+	 * Pointer to the instance data (internal use only).
+	 */
+	void *internal;
+	
+	/**
+	 * Reference counter (internal use only).
+	 */
+	int refcount;
+
+	/**
+	 * Increment the reference counter.
+	 */
+	int (*addref)(crf_model_t* model);
+
+	/**
+	 * Decrement the reference counter.
+	 */
+	int (*release)(crf_model_t* model);
+
+	int (*get_tagger)(crf_model_t* model, crf_tagger_t** ptr_tagger);
+	int (*get_labels)(crf_model_t* model, crf_dictionary_t** ptr_labels);
+	int (*get_attrs)(crf_model_t* model, crf_dictionary_t** ptr_attrs);
+};
+
 
 
 struct tag_crf_trainer {
@@ -160,12 +198,12 @@ struct tag_crf_dictionary {
 	/**
 	 * Increment the reference counter.
 	 */
-	int (*addref)(crf_trainer_t* trainer);
+	int (*addref)(crf_dictionary_t* dic);
 
 	/**
 	 * Decrement the reference counter.
 	 */
-	int (*release)(crf_trainer_t* trainer);
+	int (*release)(crf_dictionary_t* dic);
 
 	int (*get)(crf_dictionary_t* dic, const char *str);
 	int (*to_id)(crf_dictionary_t* dic, const char *str);

@@ -29,7 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -172,6 +172,7 @@ static int cqdb_writer_delete(cqdb_writer_t* dbw)
 	}
 	free(dbw->bwd);
 	free(dbw);
+	return 0;
 }
 
 int cqdb_writer_put(cqdb_writer_t* dbw, const char *str, int id)
