@@ -21,7 +21,7 @@
  *
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 
 #ifdef	HAVE_CONFIG_H
@@ -54,8 +54,8 @@ typedef struct {
 static int featureset_comp(const void *x, const void *y, size_t n)
 {
 	int ret = 0;
-	const crf1mt_feature_t* f1 = (const crf1mt_feature_t*)x;
-	const crf1mt_feature_t* f2 = (const crf1mt_feature_t*)y;
+	const crf1ml_feature_t* f1 = (const crf1ml_feature_t*)x;
+	const crf1ml_feature_t* f2 = (const crf1ml_feature_t*)y;
 
 	ret = COMP(f1->type, f2->type);
 	if (ret == 0) {
@@ -73,7 +73,7 @@ static featureset_t* featureset_new()
 	set = (featureset_t*)calloc(1, sizeof(featureset_t));
 	if (set != NULL) {
 		set->num = 0;
-		set->avl = rumavl_new(sizeof(crf1mt_feature_t), featureset_comp);
+		set->avl = rumavl_new(sizeof(crf1ml_feature_t), featureset_comp);
 		if (set->avl == NULL) {
 			free(set);
 			set = NULL;
@@ -90,10 +90,10 @@ static void featureset_delete(featureset_t* set)
 	}
 }
 
-static int featureset_add(featureset_t* set, const crf1mt_feature_t* f)
+static int featureset_add(featureset_t* set, const crf1ml_feature_t* f)
 {
 	/* Check whether if the feature already exists. */
-	crf1mt_feature_t *p = (crf1mt_feature_t*)rumavl_find(set->avl, f);
+	crf1ml_feature_t *p = (crf1ml_feature_t*)rumavl_find(set->avl, f);
 	if (p == NULL) {
 		/* Insert the feature to the feature set. */
 		rumavl_insert(set->avl, f);
@@ -105,11 +105,11 @@ static int featureset_add(featureset_t* set, const crf1mt_feature_t* f)
 	return 0;
 }
 
-static void featureset_generate(crf1mt_features_t* features, featureset_t* set, float_t minfreq)
+static void featureset_generate(crf1ml_features_t* features, featureset_t* set, float_t minfreq)
 {
 	int n = 0, k = 0;
 	RUMAVL_NODE *node = NULL;
-	crf1mt_feature_t *f = NULL;
+	crf1ml_feature_t *f = NULL;
 
 	features->features = 0;
 
@@ -121,12 +121,12 @@ static void featureset_generate(crf1mt_features_t* features, featureset_t* set, 
 	}
 
 	/* The second path: copy the valid features to the feature array. */
-	features->features = (crf1mt_feature_t*)calloc(n, sizeof(crf1mt_feature_t));
+	features->features = (crf1ml_feature_t*)calloc(n, sizeof(crf1ml_feature_t));
 	if (features->features != NULL) {
 		node = NULL;
 		while ((node = rumavl_node_next(set->avl, node, 1, (void**)&f)) != NULL) {
 			if (minfreq <= f->oexp) {
-				memcpy(&features->features[k], f, sizeof(crf1mt_feature_t));
+				memcpy(&features->features[k], f, sizeof(crf1ml_feature_t));
 				++k;
 			}
 		}
@@ -134,7 +134,7 @@ static void featureset_generate(crf1mt_features_t* features, featureset_t* set, 
 	}
 }
 
-crf1mt_features_t* crf1mt_generate_features(
+crf1ml_features_t* crf1ml_generate_features(
 	const crf_data_t *data,
 	int connect_all_attrs,
 	int connect_all_edges,
@@ -144,9 +144,9 @@ crf1mt_features_t* crf1mt_generate_features(
 	)
 {
 	int c, i, j, s, t;
-	crf1mt_feature_t f;
+	crf1ml_feature_t f;
 	featureset_t* set = NULL;
-	crf1mt_features_t *features = NULL;
+	crf1ml_features_t *features = NULL;
 	const int L = data->num_labels;
 	logging_t lg;
 
@@ -155,7 +155,7 @@ crf1mt_features_t* crf1mt_generate_features(
 	lg.percent = 0;
 
 	/* Allocate a feature container. */
-	features = (crf1mt_features_t*)calloc(1, sizeof(crf1mt_features_t));
+	features = (crf1ml_features_t*)calloc(1, sizeof(crf1ml_features_t));
 
 	/* Create an instance of feature set. */
 	set = featureset_new();

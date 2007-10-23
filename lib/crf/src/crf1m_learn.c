@@ -49,12 +49,12 @@ typedef struct {
 	int		feature_bos_eos;
 	char*	regularization;
 	float_t	regularization_sigma;
-} crf1mt_option_t;
+} crf1ml_option_t;
 
 /**
  * First-order Markov CRF trainer.
  */
-struct tag_crf1mt {
+struct tag_crf1ml {
 	int num_labels;			/**< Number of distinct output labels (L). */
 	int num_attributes;		/**< Number of distinct attributes (A). */
 
@@ -82,7 +82,7 @@ struct tag_crf1mt {
 	 * Feature array.
 	 *	Elements must be sorted by type, src, and dst in this order.
 	 */
-	crf1mt_feature_t *features;
+	crf1ml_feature_t *features;
 
 	float_t *lambda;			/**< Array of lambda (feature weights) */
 	float_t *best_lambda;
@@ -90,7 +90,7 @@ struct tag_crf1mt {
 	float_t *prob;
 
 	crf_params_t* params;
-	crf1mt_option_t opt;
+	crf1ml_option_t opt;
 };
 
 #define	FEATURE(trainer, k) \
@@ -106,7 +106,7 @@ struct tag_crf1mt {
 #define	TRANSITION_EOS(trainer) \
 	(&(trainer)->eos_trans)
 
-static void set_labels(crf1mt_t* trainer, const crf_instance_t* seq)
+static void set_labels(crf1ml_t* trainer, const crf_instance_t* seq)
 {
 	int t;
 	crf1m_context_t* ctx = trainer->ctx;
@@ -120,13 +120,13 @@ static void set_labels(crf1mt_t* trainer, const crf_instance_t* seq)
 	}
 }
 
-static void state_score(crf1mt_t* trainer, const crf_instance_t* seq)
+static void state_score(crf1ml_t* trainer, const crf_instance_t* seq)
 {
 	int a, i, l, t, r;
 	float_t scale, *state = NULL;
 	crf1m_context_t* ctx = trainer->ctx;
 	const crf_item_t* item = NULL;
-	const crf1mt_feature_t* f = NULL;
+	const crf1ml_feature_t* f = NULL;
 	const feature_refs_t* attr = NULL;
 	const int T = seq->num_items;
 	const int L = trainer->num_labels;
@@ -161,12 +161,12 @@ static void state_score(crf1mt_t* trainer, const crf_instance_t* seq)
 	}
 }
 
-static void transition_score(crf1mt_t* trainer)
+static void transition_score(crf1ml_t* trainer)
 {
 	int i, j, r;
 	float_t *trans = NULL;
 	crf1m_context_t* ctx = trainer->ctx;
-	const crf1mt_feature_t* f = NULL;
+	const crf1ml_feature_t* f = NULL;
 	const feature_refs_t* edge = NULL;
 	const int L = trainer->num_labels;
 
@@ -208,14 +208,14 @@ static void transition_score(crf1mt_t* trainer)
 	}	
 }
 
-static void accumulate_expectation(crf1mt_t* trainer, const crf_instance_t* seq)
+static void accumulate_expectation(crf1ml_t* trainer, const crf_instance_t* seq)
 {
 	int a, c, i, j, t, r;
 	float_t scale, *prob = trainer->prob;
 	crf1m_context_t* ctx = trainer->ctx;
 	const float_t lognorm = ctx->log_norm;
 	const float_t *fwd = NULL, *bwd = NULL, *state = NULL;
-	crf1mt_feature_t* f = NULL;
+	crf1ml_feature_t* f = NULL;
 	const feature_refs_t *attr = NULL, *trans = NULL;
 	const crf_item_t* item = NULL;
 	const int T = seq->num_items;
@@ -362,12 +362,12 @@ static void accumulate_expectation(crf1mt_t* trainer, const crf_instance_t* seq)
 	}
 }
 
-static int init_feature_references(crf1mt_t* trainer, const int A, const int L)
+static int init_feature_references(crf1ml_t* trainer, const int A, const int L)
 {
 	int i, k;
 	feature_refs_t *fl = NULL;
 	const int K = trainer->num_features;
-	const crf1mt_feature_t* features = trainer->features;
+	const crf1ml_feature_t* features = trainer->features;
 
 	/*
 		The purpose of this routine is to collect references (indices) of:
@@ -398,7 +398,7 @@ static int init_feature_references(crf1mt_t* trainer, const int A, const int L)
 		We don't want to use realloc() to avoid memory fragmentation.
 	 */
 	for (k = 0;k < K;++k) {
-		const crf1mt_feature_t *f = &features[k];
+		const crf1ml_feature_t *f = &features[k];
 		switch (f->type) {
 		case FT_STATE:
 			trainer->attributes[f->src].num_features++;
@@ -450,7 +450,7 @@ static int init_feature_references(crf1mt_t* trainer, const int A, const int L)
 		At last, store the feature indices.
 	 */
 	for (k = 0;k < K;++k) {
-		const crf1mt_feature_t *f = &features[k];
+		const crf1ml_feature_t *f = &features[k];
 		switch (f->type) {
 		case FT_STATE:
 			fl = &trainer->attributes[f->src];
@@ -494,10 +494,10 @@ error_exit:
 	return -1;
 }
 
-int crf1mt_prepare(
-	crf1mt_t* trainer,
+int crf1ml_prepare(
+	crf1ml_t* trainer,
 	crf_data_t* data,
-	crf1mt_features_t* features
+	crf1ml_features_t* features
 	)
 {
 	int i;
@@ -535,7 +535,7 @@ error_exit:
 	return 0;
 }
 
-static int crf1mt_exchange_options(crf_params_t* params, crf1mt_option_t* opt, int mode)
+static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
 {
 	BEGIN_PARAM_MAP(params, mode)
 		DDX_PARAM_FLOAT("feature.minfreq", opt->feature_minfreq, 0.0)
@@ -549,20 +549,20 @@ static int crf1mt_exchange_options(crf_params_t* params, crf1mt_option_t* opt, i
 	return 0;
 }
 
-crf1mt_t* crf1mt_new()
+crf1ml_t* crf1ml_new()
 {
-	crf1mt_t* trainer = (crf1mt_t*)calloc(1, sizeof(crf1mt_t));
+	crf1ml_t* trainer = (crf1ml_t*)calloc(1, sizeof(crf1ml_t));
 	trainer->lg = (logging_t*)calloc(1, sizeof(logging_t));
 
 	/* Create an instance for CRF parameters. */
 	trainer->params = params_create_instance();
 	/* Set the default parameters. */
-	crf1mt_exchange_options(trainer->params, &trainer->opt, 0);
+	crf1ml_exchange_options(trainer->params, &trainer->opt, 0);
 
 	return trainer;
 }
 
-void crf1mt_delete(crf1mt_t* trainer)
+void crf1ml_delete(crf1ml_t* trainer)
 {
 	if (trainer != NULL) {
 		free(trainer->lg);
@@ -573,7 +573,7 @@ int crf_train_tag(crf_tagger_t* tagger, crf_instance_t *inst, crf_output_t* outp
 {
 	int i;
 	float_t logprob = 0;
-	crf1mt_t *crf1mt = (crf1mt_t*)tagger->internal;
+	crf1ml_t *crf1mt = (crf1ml_t*)tagger->internal;
 
 	transition_score(crf1mt);
 	set_labels(crf1mt, inst);
@@ -599,7 +599,7 @@ static lbfgsfloat_t lbfgs_evaluate(void *instance, const lbfgsfloat_t *x, lbfgsf
 {
 	int i;
 	float_t logp = 0, logl = 0, norm = 0;
-	crf1mt_t* crf1mt = (crf1mt_t*)instance;
+	crf1ml_t* crf1mt = (crf1ml_t*)instance;
 	crf_data_t* data = crf1mt->data;
 
 	/*
@@ -607,7 +607,7 @@ static lbfgsfloat_t lbfgs_evaluate(void *instance, const lbfgsfloat_t *x, lbfgsf
 		expectations as zero.
 	 */
 	for (i = 0;i < crf1mt->num_features;++i) {
-		crf1mt_feature_t* f = &crf1mt->features[i];
+		crf1ml_feature_t* f = &crf1mt->features[i];
 		f->lambda = x[i];
 		f->mexp = 0;
 	}
@@ -646,7 +646,7 @@ static lbfgsfloat_t lbfgs_evaluate(void *instance, const lbfgsfloat_t *x, lbfgsf
 		Update the gradient vector.
 	 */
 	for (i = 0;i < crf1mt->num_features;++i) {
-		const crf1mt_feature_t* f = &crf1mt->features[i];
+		const crf1ml_feature_t* f = &crf1mt->features[i];
 		g[i] = -((f->oexp - f->mexp) - crf1mt->sigma2inv * f->lambda);
 		norm += f->lambda * f->lambda;
 		/*printf("%d (%f): %f -> %f, %f\n", i, f->lambda, f->mexp, f->oexp, g[i]);*/
@@ -669,11 +669,11 @@ static int lbfgs_progress(
 	int ls)
 {
 	int i;
-	crf1mt_t* crf1mt = (crf1mt_t*)instance;
+	crf1ml_t* crf1mt = (crf1ml_t*)instance;
 
 	/* Set feature weights from the L-BFGS solver. */
 	for (i = 0;i < crf1mt->num_features;++i) {
-		crf1mt_feature_t* f = &crf1mt->features[i];
+		crf1ml_feature_t* f = &crf1mt->features[i];
 		f->lambda = x[i];
 		crf1mt->best_lambda[i] = x[i];
 	}
@@ -707,14 +707,14 @@ static int lbfgs_progress(
 
 void crf_train_set_message_callback(crf_trainer_t* trainer, void *instance, crf_logging_callback cbm)
 {
-	crf1mt_t *crf1mt = (crf1mt_t*)trainer->internal;
+	crf1ml_t *crf1mt = (crf1ml_t*)trainer->internal;
 	crf1mt->lg->func = cbm;
 	crf1mt->lg->instance = instance;
 }
 
 void crf_train_set_evaluate_callback(crf_trainer_t* trainer, void *instance, crf_evaluate_callback cbe)
 {
-	crf1mt_t *crf1mt = (crf1mt_t*)trainer->internal;
+	crf1ml_t *crf1mt = (crf1ml_t*)trainer->internal;
 	crf1mt->cbe_instance = instance;
 	crf1mt->cbe_proc = cbe;
 }
@@ -724,13 +724,13 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	int i;
 	int ret = 0;
 	float_t sigma = 10, *best_lambda = NULL;
-	crf1mt_features_t* features = NULL;
-	crf1mt_t *crf1mt = (crf1mt_t*)trainer->internal;
+	crf1ml_features_t* features = NULL;
+	crf1ml_t *crf1mt = (crf1ml_t*)trainer->internal;
 	crf_params_t *params = crf1mt->params;
-	crf1mt_option_t *opt = &crf1mt->opt;
+	crf1ml_option_t *opt = &crf1mt->opt;
 
 	/* Access parameters. */
-	crf1mt_exchange_options(crf1mt->params, opt, -1);
+	crf1ml_exchange_options(crf1mt->params, opt, -1);
 
 	/* Report the parameters. */
 	logging(crf1mt->lg, "Training first-order linear-chain CRFs (trainer.crf1m)\n");
@@ -747,7 +747,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 
 	/* Generate features. */
 	logging(crf1mt->lg, "Feature generation\n");
-	features = crf1mt_generate_features(
+	features = crf1ml_generate_features(
 		data,
 		opt->feature_possible_states ? 1 : 0,
 		opt->feature_possible_transitions ? 1 : 0,
@@ -759,7 +759,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	logging(crf1mt->lg, "\n");
 
 	/* Preparation for training. */
-	crf1mt_prepare(crf1mt, data, features);
+	crf1ml_prepare(crf1mt, data, features);
 
 	crf1mt->data = data;
 	crf1mt->sigma2inv = 1.0 / (opt->regularization_sigma * opt->regularization_sigma);
@@ -777,7 +777,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	/* Store the feature weights. */
 	best_lambda = ret == 0 ? crf1mt->lambda : crf1mt->best_lambda;
 	for (i = 0;i < crf1mt->num_features;++i) {
-		crf1mt_feature_t* f = &crf1mt->features[i];
+		crf1ml_feature_t* f = &crf1mt->features[i];
 		f->lambda = best_lambda[i];
 	}
 
@@ -786,7 +786,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 
 static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dictionary_t* attrs, crf_dictionary_t* labels)
 {
-	crf1mt_t *crf1mt = (crf1mt_t*)trainer->internal;
+	crf1ml_t *crf1mt = (crf1ml_t*)trainer->internal;
 	int a, k, l, ret;
 	int *fmap = NULL, *amap = NULL;
 	crf1mmw_t* writer = NULL;
@@ -826,7 +826,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 
 	/* Determine a set of active features and attributes. */
 	for (k = 0, J = 0;k < crf1mt->num_features;++k) {
-		crf1mt_feature_t* f = &crf1mt->features[k];
+		crf1ml_feature_t* f = &crf1mt->features[k];
 		if (f->lambda != 0) {
 			/* Model feature. */
 			crf1mm_feature_t feat;
@@ -971,14 +971,14 @@ static int crf_train_release(crf_trainer_t* trainer)
 
 static crf_params_t* crf_train_params(crf_trainer_t* trainer)
 {
-	crf1mt_t *crf1mt = (crf1mt_t*)trainer->internal;
+	crf1ml_t *crf1mt = (crf1ml_t*)trainer->internal;
 	crf_params_t* params = crf1mt->params;
 	params->addref(params);
 	return params;
 }
 
 
-int crf1mt_create_instance(const char *interface, void **ptr)
+int crf1ml_create_instance(const char *interface, void **ptr)
 {
 	if (strcmp(interface, "trainer.crf1m") == 0) {
 		crf_trainer_t* trainer = (crf_trainer_t*)calloc(1, sizeof(crf_trainer_t));
@@ -993,7 +993,7 @@ int crf1mt_create_instance(const char *interface, void **ptr)
 		trainer->set_evaluate_callback = crf_train_set_evaluate_callback;
 		trainer->trainer = crf_train_train;
 		trainer->save = crf_train_save;
-		trainer->internal = crf1mt_new();
+		trainer->internal = crf1ml_new();
 
 		*ptr = trainer;
 		return 0;

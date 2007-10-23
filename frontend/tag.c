@@ -84,8 +84,6 @@ int tag(int argc, char *argv[])
 		model->dump(model, stdout);
 	}
 
-	aid = labels->to_id(labels, "I-NP");
-
 force_exit:
 	tagger_option_finish(&opt);
 	return ret;

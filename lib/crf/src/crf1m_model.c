@@ -780,10 +780,12 @@ void crf1mm_dump(crf1mm_t* crf1mm, FILE *fp)
 	fprintf(fp, "LABELS = {\n");
 	for (i = 0;i < hfile->num_labels;++i) {
 		const char *str = crf1mm_to_label(crf1mm, i);
+#if 0
 		int check = crf1mm_to_lid(crf1mm, str);
 		if (i != check) {
 			fprintf(fp, "WARNING: inconsistent label CQDB\n");
 		}
+#endif
 		fprintf(fp, "  %5d: %s\n", i, str);
 	}
 	fprintf(fp, "}\n");
@@ -793,10 +795,12 @@ void crf1mm_dump(crf1mm_t* crf1mm, FILE *fp)
 	fprintf(fp, "ATTRIBUTES = {\n");
 	for (i = 0;i < hfile->num_attrs;++i) {
 		const char *str = crf1mm_to_attr(crf1mm, i);
+#if 0
 		int check = crf1mm_to_aid(crf1mm, str);
 		if (i != check) {
 			fprintf(fp, "WARNING: inconsistent attribute CQDB\n");
 		}
+#endif
 		fprintf(fp, "  %5d: %s\n", i, str);
 	}
 	fprintf(fp, "}\n");

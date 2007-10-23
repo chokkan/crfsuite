@@ -133,11 +133,11 @@ void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp);
 
 
 /* crf1m_train.c */
-struct tag_crf1mt;
-typedef struct tag_crf1mt crf1mt_t;
+struct tag_crf1ml;
+typedef struct tag_crf1ml crf1ml_t;
 
-crf1mt_t* crf1mt_new();
-void crf1mt_delete(crf1mt_t* trainer);
+crf1ml_t* crf1ml_new();
+void crf1ml_delete(crf1ml_t* trainer);
 
 /**
  * Feature type.
@@ -191,15 +191,15 @@ typedef struct {
 	 * Model expectation.
 	 */
 	float_t	mexp;
-} crf1mt_feature_t;
+} crf1ml_feature_t;
 
 /**
  * Feature set.
  */
 typedef struct {
 	int					num_features;	/**< Number of features. */
-	crf1mt_feature_t*	features;		/**< Array of features. */
-} crf1mt_features_t;
+	crf1ml_feature_t*	features;		/**< Array of features. */
+} crf1ml_features_t;
 
 /**
  * Feature references.
@@ -210,7 +210,7 @@ typedef struct {
 	int*	fids;			/**< Array of feature ids */
 } feature_refs_t;
 
-crf1mt_features_t* crf1mt_generate_features(
+crf1ml_features_t* crf1ml_generate_features(
 	const crf_data_t *data,
 	int connect_all_attrs,
 	int connect_all_edges,

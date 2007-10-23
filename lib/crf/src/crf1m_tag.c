@@ -38,3 +38,17 @@
 
 #include "crf1m.h"
 
+static int tagger_addref(crf_tagger_t* trainer)
+{
+
+}
+
+static int tagger_release(crf_tagger_t* trainer)
+{
+
+}
+
+static int tagger_tag(crf_tagger_t* tagger, crf_instance_t *inst, crf_output_t* output)
+{
+
+}
