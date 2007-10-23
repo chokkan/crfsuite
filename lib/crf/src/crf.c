@@ -9,6 +9,7 @@
 
 int crf1mt_create_instance(const char *iid, void **ptr);
 int crf_dictionary_create_instance(const char *interface, void **ptr);
+int crf1m_create_instance_from_file(const char *filename, void **ptr);
 
 int crf_create_instance(const char *iid, void **ptr)
 {
@@ -18,6 +19,13 @@ int crf_create_instance(const char *iid, void **ptr)
 
 	return ret;
 }
+
+int crf_create_instance_from_file(const char *filename, void **ptr)
+{
+	int ret = crf1m_create_instance_from_file(filename, ptr);
+	return ret;
+}
+
 
 
 void crf_content_init(crf_content_t* cont)

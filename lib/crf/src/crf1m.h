@@ -227,41 +227,43 @@ struct tag_crf1mmw;
 typedef struct tag_crf1mmw crf1mmw_t;
 
 typedef struct {
+	int		type;
+	int		src;
 	int		dst;
 	float_t	weight;
 } crf1mm_feature_t;
 
 crf1mmw_t* crf1mmw(const char *filename);
 int crf1mmw_close(crf1mmw_t* writer);
-
 int crf1mmw_open_labels(crf1mmw_t* writer, int num_labels);
 int crf1mmw_close_labels(crf1mmw_t* writer);
 int crf1mmw_put_label(crf1mmw_t* writer, int lid, const char *value);
-
 int crf1mmw_open_attrs(crf1mmw_t* writer, int num_attributes);
 int crf1mmw_close_attrs(crf1mmw_t* writer);
 int crf1mmw_put_attr(crf1mmw_t* writer, int aid, const char *value);
-
 int crf1mmw_open_labelrefs(crf1mmw_t* writer, int num_labels);
 int crf1mmw_close_labelrefs(crf1mmw_t* writer);
 int crf1mmw_put_labelref(crf1mmw_t* writer, int lid, const feature_refs_t* ref, int *map);
-
 int crf1mmw_open_attrrefs(crf1mmw_t* writer, int num_attrs);
 int crf1mmw_close_attrrefs(crf1mmw_t* writer);
 int crf1mmw_put_attrref(crf1mmw_t* writer, int aid, const feature_refs_t* ref, int *map);
-
 int crf1mmw_open_features(crf1mmw_t* writer);
 int crf1mmw_close_features(crf1mmw_t* writer);
-int crf1mmw_put_feature(crf1mmw_t* writer, int fid, float_t weight);
+int crf1mmw_put_feature(crf1mmw_t* writer, int fid, const crf1mm_feature_t* f);
 
 
-crf1mm_t* crf1mm(const char *filename);
+crf1mm_t* crf1mm_new(const char *filename);
 void crf1mm_close(crf1mm_t* model);
 int crf1mm_get_num_attrs(crf1mm_t* model);
 int crf1mm_get_num_labels(crf1mm_t* model);
 const char *crf1mm_to_label(crf1mm_t* model, int lid);
 int crf1mm_to_lid(crf1mm_t* model, const char *value);
 int crf1mm_to_aid(crf1mm_t* model, const char *value);
+const char *crf1mm_to_attr(crf1mm_t* model, int aid);
+int crf1mm_get_labelref(crf1mm_t* model, int lid, feature_refs_t* ref);
+int crf1mm_get_attrref(crf1mm_t* model, int aid, feature_refs_t* ref);
+int crf1mm_get_feature(crf1mm_t* model, int fid, crf1mm_feature_t* f);
+void crf1mm_dump(crf1mm_t* model, FILE *fp);
 
 
 

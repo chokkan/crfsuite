@@ -167,6 +167,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\crf1m_context.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\crf1m_feature.c"
 				>
 			</File>

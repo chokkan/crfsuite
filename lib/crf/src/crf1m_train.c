@@ -828,11 +828,18 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	for (k = 0, J = 0;k < crf1mt->num_features;++k) {
 		crf1mt_feature_t* f = &crf1mt->features[k];
 		if (f->lambda != 0) {
+			/* Model feature. */
+			crf1mm_feature_t feat;
+			feat.type = f->type;
+			feat.src = f->src;
+			feat.dst = f->dst;
+			feat.weight = f->lambda;
+
 			/* The feature (f) will have a new feature id (#J). */
 			fmap[k] = J++;		/* Feature #k -> #fmap[k]. */
 
 			/* Write the feature. */
-			if (ret = crf1mmw_put_feature(writer, fmap[k], f->lambda)) {
+			if (ret = crf1mmw_put_feature(writer, fmap[k], &feat)) {
 				goto error_exit;
 			}
 
@@ -951,12 +958,12 @@ error_exit:
 
 static int crf_train_addref(crf_trainer_t* trainer)
 {
-	return crf_interlocked_increment(&trainer->refcount);
+	return crf_interlocked_increment(&trainer->nref);
 }
 
 static int crf_train_release(crf_trainer_t* trainer)
 {
-	int count = crf_interlocked_decrement(&trainer->refcount);
+	int count = crf_interlocked_decrement(&trainer->nref);
 	if (count == 0) {
 	}
 	return count;
@@ -976,7 +983,7 @@ int crf1mt_create_instance(const char *interface, void **ptr)
 	if (strcmp(interface, "trainer.crf1m") == 0) {
 		crf_trainer_t* trainer = (crf_trainer_t*)calloc(1, sizeof(crf_trainer_t));
 
-		trainer->refcount = 1;
+		trainer->nref = 1;
 		trainer->addref = crf_train_addref;
 		trainer->release = crf_train_release;
 

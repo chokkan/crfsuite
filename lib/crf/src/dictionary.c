@@ -8,12 +8,12 @@
 
 static int dictionary_addref(crf_dictionary_t* dic)
 {
-	return crf_interlocked_increment(&dic->refcount);
+	return crf_interlocked_increment(&dic->nref);
 }
 
 static int dictionary_release(crf_dictionary_t* dic)
 {
-	int count = crf_interlocked_decrement(&dic->refcount);
+	int count = crf_interlocked_decrement(&dic->nref);
 	if (count == 0) {
 		quark_t *qrk = (quark_t*)dic->internal;
 		quark_delete(qrk);
@@ -64,7 +64,7 @@ int crf_dictionary_create_instance(const char *interface, void **ptr)
 
 		if (dic != NULL) {
 			dic->internal = quark_new();
-			dic->refcount = 1;
+			dic->nref = 1;
 			dic->addref = dictionary_addref;
 			dic->release = dictionary_release;
 			dic->get = dictionary_get;

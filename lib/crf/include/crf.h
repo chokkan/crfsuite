@@ -5,6 +5,7 @@
 extern "C" {
 #endif/*__cplusplus*/
 
+#include <stdio.h>
 #include <stdarg.h>
 
 /* Forward declarations */
@@ -27,6 +28,8 @@ enum {
 	CRF_SUCCESS = 0,
 	CRFERR_UNKNOWN = 0x80000000,
 	CRFERR_OUTOFMEMORY,
+	CRFERR_NOTSUPPORTED,
+	CRFERR_INCOMPATIBLE,
 	CRFERR_INTERNAL_LOGIC,
 };
 
@@ -108,7 +111,7 @@ struct tag_crf_model {
 	/**
 	 * Reference counter (internal use only).
 	 */
-	int refcount;
+	int nref;
 
 	/**
 	 * Increment the reference counter.
@@ -123,6 +126,7 @@ struct tag_crf_model {
 	int (*get_tagger)(crf_model_t* model, crf_tagger_t** ptr_tagger);
 	int (*get_labels)(crf_model_t* model, crf_dictionary_t** ptr_labels);
 	int (*get_attrs)(crf_model_t* model, crf_dictionary_t** ptr_attrs);
+	int (*dump)(crf_model_t* model, FILE *fpo);
 };
 
 
@@ -136,7 +140,7 @@ struct tag_crf_trainer {
 	/**
 	 * Reference counter (internal use only).
 	 */
-	int refcount;
+	int nref;
 
 	/**
 	 * Increment the reference counter.
@@ -165,17 +169,17 @@ struct tag_crf_tagger {
 	/**
 	 * Reference counter (internal use only).
 	 */
-	int refcount;
+	int nref;
 
 	/**
 	 * Increment the reference counter.
 	 */
-	int (*addref)(crf_trainer_t* trainer);
+	int (*addref)(crf_tagger_t* trainer);
 
 	/**
 	 * Decrement the reference counter.
 	 */
-	int (*release)(crf_trainer_t* trainer);
+	int (*release)(crf_tagger_t* trainer);
 
 	/**
 	 * Tag an input sequence.
@@ -193,7 +197,7 @@ struct tag_crf_dictionary {
 	/**
 	 * Reference counter (internal use only).
 	 */
-	int refcount;
+	int nref;
 
 	/**
 	 * Increment the reference counter.
@@ -221,7 +225,7 @@ struct tag_crf_params {
 	/**
 	 * Reference counter (internal use only).
 	 */
-	int refcount;
+	int nref;
 
 	/**
 	 * Increment the reference counter.
@@ -246,6 +250,7 @@ struct tag_crf_params {
 
 
 int crf_create_instance(const char *iid, void **ptr);
+int crf_create_instance_from_file(const char *filename, void **ptr);
 
 int crf_create_tagger(
 	const char *filename,

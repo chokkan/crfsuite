@@ -175,8 +175,8 @@ int main(int argc, char *argv[])
 	fprintf(fpo, APPLICATION_S " " VERSION_S "  " COPYRIGHT_S "\n");
 	fprintf(fpo, "\n");
 
-	return learn(argc-1, argv+1);
-	//return tag(argc-1, argv+1);
+	//return learn(argc-1, argv+1);
+	return tag(argc-1, argv+1);
 }
 
 #endif

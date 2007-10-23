@@ -55,6 +55,7 @@ int tag(int argc, char *argv[])
 	int ret = 0, arg_used = 0;
 	tagger_option_t opt;
 	FILE *fp = NULL, *fpi = stdin, *fpo = stdout, *fpe = stderr;
+	crf_model_t *model = NULL;
 	crf_tagger_t *tagger = NULL;
 	crf_dictionary_t *attrs = NULL, *labels = NULL;
 	int aid;
@@ -74,7 +75,13 @@ int tag(int argc, char *argv[])
 	}
 
 	if (opt.model != NULL) {
-		crf_create_tagger(opt.model, &tagger, &attrs, &labels);
+		crf_create_instance_from_file(opt.model, &model);
+
+		model->get_attrs(model, &attrs);
+		model->get_labels(model, &labels);
+		//model->get_tagger(model, &tagger);
+
+		model->dump(model, stdout);
 	}
 
 	aid = labels->to_id(labels, "I-NP");

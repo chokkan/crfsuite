@@ -82,22 +82,59 @@ enum {
 	KT_FEATURE,
 };
 
-static void write_uint32(FILE *fp, uint32_t value)
+static int write_uint8(FILE *fp, uint8_t value)
 {
-	fwrite(&value, sizeof(value), 1, fp);
+	return fwrite(&value, sizeof(value), 1, fp) == 1 ? 0 : 1;
 }
 
-static void write_uint8_array(FILE *fp, uint8_t *array, size_t n)
+static int read_uint8(uint8_t* buffer, uint8_t* value)
+{
+	*value = *buffer;
+	return sizeof(*value);
+}
+
+static int write_uint32(FILE *fp, uint32_t value)
+{
+	return fwrite(&value, sizeof(value), 1, fp) == 1 ? 0 : 1;
+}
+
+static int read_uint32(uint8_t* buffer, uint32_t* value)
+{
+	*value = *(uint32_t*)buffer;
+	return sizeof(*value);
+}
+
+static int write_uint8_array(FILE *fp, uint8_t *array, size_t n)
 {
 	size_t i;
+	int ret = 0;
 	for (i = 0;i < n;++i) {
-		fwrite(&array[i], sizeof(array[i]), 1, fp);
+		ret |= write_uint8(fp, array[i]);
 	}
+	return ret;
+}
+
+static int read_uint8_array(uint8_t* buffer, uint8_t *array, size_t n)
+{
+	size_t i;
+	int ret = 0;
+	for (i = 0;i < n;++i) {
+		int size = read_uint8(buffer, &array[i]);
+		buffer += size;
+		ret += size;
+	}
+	return ret;
 }
 
 static void write_float(FILE *fp, float_t value)
 {
 	fwrite(&value, sizeof(value), 1, fp);
+}
+
+static int read_float(uint8_t* buffer, float_t* value)
+{
+	*value = *(float_t*)buffer;
+	return sizeof(*value);
 }
 
 crf1mmw_t* crf1mmw(const char *filename)
@@ -536,7 +573,7 @@ int crf1mmw_close_features(crf1mmw_t* writer)
 	return 0;
 }
 
-int crf1mmw_put_feature(crf1mmw_t* writer, int fid, float_t weight)
+int crf1mmw_put_feature(crf1mmw_t* writer, int fid, const crf1mm_feature_t* f)
 {
 	FILE *fp = writer->fp;
 	feature_header_t* hfeat = writer->hfeat;
@@ -551,15 +588,20 @@ int crf1mmw_put_feature(crf1mmw_t* writer, int fid, float_t weight)
 		return CRFERR_INTERNAL_LOGIC;
 	}
 
-	write_float(fp, weight);
+	write_uint32(fp, f->type);
+	write_uint32(fp, f->src);
+	write_uint32(fp, f->dst);
+	write_float(fp, f->weight);
 	++hfeat->num;
 	return 0;
 }
 
-crf1mm_t* crf1mm(const char *filename)
+crf1mm_t* crf1mm_new(const char *filename)
 {
 	FILE *fp = NULL;
+	uint8_t* p = NULL;
 	crf1mm_t *model = NULL;
+	header_t *header = NULL;
 
 	model = (crf1mm_t*)calloc(1, sizeof(crf1mm_t));
 	if (model == NULL) {
@@ -579,16 +621,32 @@ crf1mm_t* crf1mm(const char *filename)
 	fread(model->buffer, 1, model->size, fp);
 	fclose(fp);
 
-	model->header = (header_t*)model->buffer;
+	/* Write the file header. */
+	header = (header_t*)calloc(1, sizeof(header_t));
+
+	p = model->buffer;
+	p += read_uint8_array(p, header->magic, sizeof(header->magic));
+	p += read_uint32(p, &header->size);
+	p += read_uint8_array(p, header->type, sizeof(header->type));
+	p += read_uint32(p, &header->version);
+	p += read_uint32(p, &header->num_features);
+	p += read_uint32(p, &header->num_labels);
+	p += read_uint32(p, &header->num_attrs);
+	p += read_uint32(p, &header->off_features);
+	p += read_uint32(p, &header->off_labels);
+	p += read_uint32(p, &header->off_attrs);
+	p += read_uint32(p, &header->off_labelrefs);
+	p += read_uint32(p, &header->off_attrrefs);
+	model->header = header;
 
 	model->labels = cqdb_reader(
-		model->buffer + model->header->off_labels,
-		model->size - model->header->off_labels
+		model->buffer + header->off_labels,
+		model->size - header->off_labels
 		);
 
 	model->attrs = cqdb_reader(
-		model->buffer + model->header->off_attrs,
-		model->size - model->header->off_attrs
+		model->buffer + header->off_attrs,
+		model->size - header->off_attrs
 		);
 
 	return model;
@@ -649,4 +707,164 @@ int crf1mm_to_aid(crf1mm_t* model, const char *value)
 	} else {
 		return -1;
 	}
+}
+
+const char *crf1mm_to_attr(crf1mm_t* model, int aid)
+{
+	if (model->attrs != NULL) {
+		return cqdb_to_string(model->attrs, aid);
+	} else {
+		return NULL;
+	}
+}
+
+int crf1mm_get_labelref(crf1mm_t* model, int lid, feature_refs_t* ref)
+{
+	uint32_t page = model->header->off_labelrefs;
+	featureref_header_t* href = (featureref_header_t*)(model->buffer + page);
+	uint32_t offset = href->offsets[lid];
+	ref->num_features = *(uint32_t*)(model->buffer + offset);
+	ref->fids = (int*)(model->buffer + offset + sizeof(uint32_t));
+	return 0;
+}
+
+int crf1mm_get_attrref(crf1mm_t* model, int aid, feature_refs_t* ref)
+{
+	uint32_t page = model->header->off_attrrefs;
+	featureref_header_t* href = (featureref_header_t*)(model->buffer + page);
+	uint32_t offset = href->offsets[aid];
+	ref->num_features = *(uint32_t*)(model->buffer + offset);
+	ref->fids = (int*)(model->buffer + offset + sizeof(uint32_t));
+	return 0;
+}
+
+int crf1mm_get_feature(crf1mm_t* model, int fid, crf1mm_feature_t* f)
+{
+	uint8_t *p = NULL;
+	uint32_t offset = model->header->off_features + sizeof(feature_header_t);
+	offset += (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(float_t)) * fid;
+	p = model->buffer + offset;
+	p += read_uint32(p, &f->type);
+	p += read_uint32(p, &f->src);
+	p += read_uint32(p, &f->dst);
+	p += read_float(p, &f->weight);
+	return 0;
+}
+
+void crf1mm_dump(crf1mm_t* crf1mm, FILE *fp)
+{
+	int i, j;
+	feature_refs_t refs;
+	const header_t* hfile = crf1mm->header;
+
+	/* Dump the file header. */
+	fprintf(fp, "FILEHEADER = {\n");
+	fprintf(fp, "  magic: %c%c%c%c\n",
+		hfile->magic[0], hfile->magic[1], hfile->magic[2], hfile->magic[3]);
+	fprintf(fp, "  size: %d\n", hfile->size);
+	fprintf(fp, "  type: %c%c%c%c\n",
+		hfile->type[0], hfile->type[1], hfile->type[2], hfile->type[3]);
+	fprintf(fp, "  version: %d\n", hfile->version);
+	fprintf(fp, "  num_features: %d\n", hfile->num_features);
+	fprintf(fp, "  num_labels: %d\n", hfile->num_labels);
+	fprintf(fp, "  num_attrs: %d\n", hfile->num_attrs);
+	fprintf(fp, "  off_features: 0x%X\n", hfile->off_features);
+	fprintf(fp, "  off_labels: 0x%X\n", hfile->off_labels);
+	fprintf(fp, "  off_attrs: 0x%X\n", hfile->off_attrs);
+	fprintf(fp, "  off_labelrefs: 0x%X\n", hfile->off_labelrefs);
+	fprintf(fp, "  off_attrrefs: 0x%X\n", hfile->off_attrrefs);
+	fprintf(fp, "}\n");
+	fprintf(fp, "\n");
+
+	/* Dump the labels. */
+	fprintf(fp, "LABELS = {\n");
+	for (i = 0;i < hfile->num_labels;++i) {
+		const char *str = crf1mm_to_label(crf1mm, i);
+		int check = crf1mm_to_lid(crf1mm, str);
+		if (i != check) {
+			fprintf(fp, "WARNING: inconsistent label CQDB\n");
+		}
+		fprintf(fp, "  %5d: %s\n", i, str);
+	}
+	fprintf(fp, "}\n");
+	fprintf(fp, "\n");
+
+	/* Dump the attributes. */
+	fprintf(fp, "ATTRIBUTES = {\n");
+	for (i = 0;i < hfile->num_attrs;++i) {
+		const char *str = crf1mm_to_attr(crf1mm, i);
+		int check = crf1mm_to_aid(crf1mm, str);
+		if (i != check) {
+			fprintf(fp, "WARNING: inconsistent attribute CQDB\n");
+		}
+		fprintf(fp, "  %5d: %s\n", i, str);
+	}
+	fprintf(fp, "}\n");
+	fprintf(fp, "\n");
+
+	/* Dump the transition features. */
+	fprintf(fp, "TRANSITIONS = {\n");
+	for (i = 0;i < hfile->num_labels;++i) {
+		crf1mm_get_labelref(crf1mm, i, &refs);
+		for (j = 0;j < refs.num_features;++j) {
+			crf1mm_feature_t f;
+			int fid = refs.fids[j];
+			const char *from = NULL, *to = NULL;
+
+			crf1mm_get_feature(crf1mm, fid, &f);
+			from = crf1mm_to_label(crf1mm, f.src);
+			to = crf1mm_to_label(crf1mm, f.dst);
+			fprintf(fp, "  (%d) %s --> %s: %f\n", f.type, from, to, f.weight);
+		}
+	}
+	fprintf(fp, "}\n");
+	fprintf(fp, "\n");
+
+	/* Dump the transition features. */
+	fprintf(fp, "TRANSITIONS_FROM_BOS = {\n");
+	crf1mm_get_labelref(crf1mm, hfile->num_labels, &refs);
+	for (j = 0;j < refs.num_features;++j) {
+		crf1mm_feature_t f;
+		int fid = refs.fids[j];
+		const char *to = NULL;
+
+		crf1mm_get_feature(crf1mm, fid, &f);
+		to = crf1mm_to_label(crf1mm, f.dst);
+		fprintf(fp, "  (%d) BOS --> %s: %f\n", f.type, to, f.weight);
+	}
+	fprintf(fp, "}\n");
+	fprintf(fp, "\n");
+
+	/* Dump the transition features. */
+	fprintf(fp, "TRANSITIONS_TO_EOS = {\n");
+	crf1mm_get_labelref(crf1mm, hfile->num_labels+1, &refs);
+	for (j = 0;j < refs.num_features;++j) {
+		crf1mm_feature_t f;
+		int fid = refs.fids[j];
+		const char *from = NULL;
+
+		crf1mm_get_feature(crf1mm, fid, &f);
+		from = crf1mm_to_label(crf1mm, f.src);
+		fprintf(fp, "  (%d) %s --> EOS: %f\n", f.type, from, f.weight);
+	}
+	fprintf(fp, "}\n");
+	fprintf(fp, "\n");
+
+	/* Dump the transition features. */
+	fprintf(fp, "STATE_FEATURES = {\n");
+	for (i = 0;i < hfile->num_attrs;++i) {
+		crf1mm_get_attrref(crf1mm, i, &refs);
+		for (j = 0;j < refs.num_features;++j) {
+			crf1mm_feature_t f;
+			int fid = refs.fids[j];
+			const char *attr = NULL, *to = NULL;
+
+			crf1mm_get_feature(crf1mm, fid, &f);
+			attr = crf1mm_to_attr(crf1mm, f.src);
+			to = crf1mm_to_label(crf1mm, f.dst);
+			fprintf(fp, "  (%d) %s --> %s: %f\n", f.type, attr, to, f.weight);
+		}
+	}
+	fprintf(fp, "}\n");
+	fprintf(fp, "\n");
 }

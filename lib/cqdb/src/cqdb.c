@@ -138,7 +138,7 @@ cqdb_writer_t* cqdb_writer(FILE *fp, int flag)
 		dbw->flag = flag;
 		dbw->fp = fp;
 		dbw->begin = ftell(dbw->fp);
-		dbw->cur = dbw->begin + OFFSET_DATA;
+		dbw->cur = OFFSET_DATA;
 
 		/* Initialize the hash tables.*/
 		for (i = 0;i < NUM_TABLES;++i) {
@@ -150,7 +150,7 @@ cqdb_writer_t* cqdb_writer(FILE *fp, int flag)
 		dbw->bwd_size = 0;
 
 		/* Move the file pointer to the offset to the first key/data pair. */
-		if (fseek(dbw->fp, dbw->cur, SEEK_SET) != 0) {
+		if (fseek(dbw->fp, dbw->begin + dbw->cur, SEEK_SET) != 0) {
 			goto error_exit;	/* Seek error. */
 		}
 	}
@@ -319,7 +319,7 @@ int cqdb_writer_close(cqdb_writer_t* dbw)
 	/* Write the backlink array if specified. */
 	if (!(dbw->flag & CQDB_ONEWAY) && 0 < dbw->bwd_size) {
 		/* Store the offset to the head of this array. */
-		header.bwd_offset = ftell(dbw->fp);
+		header.bwd_offset = ftell(dbw->fp) - dbw->begin;
 		/* Store the contents of the backlink array. */
 		for (i = 0;i < dbw->bwd_num;++i) {
 			write_uint32(dbw, dbw->bwd[i]);

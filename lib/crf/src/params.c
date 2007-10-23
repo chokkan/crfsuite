@@ -29,12 +29,12 @@ typedef struct {
 
 static int params_addref(crf_params_t* params)
 {
-	return crf_interlocked_increment(&params->refcount);
+	return crf_interlocked_increment(&params->nref);
 }
 
 static int params_release(crf_params_t* params)
 {
-	int count = crf_interlocked_decrement(&params->refcount);
+	int count = crf_interlocked_decrement(&params->nref);
 	if (count == 0) {
 		int i;
 		params_t* pars = (params_t*)params->internal;
@@ -153,7 +153,7 @@ crf_params_t* params_create_instance()
 		}
 
 		/* Set member functions. */
-		params->refcount = 1;
+		params->nref = 1;
 		params->addref = params_addref;
 		params->release = params_release;
 		params->set = params_set;
