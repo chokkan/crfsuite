@@ -34,6 +34,13 @@ void crf_content_init(crf_content_t* cont)
 	cont->scale = 1;
 }
 
+void crf_content_set(crf_content_t* cont, int aid, float_t scale)
+{
+	crf_content_init(cont);
+	cont->aid = aid;
+	cont->scale = scale;
+}
+
 void crf_content_copy(crf_content_t* dst, const crf_content_t* src)
 {
 	dst->aid = src->aid;
@@ -285,16 +292,41 @@ static char *safe_strncpy(char *dst, const char *src, size_t n)
 	return dst;
 }
 
-void crf_evaluation_init(crf_evaluation_t* tbl)
+void crf_evaluation_init(crf_evaluation_t* eval, int n)
 {
 	int i;
 
-	for (i = 0;i < tbl->num_labels;++i) {
-		memset(&tbl->tbl[i], 0, sizeof(tbl->tbl[i]));
+	memset(eval, 0, sizeof(*eval));
+	eval->tbl = (crf_label_evaluation_t*)calloc(n, sizeof(crf_label_evaluation_t));
+	if (eval->tbl != NULL) {
+		eval->num_labels = n;
 	}
 }
 
-int crf_evaluation_accmulate(crf_evaluation_t* tbl, const crf_instance_t* reference, const crf_output_t* target)
+void crf_evaluation_clear(crf_evaluation_t* eval)
+{
+	int i;
+	for (i = 0;i < eval->num_labels;++i) {
+		memset(&eval->tbl[i], 0, sizeof(eval->tbl[i]));
+	}
+
+	eval->total_correct = 0;
+	eval->total_model = 0;
+	eval->total_observation = 0;
+	eval->accuracy = 0;
+
+	eval->macro_precision = 0;
+	eval->macro_recall = 0;
+	eval->macro_fmeasure = 0;
+}
+
+void crf_evaluation_finish(crf_evaluation_t* eval)
+{
+	free(eval->tbl);
+	memset(eval, 0, sizeof(*eval));
+}
+
+int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_instance_t* reference, const crf_output_t* target)
 {
 	int t;
 
@@ -307,18 +339,86 @@ int crf_evaluation_accmulate(crf_evaluation_t* tbl, const crf_instance_t* refere
 		int lr = reference->labels[t];
 		int lt = target->labels[t];
 
-		if (tbl->num_labels <= lr || tbl->num_labels <= lt) {
+		if (eval->num_labels <= lr || eval->num_labels <= lt) {
 			return 1;
 		}
 
-		++tbl->tbl[lr].num_observation;
-		++tbl->tbl[lt].num_model;
+		++eval->tbl[lr].num_observation;
+		++eval->tbl[lt].num_model;
 		if (lr == lt) {
-			++tbl->tbl[lr].num_correct;
+			++eval->tbl[lr].num_correct;
 		}
 	}
 
 	return 0;
+}
+
+void crf_evaluation_compute(crf_evaluation_t* eval)
+{
+	int i;
+
+	for (i = 0;i < eval->num_labels;++i) {
+		crf_label_evaluation_t* lev = &eval->tbl[i];
+
+		/* Sum the number of correct labels for accuracy calculation. */
+		eval->total_correct += lev->num_correct;
+		eval->total_model += lev->num_model;
+		eval->total_observation += lev->num_observation;
+
+		/* Initialize the precision, recall, and f1-measure values. */
+		lev->precision = 0;
+		lev->recall = 0;
+		lev->fmeasure = 0;
+
+		/* Compute the precision, recall, and f1-measure values. */
+		if (lev->num_model > 0) {
+			lev->precision = lev->num_correct / (double)lev->num_model;
+		}
+		if (lev->num_observation > 0) {
+			lev->recall = lev->num_correct / (double)lev->num_observation;
+		}
+		if (lev->precision + lev->recall > 0) {
+			lev->fmeasure = lev->precision * lev->recall * 2 / (lev->precision + lev->recall);
+		}
+
+		eval->macro_precision += lev->precision;
+		eval->macro_recall += lev->recall;
+		eval->macro_fmeasure += lev->fmeasure;
+	}
+
+	/* Copute the macro precision, recall, and f1-measure values. */
+	eval->macro_precision /= eval->num_labels;
+	eval->macro_recall /= eval->num_labels;
+	eval->macro_fmeasure /= eval->num_labels;
+
+	/* Compute the accuracy. */
+	eval->accuracy = 0;
+	if (0 < eval->total_model) {
+		eval->accuracy = eval->total_correct / (double)eval->total_model;
+	}
+}
+
+void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FILE *fpo)
+{
+	int i;
+	char *lstr = NULL;
+
+	fprintf(fpo, "Performance (#match, #model, #ref), (prec, rec, f1):\n");
+
+	for (i = 0;i < eval->num_labels;++i) {
+		const crf_label_evaluation_t* lev = &eval->tbl[i];
+
+		labels->to_string(labels, i, &lstr);
+		if (lstr == NULL) lstr = "[UNKNOWN]";
+		fprintf(fpo, "    %s: (%d, %d, %d) (%1.4f, %1.4f, %1.4f)\n",
+			lstr, lev->num_correct, lev->num_model, lev->num_observation,
+			lev->precision, lev->recall, lev->fmeasure
+			);
+		labels->free(labels, lstr);
+	}
+	fprintf(fpo, "Accuracy: %d / %d (%1.4f%%)\n",
+		eval->total_correct, eval->total_observation, eval->accuracy
+		);
 }
 
 int crf_interlocked_increment(int *count)

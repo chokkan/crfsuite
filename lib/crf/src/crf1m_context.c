@@ -61,8 +61,6 @@ crf1m_context_t* crf1mc_new(int L, int T)
 	ctx = (crf1m_context_t*)calloc(1, sizeof(crf1m_context_t));
 	if (ctx != NULL) {
 		ctx->num_labels = L;
-		ctx->num_items = 0;
-		ctx->max_items = T;
 		ctx->log_norm = 0;
 		ctx->trans_score = (float_t*)calloc((L+1) * (L+1), sizeof(float_t));
 		if (ctx->trans_score == NULL) goto error_exit;
@@ -70,6 +68,7 @@ crf1m_context_t* crf1mc_new(int L, int T)
 		if (ret = crf1mc_set_num_items(ctx, T)) {
 			goto error_exit;
 		}
+		ctx->num_items = 0;
 	}
 	return ctx;
 

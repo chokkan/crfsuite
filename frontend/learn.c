@@ -114,7 +114,7 @@ static int evaluate_callback(void *instance, crf_tagger_t* tagger)
 #endif
 
 	/* Initialize the evaluation table. */
-	crf_evaluation_init(&ed->eval);
+	crf_evaluation_clear(&ed->eval);
 
 	/* Tag the evaluation data and accumulate the classification performance. */
 	for (i = 0;i < data->num_instances;++i) {
@@ -336,8 +336,7 @@ int learn(int argc, char *argv[])
 
 	ed.fpo = fpo;
 	ed.best_accuracy = 0;
-	ed.eval.tbl = (crf_label_evaluation_t*)calloc(data.num_labels, sizeof(crf_label_evaluation_t));
-	ed.eval.num_labels = labels->num(labels);
+	crf_evaluation_init(&ed.eval, labels->num(labels));
 	ed.attrs = attrs;
 	ed.labels = labels;
 	ed.out.num_labels = crf_data_maxlength(&eval);
@@ -354,6 +353,7 @@ int learn(int argc, char *argv[])
 	}
 
 force_exit:
+	crf_evaluation_finish(&ed.eval);
 	learn_option_finish(&opt);
 	return ret;
 }

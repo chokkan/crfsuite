@@ -264,7 +264,7 @@ int cqdb_writer_close(cqdb_writer_t* dbw)
 	strncpy(header.chunkid, CHUNKID, 4);
 	header.byteorder = BYTEORDER_CHECK;
 	header.bwd_offset = 0;
-	header.bwd_size = dbw->bwd_size;
+	header.bwd_size = dbw->bwd_num;
 
 	/*
 		Store the hash tables. At this moment, the file pointer refers to

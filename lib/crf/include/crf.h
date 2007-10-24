@@ -88,11 +88,23 @@ typedef struct {
 	int		num_observation;
 	int		num_model;
 	int		num_total;
+	float_t	precision;
+	float_t	recall;
+	float_t	fmeasure;
 } crf_label_evaluation_t;
 
 typedef struct {
-	int num_labels;
+	int		num_labels;
 	crf_label_evaluation_t* tbl;
+
+	int		total_correct;
+	int		total_model;
+	int		total_observation;
+	float_t	accuracy;
+
+	float_t	macro_precision;
+	float_t	macro_recall;
+	float_t	macro_fmeasure;
 } crf_evaluation_t;
 
 
@@ -261,6 +273,7 @@ int crf_create_tagger(
 
 
 void crf_content_init(crf_content_t* cont);
+void crf_content_set(crf_content_t* cont, int aid, float_t scale);
 void crf_content_copy(crf_content_t* dst, const crf_content_t* src);
 void crf_content_swap(crf_content_t* x, crf_content_t* y);
 
@@ -291,8 +304,13 @@ void crf_output_init(crf_output_t* output);
 void crf_output_init_n(crf_output_t* output, int n);
 void crf_output_finish(crf_output_t* outpu);
 
-void crf_evaluation_init(crf_evaluation_t* tbl);
-int crf_evaluation_accmulate(crf_evaluation_t* tbl, const crf_instance_t* reference, const crf_output_t* target);
+void crf_evaluation_init(crf_evaluation_t* eval, int n);
+void crf_evaluation_finish(crf_evaluation_t* eval);
+void crf_evaluation_clear(crf_evaluation_t* eval);
+int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_instance_t* reference, const crf_output_t* target);
+void crf_evaluation_compute(crf_evaluation_t* eval);
+void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FILE *fpo);
+
 
 int crf_interlocked_increment(int *count);
 int crf_interlocked_decrement(int *count);
