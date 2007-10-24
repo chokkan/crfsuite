@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <crf.h>
 #include "option.h"
@@ -97,7 +98,8 @@ static void output_result(FILE *fpo, crf_output_t *output, crf_dictionary_t *lab
 
 static int tag(tagger_option_t* opt, crf_model_t* model)
 {
-	int L = 0, ret = 0, lid = -1;
+	int N = 0, L = 0, ret = 0, lid = -1;
+	clock_t clk0, clk1;
 	crf_instance_t inst;
 	crf_item_t item;
 	crf_content_t cont;
@@ -111,17 +113,17 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 
 	/* Obtain the dictionary interface representing the labels in the model. */
 	if (ret = model->get_labels(model, &labels)) {
-		goto error_exit;
+		goto force_exit;
 	}
 
 	/* Obtain the dictionary interface representing the attributes in the model. */
 	if (ret = model->get_attrs(model, &attrs)) {
-		goto error_exit;
+		goto force_exit;
 	}
 
 	/* Obtain the tagger interface. */
 	if (ret = model->get_tagger(model, &tagger)) {
-		goto error_exit;
+		goto force_exit;
 	}
 
 	/* Initialize the objects for instance and evaluation. */
@@ -135,7 +137,7 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 		fprintf(fpe, "ERROR: failed to open the stream for the input data,\n");
 		fprintf(fpe, "  %s\n", opt->input);
 		ret = 1;
-		goto error_exit;
+		goto force_exit;
 	}
 
 	/* Open a IWA reader. */
@@ -143,10 +145,11 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 	if (iwa == NULL) {
 		fprintf(fpe, "ERROR: Failed to initialize the parser for the input data.\n");
 		ret = 1;
-		goto error_exit;
+		goto force_exit;
 	}
 
 	/* Read the input data and assign labels. */
+	clk0 = clock();
 	while (token = iwa_read(iwa), token != NULL) {
 		switch (token->type) {
 		case IWA_BOI:
@@ -182,8 +185,9 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 
 				/* Tag the instance. */
 				if (ret = tagger->tag(tagger, &inst, &output)) {
-					goto error_exit;
+					goto force_exit;
 				}
+				++N;
 
 				/* Accumulate the tagging performance. */
 				if (opt->evaluate) {
@@ -202,11 +206,14 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 			break;
 		}
 	}
+	clk1 = clock();
 
 	/* Compute the performance if specified. */
 	if (opt->evaluate) {
+		double sec = (clk1 - clk0) / (double)CLOCKS_PER_SEC;
 		crf_evaluation_compute(&eval);
 		crf_evaluation_output(&eval, labels, fpo);
+		fprintf(fpo, "Elapsed time: %f [sec] (%.1f [instance/sec])\n", sec, N / sec);
 	}
 
 force_exit:
@@ -265,7 +272,7 @@ int main_tag(int argc, char *argv[], const char *argv0)
 		if (ret = crf_create_instance_from_file(opt.model, &model)) {
 			goto force_exit;
 		}
-		
+
 		/* Tag the input data. */
 		if (ret = tag(&opt, model)) {
 			goto force_exit;

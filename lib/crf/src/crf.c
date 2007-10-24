@@ -438,7 +438,6 @@ void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FIL
 	fprintf(fpo, "Macro-average precision, recall, F1: (%f, %f, %f)\n",
 		eval->macro_precision, eval->macro_recall, eval->macro_fmeasure
 		);
-	fprintf(fpo, "\n");
 	fprintf(fpo, "Item accuracy: %d / %d (%1.4f)\n",
 		eval->item_total_correct, eval->item_total_observation, eval->item_accuracy
 		);
