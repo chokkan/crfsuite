@@ -15,6 +15,7 @@ typedef struct {
 	char *model;		/**< Filename of the model. */
 	int evaluate;		/**< Evaluate the tagging performance. */
 	int quiet;
+	int help;			/**< Show help message and exit. */
 
 	int num_params;
 	char **params;
@@ -55,6 +56,9 @@ BEGIN_OPTION_MAP(parse_tagger_options, tagger_option_t)
 
 	ON_OPTION(SHORTOPT('q') || LONGOPT("quiet"))
 		opt->quiet = 1;
+
+	ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
+		opt->help = 1;
 
 	ON_OPTION_WITH_ARG(SHORTOPT('p') || LONGOPT("param"))
 		opt->params = (char **)realloc(opt->params, sizeof(char*) * (opt->num_params + 1));
@@ -204,17 +208,18 @@ error_exit:
 	return ret;
 }
 
-int main_tag(int argc, char *argv[])
+int main_tag(int argc, char *argv[], const char *argv0)
 {
 	int i;
 	int ret = 0, arg_used = 0;
 	tagger_option_t opt;
+	const char *command = argv[0];
 	FILE *fp = NULL, *fpi = stdin, *fpo = stdout, *fpe = stderr;
 	crf_model_t *model = NULL;
 
 	/* Parse the command-line option. */
 	tagger_option_init(&opt);
-	arg_used = option_parse(argv, argc, parse_tagger_options, &opt);
+	arg_used = option_parse(++argv, --argc, parse_tagger_options, &opt);
 	if (arg_used < 0) {
 		return -1;
 	}

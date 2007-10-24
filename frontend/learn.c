@@ -222,10 +222,11 @@ static int evaluate_callback(void *instance, crf_tagger_t* tagger)
 	return 0;
 }
 
-int learn(int argc, char *argv[])
+int main_learn(int argc, char *argv[], const char *argv0)
 {
 	int i, ret = 0, arg_used = 0;
 	learn_option_t opt;
+	const char *command = argv[0];
 	FILE *fp = NULL, *fpi = stdin, *fpo = stdout, *fpe = stderr;
 	crf_data_t data, eval;
 	crf_trainer_t *trainer = NULL;
@@ -234,7 +235,7 @@ int learn(int argc, char *argv[])
 
 	/* Parse the command-line option. */
 	learn_option_init(&opt);
-	arg_used = option_parse(argv, argc, parse_learn_options, &opt);
+	arg_used = option_parse(++argv, --argc, parse_learn_options, &opt);
 	if (arg_used < 0) {
 		return -1;
 	}

@@ -58,6 +58,11 @@ int option_strcmp(const char *option, const char *longname);
 #define	END_OPTION_MAP() \
 			return used_args; \
 		} \
+		if (__c != 0) { \
+			fprintf(stderr, "Unrecognized option -%c\n", __c); \
+		} else if (__longname != NULL) { \
+			fprintf(stderr, "Unrecognized option --%s\n", __longname); \
+		} \
 		return -1; \
 	} \
 
