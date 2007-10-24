@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
 #define	COPYRIGHT_S		"Copyright (c) 2007 Naoaki Okazaki"
 
 int learn(int argc, char *argv[]);
-int tag(int argc, char *argv[]);
+int main_tag(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
 	fprintf(fpo, "\n");
 
 	//return learn(argc-1, argv+1);
-	return tag(argc-1, argv+1);
+	return main_tag(argc-1, argv+1);
 }
 
 #endif

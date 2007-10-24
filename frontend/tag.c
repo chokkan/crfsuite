@@ -6,7 +6,7 @@
 
 #include <crf.h>
 #include "option.h"
-#include "readdata.h"
+#include "iwa.h"
 
 typedef struct {
 	char *input;
@@ -50,15 +50,15 @@ BEGIN_OPTION_MAP(parse_tagger_options, tagger_option_t)
 
 END_OPTION_MAP()
 
-int tag(int argc, char *argv[])
+int main_tag(int argc, char *argv[])
 {
+	int i;
 	int ret = 0, arg_used = 0;
 	tagger_option_t opt;
 	FILE *fp = NULL, *fpi = stdin, *fpo = stdout, *fpe = stderr;
 	crf_model_t *model = NULL;
 	crf_tagger_t *tagger = NULL;
 	crf_dictionary_t *attrs = NULL, *labels = NULL;
-	int aid;
 
 	/* Parse the command-line option. */
 	tagger_option_init(&opt);
@@ -74,14 +74,102 @@ int tag(int argc, char *argv[])
 		opt.input = strdup("-");	/* STDIN. */
 	}
 
+	/* Read the model. */
 	if (opt.model != NULL) {
-		crf_create_instance_from_file(opt.model, &model);
+		/* Create a model instance corresponding to the model file. */
+		if (ret = crf_create_instance_from_file(opt.model, &model)) {
+			goto force_exit;
+		}
+		
+		/* Obtain the dictionary interface for the labels in the model. */
+		if (ret = model->get_labels(model, &labels)) {
+			goto force_exit;
+		}
 
-		model->get_attrs(model, &attrs);
-		model->get_labels(model, &labels);
-		//model->get_tagger(model, &tagger);
+		/* Obtain the dictionary interface for the attributes in the model. */
+		if (ret = model->get_attrs(model, &attrs)) {
+			goto force_exit;
+		}
 
-		model->dump(model, stdout);
+		/* Obtain the tagger interface. */
+		if (ret = model->get_tagger(model, &tagger)) {
+			goto force_exit;
+		}
+
+		//model->dump(model, stdout);
+	}
+
+	if (tagger != NULL && attrs != NULL && labels != NULL) {
+		int lid = -1;
+		crf_instance_t inst;
+		crf_item_t item;
+		crf_content_t cont;
+		crf_output_t output;
+		crf_evaluation_t eval;
+		FILE *fp = NULL;
+		iwa_t* iwa = NULL;
+		const iwa_token_t* token = NULL;
+
+		/* Initialize the instance.*/
+		crf_instance_init(&inst);
+
+		/* Initialize the evaluation table. */
+		crf_evaluation_init(&eval);
+
+		/* Open the input stream. */
+		fp = (strcmp(opt.input, "-") == 0) ? fpi : fopen(opt.input, "r");
+		if (fp == NULL) {
+
+		}
+
+		iwa = iwa_reader(fp);
+		while (token = iwa_read(iwa), token != NULL) {
+			switch (token->type) {
+			case IWA_BOI:
+				/* Initialize an item. */
+				lid = -1;
+				crf_item_init(&item);
+				break;
+			case IWA_EOI:
+				/* Append the item to the instance. */
+				crf_instance_append(&inst, &item, lid);
+				crf_item_finish(&item);
+				break;
+			case IWA_ITEM:
+				if (lid == -1) {
+					lid = labels->to_id(labels, token->attr);
+				} else {
+					int aid = attrs->to_id(attrs, token->attr);
+					if (0 <= aid) {
+						crf_content_init(&cont);
+						cont.aid = aid;
+						crf_item_append_content(&item, &cont);
+					}
+				}
+				break;
+			case IWA_NONE:
+				/* Tag the instance. */
+				if (0 < inst.num_items) {
+					crf_output_init(&output);
+					tagger->tag(tagger, &inst, &output);
+					crf_evaluation_accmulate(&eval, &inst, &output);
+					fprintf(fpo, "BOS (%f)\n", output.probability);
+					for (i = 0;i < output.num_labels;++i) {
+						char *label = NULL;
+						labels->to_string(labels, output.labels[i], &label);
+						fprintf(fpo, "%s\n", label);
+						labels->free(labels, label);
+					}
+					fprintf(fpo, "EOS\n");
+					crf_output_finish(&output);
+					crf_instance_finish(&inst);
+				}
+				break;
+			case IWA_COMMENT:
+				break;
+			}
+		}
+
 	}
 
 force_exit:

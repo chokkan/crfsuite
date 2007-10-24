@@ -174,12 +174,12 @@ struct tag_crf_tagger {
 	/**
 	 * Increment the reference counter.
 	 */
-	int (*addref)(crf_tagger_t* trainer);
+	int (*addref)(crf_tagger_t* tagger);
 
 	/**
 	 * Decrement the reference counter.
 	 */
-	int (*release)(crf_tagger_t* trainer);
+	int (*release)(crf_tagger_t* tagger);
 
 	/**
 	 * Tag an input sequence.
@@ -286,6 +286,10 @@ void crf_data_swap(crf_data_t* x, crf_data_t* y);
 int  crf_data_append(crf_data_t* data, const crf_instance_t* inst);
 int  crf_data_maxlength(crf_data_t* data);
 int  crf_data_totalitems(crf_data_t* data);
+
+void crf_output_init(crf_output_t* output);
+void crf_output_init_n(crf_output_t* output, int n);
+void crf_output_finish(crf_output_t* outpu);
 
 void crf_evaluation_init(crf_evaluation_t* tbl);
 int crf_evaluation_accmulate(crf_evaluation_t* tbl, const crf_instance_t* reference, const crf_output_t* target);

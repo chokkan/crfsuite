@@ -123,7 +123,8 @@ typedef struct {
 
 
 /* crf1m_common.c */
-crf1m_context_t* crf1mc_new(const int L, const int T);
+crf1m_context_t* crf1mc_new(int L, int T);
+int crf1mc_set_num_items(crf1m_context_t* ctx, int T);
 void crf1mc_delete(crf1m_context_t* ctx);
 void crf1mc_forward_score(crf1m_context_t* ctx);
 void crf1mc_backward_score(crf1m_context_t* ctx);
@@ -265,6 +266,13 @@ int crf1mm_get_attrref(crf1mm_t* model, int aid, feature_refs_t* ref);
 int crf1mm_get_feature(crf1mm_t* model, int fid, crf1mm_feature_t* f);
 void crf1mm_dump(crf1mm_t* model, FILE *fp);
 
+/* crf1m_tag.c */
+struct tag_crf1mt;
+typedef struct tag_crf1mt crf1mt_t;
+
+crf1mt_t *crf1mt_new(crf1mm_t* crf1mm);
+void crf1mt_delete(crf1mt_t* crf1mt);
+int crf1mt_tag(crf1mt_t* crf1mt, crf_instance_t *inst, crf_output_t* output);
 
 
 #endif/*__CRF1M_H__*/

@@ -175,15 +175,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\crf1m_learn.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\crf1m_model.c"
 				>
 			</File>
 			<File
 				RelativePath=".\src\crf1m_tag.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\crf1m_train.c"
 				>
 			</File>
 		</Filter>

@@ -257,6 +257,26 @@ int  crf_data_totalitems(crf_data_t* data)
 	return n;
 }
 
+void crf_output_init(crf_output_t* output)
+{
+	memset(output, 0, sizeof(*output));
+}
+
+void crf_output_init_n(crf_output_t* output, int n)
+{
+	crf_output_init(output);
+	output->labels = (int*)calloc(n, sizeof(int));
+	if (output->labels != NULL) {
+		output->num_labels = n;
+	}
+}
+
+void crf_output_finish(crf_output_t* output)
+{
+	free(output->labels);
+	crf_output_init(output);	
+}
+
 
 static char *safe_strncpy(char *dst, const char *src, size_t n)
 {

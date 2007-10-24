@@ -53,8 +53,9 @@ inline static float_t logsumexp(float_t x, float_t y, int flag)
 		vmax : vmax + log(exp(vmin - vmax) + 1.0);
 }
 
-crf1m_context_t* crf1mc_new(const int L, const int T)
+crf1m_context_t* crf1mc_new(int L, int T)
 {
+	int ret = 0;
 	crf1m_context_t* ctx = NULL;
 	
 	ctx = (crf1m_context_t*)calloc(1, sizeof(crf1m_context_t));
@@ -63,18 +64,12 @@ crf1m_context_t* crf1mc_new(const int L, const int T)
 		ctx->num_items = 0;
 		ctx->max_items = T;
 		ctx->log_norm = 0;
-		ctx->labels = (int*)calloc(T, sizeof(int));
-		if (ctx->labels == NULL) goto error_exit;
-		ctx->forward_score = (float_t*)calloc((T+1) * L, sizeof(float_t));
-		if (ctx->forward_score == NULL) goto error_exit;
-		ctx->backward_score = (float_t*)calloc((T+1) * L, sizeof(float_t));
-		if (ctx->backward_score == NULL) goto error_exit;
-		ctx->state_score = (float_t*)calloc(T * L, sizeof(float_t));
-		if (ctx->state_score == NULL) goto error_exit;
 		ctx->trans_score = (float_t*)calloc((L+1) * (L+1), sizeof(float_t));
 		if (ctx->trans_score == NULL) goto error_exit;
-		ctx->backward_edge = (int*)calloc(T * L, sizeof(int));
-		if (ctx->backward_edge == NULL) goto error_exit;
+
+		if (ret = crf1mc_set_num_items(ctx, T)) {
+			goto error_exit;
+		}
 	}
 	return ctx;
 
@@ -83,15 +78,45 @@ error_exit:
 	return NULL;
 }
 
-void crf1mc_delete(crf1m_context_t* ctx)
+int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
 {
-	if (ctx != NULL) {
+	const int L = ctx->num_labels;
+
+	ctx->num_items = T;
+
+	if (ctx->max_items < T) {
 		free(ctx->backward_edge);
-		free(ctx->trans_score);
 		free(ctx->state_score);
 		free(ctx->backward_score);
 		free(ctx->forward_score);
 		free(ctx->labels);
+
+		ctx->labels = (int*)calloc(T, sizeof(int));
+		if (ctx->labels == NULL) return CRFERR_OUTOFMEMORY;
+		ctx->forward_score = (float_t*)calloc((T+1) * L, sizeof(float_t));
+		if (ctx->forward_score == NULL) return CRFERR_OUTOFMEMORY;
+		ctx->backward_score = (float_t*)calloc((T+1) * L, sizeof(float_t));
+		if (ctx->backward_score == NULL) return CRFERR_OUTOFMEMORY;
+		ctx->state_score = (float_t*)calloc(T * L, sizeof(float_t));
+		if (ctx->state_score == NULL) return CRFERR_OUTOFMEMORY;
+		ctx->backward_edge = (int*)calloc(T * L, sizeof(int));
+		if (ctx->backward_edge == NULL) return CRFERR_OUTOFMEMORY;
+
+		ctx->max_items = T;
+	}
+
+	return 0;
+}
+
+void crf1mc_delete(crf1m_context_t* ctx)
+{
+	if (ctx != NULL) {
+		free(ctx->backward_edge);
+		free(ctx->state_score);
+		free(ctx->backward_score);
+		free(ctx->forward_score);
+		free(ctx->labels);
+		free(ctx->trans_score);
 	}
 	free(ctx);
 }
