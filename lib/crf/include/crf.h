@@ -97,10 +97,14 @@ typedef struct {
 	int		num_labels;
 	crf_label_evaluation_t* tbl;
 
-	int		total_correct;
-	int		total_model;
-	int		total_observation;
-	float_t	accuracy;
+	int		item_total_correct;
+	int		item_total_model;
+	int		item_total_observation;
+	float_t	item_accuracy;
+
+	int		inst_total_correct;
+	int		inst_total_num;
+	float_t	inst_accuracy;
 
 	float_t	macro_precision;
 	float_t	macro_recall;

@@ -297,7 +297,7 @@ void crf_evaluation_init(crf_evaluation_t* eval, int n)
 	int i;
 
 	memset(eval, 0, sizeof(*eval));
-	eval->tbl = (crf_label_evaluation_t*)calloc(n, sizeof(crf_label_evaluation_t));
+	eval->tbl = (crf_label_evaluation_t*)calloc(n+1, sizeof(crf_label_evaluation_t));
 	if (eval->tbl != NULL) {
 		eval->num_labels = n;
 	}
@@ -306,14 +306,18 @@ void crf_evaluation_init(crf_evaluation_t* eval, int n)
 void crf_evaluation_clear(crf_evaluation_t* eval)
 {
 	int i;
-	for (i = 0;i < eval->num_labels;++i) {
+	for (i = 0;i <= eval->num_labels;++i) {
 		memset(&eval->tbl[i], 0, sizeof(eval->tbl[i]));
 	}
 
-	eval->total_correct = 0;
-	eval->total_model = 0;
-	eval->total_observation = 0;
-	eval->accuracy = 0;
+	eval->item_total_correct = 0;
+	eval->item_total_model = 0;
+	eval->item_total_observation = 0;
+	eval->item_accuracy = 0;
+
+	eval->inst_total_correct = 0;
+	eval->inst_total_num = 0;
+	eval->inst_accuracy = 0;
 
 	eval->macro_precision = 0;
 	eval->macro_recall = 0;
@@ -328,7 +332,7 @@ void crf_evaluation_finish(crf_evaluation_t* eval)
 
 int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_instance_t* reference, const crf_output_t* target)
 {
-	int t;
+	int t, nc = 0;
 
 	/* Make sure that the reference and target sequences have the output labels of the same length. */
 	if (reference->num_items != target->num_labels) {
@@ -347,8 +351,14 @@ int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_instance_t* refer
 		++eval->tbl[lt].num_model;
 		if (lr == lt) {
 			++eval->tbl[lr].num_correct;
+			++nc;
 		}
 	}
+
+	if (nc == target->num_labels) {
+		++eval->inst_total_correct;
+	}
+	++eval->inst_total_num;
 
 	return 0;
 }
@@ -357,13 +367,13 @@ void crf_evaluation_compute(crf_evaluation_t* eval)
 {
 	int i;
 
-	for (i = 0;i < eval->num_labels;++i) {
+	for (i = 0;i <= eval->num_labels;++i) {
 		crf_label_evaluation_t* lev = &eval->tbl[i];
 
 		/* Sum the number of correct labels for accuracy calculation. */
-		eval->total_correct += lev->num_correct;
-		eval->total_model += lev->num_model;
-		eval->total_observation += lev->num_observation;
+		eval->item_total_correct += lev->num_correct;
+		eval->item_total_model += lev->num_model;
+		eval->item_total_observation += lev->num_observation;
 
 		/* Initialize the precision, recall, and f1-measure values. */
 		lev->precision = 0;
@@ -381,9 +391,12 @@ void crf_evaluation_compute(crf_evaluation_t* eval)
 			lev->fmeasure = lev->precision * lev->recall * 2 / (lev->precision + lev->recall);
 		}
 
-		eval->macro_precision += lev->precision;
-		eval->macro_recall += lev->recall;
-		eval->macro_fmeasure += lev->fmeasure;
+		/* Exclude unknown labels from calculation of macro-average values. */
+		if (i != eval->num_labels) {
+			eval->macro_precision += lev->precision;
+			eval->macro_recall += lev->recall;
+			eval->macro_fmeasure += lev->fmeasure;
+		}
 	}
 
 	/* Copute the macro precision, recall, and f1-measure values. */
@@ -391,10 +404,16 @@ void crf_evaluation_compute(crf_evaluation_t* eval)
 	eval->macro_recall /= eval->num_labels;
 	eval->macro_fmeasure /= eval->num_labels;
 
-	/* Compute the accuracy. */
-	eval->accuracy = 0;
-	if (0 < eval->total_model) {
-		eval->accuracy = eval->total_correct / (double)eval->total_model;
+	/* Compute the item accuracy. */
+	eval->item_accuracy = 0;
+	if (0 < eval->item_total_model) {
+		eval->item_accuracy = eval->item_total_correct / (double)eval->item_total_model;
+	}
+
+	/* Compute the instance accuracy. */
+	eval->inst_accuracy = 0;
+	if (0 < eval->inst_total_num) {
+		eval->inst_accuracy = eval->inst_total_correct / (double)eval->inst_total_num;
 	}
 }
 
@@ -403,7 +422,7 @@ void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FIL
 	int i;
 	char *lstr = NULL;
 
-	fprintf(fpo, "Performance (#match, #model, #ref), (prec, rec, f1):\n");
+	fprintf(fpo, "Performance by label (#match, #model, #ref) (precision, recall, F1):\n");
 
 	for (i = 0;i < eval->num_labels;++i) {
 		const crf_label_evaluation_t* lev = &eval->tbl[i];
@@ -416,8 +435,15 @@ void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FIL
 			);
 		labels->free(labels, lstr);
 	}
-	fprintf(fpo, "Accuracy: %d / %d (%1.4f%%)\n",
-		eval->total_correct, eval->total_observation, eval->accuracy
+	fprintf(fpo, "Macro-average precision, recall, F1: (%f, %f, %f)\n",
+		eval->macro_precision, eval->macro_recall, eval->macro_fmeasure
+		);
+	fprintf(fpo, "\n");
+	fprintf(fpo, "Item accuracy: %d / %d (%1.4f)\n",
+		eval->item_total_correct, eval->item_total_observation, eval->item_accuracy
+		);
+	fprintf(fpo, "Instance accuracy: %d / %d (%1.4f)\n",
+		eval->inst_total_correct, eval->inst_total_num, eval->inst_accuracy
 		);
 }
 

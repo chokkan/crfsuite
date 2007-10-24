@@ -109,7 +109,7 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 	/* Initialize the objects for instance and evaluation. */
 	L = labels->num(labels);
 	crf_instance_init(&inst);
-	crf_evaluation_init(&eval, L+1);
+	crf_evaluation_init(&eval, L);
 
 	/* Open the stream for the input data. */
 	fp = (strcmp(opt->input, "-") == 0) ? fpi : fopen(opt->input, "r");
