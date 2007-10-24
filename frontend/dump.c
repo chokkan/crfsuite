@@ -54,7 +54,7 @@ int main_dump(int argc, char *argv[], const char *argv0)
 		goto force_exit;
 	}
 
-	/* Show the help message for this command. */
+	/* Show the help message for this command if specified. */
 	if (opt.help) {
 		show_usage(fpo, argv0, command);
 		goto force_exit;

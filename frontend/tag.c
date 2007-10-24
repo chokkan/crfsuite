@@ -11,11 +11,11 @@
 #define	SAFE_RELEASE(obj)	if ((obj) != NULL) { (obj)->release(obj); (obj) = NULL; }
 
 typedef struct {
-	char *input;		/**< Filename of the input data. */
-	char *model;		/**< Filename of the model. */
-	int evaluate;		/**< Evaluate the tagging performance. */
+	char *input;
+	char *model;
+	int evaluate;
 	int quiet;
-	int help;			/**< Show help message and exit. */
+	int help;
 
 	int num_params;
 	char **params;
@@ -67,7 +67,21 @@ BEGIN_OPTION_MAP(parse_tagger_options, tagger_option_t)
 
 END_OPTION_MAP()
 
-static int output_result(FILE *fpo, crf_output_t *output, crf_dictionary_t *labels)
+static void show_usage(FILE *fp, const char *argv0, const char *command)
+{
+	fprintf(fp, "USAGE: %s %s [OPTIONS] [DATA]\n", argv0, command);
+	fprintf(fp, "Assign suitable labels to the instances in the data set given by a file (DATA).\n");
+	fprintf(fp, "If the argument DATA is omitted or '-', this utility reads a data from STDIN.\n");
+	fprintf(fp, "Evaluate the performance of the model on labeled instances (with -e option).\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "OPTIONS:\n");
+	fprintf(fp, "    -m, --model     Specify the model used for tagging\n");
+	fprintf(fp, "    -e, --evaluate  Report the performance of the model on the labeled data\n");
+	fprintf(fp, "    -q, --quiet     Suppress tagging results (useful for evaluation)\n");
+	fprintf(fp, "    -h, --help      Show the usage of this command\n");
+}
+
+static void output_result(FILE *fpo, crf_output_t *output, crf_dictionary_t *labels)
 {
 	int i;
 
@@ -120,11 +134,19 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 	if (fp == NULL) {
 		fprintf(fpe, "ERROR: failed to open the stream for the input data,\n");
 		fprintf(fpe, "  %s\n", opt->input);
+		ret = 1;
 		goto error_exit;
 	}
 
 	/* Open a IWA reader. */
 	iwa = iwa_reader(fp);
+	if (iwa == NULL) {
+		fprintf(fpe, "ERROR: Failed to initialize the parser for the input data.\n");
+		ret = 1;
+		goto error_exit;
+	}
+
+	/* Read the input data and assign labels. */
 	while (token = iwa_read(iwa), token != NULL) {
 		switch (token->type) {
 		case IWA_BOI:
@@ -141,7 +163,7 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 			if (lid == -1) {
 				/* The first field in a line presents a label. */
 				lid = labels->to_id(labels, token->attr);
-				if (lid < 0) lid = L;
+				if (lid < 0) lid = L;	/* #L stands for a unknown label. */
 			} else {
 				/* Fields after the first field present attributes. */
 				int aid = attrs->to_id(attrs, token->attr);
@@ -187,12 +209,12 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 		crf_evaluation_output(&eval, labels, fpo);
 	}
 
-error_exit:
-	if (iwa != NULL) {
-		iwa_delete(iwa);
-		iwa = NULL;
-	}
+force_exit:
+	/* Close the IWA parser. */
+	iwa_delete(iwa);
+	iwa = NULL;
 
+	/* Close the input stream if necessary. */
 	if (fp != NULL && fp != fpi) {
 		fclose(fp);
 		fp = NULL;
@@ -210,7 +232,6 @@ error_exit:
 
 int main_tag(int argc, char *argv[], const char *argv0)
 {
-	int i;
 	int ret = 0, arg_used = 0;
 	tagger_option_t opt;
 	const char *command = argv[0];
@@ -221,7 +242,14 @@ int main_tag(int argc, char *argv[], const char *argv0)
 	tagger_option_init(&opt);
 	arg_used = option_parse(++argv, --argc, parse_tagger_options, &opt);
 	if (arg_used < 0) {
-		return -1;
+		ret = 1;
+		goto force_exit;
+	}
+
+	/* Show the help message for this command if specified. */
+	if (opt.help) {
+		show_usage(fpo, argv0, command);
+		goto force_exit;
 	}
 
 	/* Set an input file. */
@@ -238,8 +266,10 @@ int main_tag(int argc, char *argv[], const char *argv0)
 			goto force_exit;
 		}
 		
-		tag(&opt, model);
-		//model->dump(model, stdout);
+		/* Tag the input data. */
+		if (ret = tag(&opt, model)) {
+			goto force_exit;
+		}
 	}
 
 force_exit:

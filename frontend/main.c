@@ -49,7 +49,6 @@ static void show_usage(FILE *fp, const char *argv0)
 	fprintf(fp, "COMMAND:\n");
 	fprintf(fp, "    learn       Obtain a model from a training set of instances\n");
 	fprintf(fp, "    tag         Assign suitable labels to given instances by using the model\n");
-	fprintf(fp, "    test        Measure the performance of a model on a holdout data\n");
 	fprintf(fp, "    dump        Output the model in a plain-text format\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "For the usage of each command, specify -h option followed by the command.\n");
