@@ -1,0 +1,110 @@
+dnl $Id:$
+dnl
+dnl
+dnl Exported and configured variables:
+dnl CFLAGS
+dnl LDFLAGS
+dnl INCLUDES
+
+
+dnl ------------------------------------------------------------------
+dnl Initialization for autoconf
+dnl ------------------------------------------------------------------
+AC_PREREQ(2.61)
+AC_INIT
+AC_CONFIG_SRCDIR([frontend/main.c])
+
+
+dnl ------------------------------------------------------------------
+dnl Checks for system
+dnl ------------------------------------------------------------------
+AC_CANONICAL_HOST
+AC_AIX
+AC_MINIX
+AC_ISC_POSIX
+
+
+dnl ------------------------------------------------------------------
+dnl Initialization for automake
+dnl ------------------------------------------------------------------
+AM_INIT_AUTOMAKE(libcrf, 0.1)
+AC_CONFIG_HEADERS(config.h)
+AM_MAINTAINER_MODE
+AM_C_PROTOTYPES
+
+
+dnl ------------------------------------------------------------------
+dnl Checks for program
+dnl ------------------------------------------------------------------
+AC_PROG_LIBTOOL
+AC_PROG_INSTALL
+AC_PROG_LN_S
+
+
+dnl ------------------------------------------------------------------
+dnl Initialization for variables
+dnl ------------------------------------------------------------------
+CFLAGS="${ac_save_CFLAGS}"
+LDFLAGS="${ac_save_LDFLAGS}"
+INCLUDES="-I\$(top_srcdir) -I\$(top_srcdir)/include -I\$(srcdir)"
+
+
+dnl ------------------------------------------------------------------
+dnl Checks for header files.
+dnl ------------------------------------------------------------------
+AC_HEADER_STDC
+AC_CHECK_HEADERS(fcntl.h limits.h malloc.h strings.h unistd.h stdint.h)
+
+
+dnl ------------------------------------------------------------------
+dnl Checks for typedefs, structures, and compiler characteristics.
+dnl ------------------------------------------------------------------
+AC_C_CONST
+AC_CHECK_SIZEOF
+AC_TYPE_SIZE_T
+AC_STRUCT_TM
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(unsigned short)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(unsigned int)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(unsigned long)
+
+AC_CHECK_TYPES([uint8_t, uint16_t, uint32_t])
+
+dnl ------------------------------------------------------------------
+dnl Checks for debugging mode
+dnl ------------------------------------------------------------------
+AC_ARG_ENABLE(
+  debug,
+  [AS_HELP_STRING([--enable-debug],[Turn on debugging])]
+)
+
+if test "$enable_debug" = "yes"; then
+   CFLAGS="-DDEBUG -O -g ${CFLAGS}"
+fi
+
+
+dnl ------------------------------------------------------------------
+dnl Checks for library functions.
+dnl ------------------------------------------------------------------
+AC_FUNC_ALLOCA
+AC_FUNC_MEMCMP
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS(strdup strerror strtol strtoul)
+
+dnl Check for math library
+AC_CHECK_LIB(m, rand)
+
+dnl ------------------------------------------------------------------
+dnl Export variables
+dnl ------------------------------------------------------------------
+AC_SUBST(CFLAGS)
+AC_SUBST(LDFLAGS)
+AC_SUBST(INCLUDES)
+
+dnl ------------------------------------------------------------------
+dnl Output the configure results.
+dnl ------------------------------------------------------------------
+AC_CONFIG_FILES(Makefile frontend/Makefile lib/crf/Makefile lib/lbfgs/Makefile lib/cqdb/Makefile)
+AC_OUTPUT

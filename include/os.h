@@ -17,7 +17,7 @@
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #ifndef	__OS_H__
 #define	__OS_H__
@@ -29,7 +29,6 @@ typedef double float_t;
 
 //#define	__SSE__ 1
 #define	LBFGS_FLOAT		64
-typedef double float_t;
 
 #ifdef	_MSC_VER
 /* Microsoft Visual C/C++ specific */

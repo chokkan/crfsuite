@@ -1,0 +1,37 @@
+# $Id:$
+
+lib_LTLIBRARIES = libcrf.la
+
+libcrf_la_SOURCES = \
+	src/dictionary.c \
+	src/logging.c \
+	src/logging.h \
+	src/params.c \
+	src/params.h \
+	src/quark.c \
+	src/quark.h \
+	src/rumavl.c \
+	src/rumavl.h \
+	src/crf1m.c \
+	src/crf1m.h \
+	src/crf1m_context.c \
+	src/crf1m_feature.c \
+	src/crf1m_learn.c \
+	src/crf1m_model.c \
+	src/crf1m_tag.c \
+	include/crf.h 
+	src/crf.c
+
+
+crf_CFLAGS = -I./include -I$(top_builddir)/lib/lbfgs/include -I$(top_builddir)/lib/cqdb/include 
+
+libcrf_la_LDFLAGS = \
+	-no-undefined \
+	-release @VERSION@
+
+libcrf_la_LIBADD = \
+	$(top_builddir)/lib/lbfgs/liblbfgs.la \
+	$(top_builddir)/lib/cqdb/libcqdb.la
+
+AM_CFLAGS = @CFLAGS@
+INCLUDES = @INCLUDES@
