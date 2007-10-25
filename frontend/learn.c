@@ -105,7 +105,9 @@ END_OPTION_MAP()
 
 static int trainer_callback(void *instance, const char *format, va_list args)
 {
-	vfprintf(stdout, format, args);
+	FILE *fpo = stdout;
+	vfprintf(fpo, format, args);
+	fflush(fpo);
 	return 0;
 }
 
