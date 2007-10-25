@@ -126,14 +126,14 @@ static int read_uint8_array(uint8_t* buffer, uint8_t *array, size_t n)
 	return ret;
 }
 
-static void write_float(FILE *fp, float_t value)
+static void write_float(FILE *fp, floatval_t value)
 {
 	fwrite(&value, sizeof(value), 1, fp);
 }
 
-static int read_float(uint8_t* buffer, float_t* value)
+static int read_float(uint8_t* buffer, floatval_t* value)
 {
-	*value = *(float_t*)buffer;
+	*value = *(floatval_t*)buffer;
 	return sizeof(*value);
 }
 
@@ -742,7 +742,7 @@ int crf1mm_get_feature(crf1mm_t* model, int fid, crf1mm_feature_t* f)
 {
 	uint8_t *p = NULL;
 	uint32_t offset = model->header->off_features + sizeof(feature_header_t);
-	offset += (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(float_t)) * fid;
+	offset += (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(floatval_t)) * fid;
 	p = model->buffer + offset;
 	p += read_uint32(p, &f->type);
 	p += read_uint32(p, &f->src);

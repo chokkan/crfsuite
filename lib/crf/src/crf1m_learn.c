@@ -43,12 +43,12 @@
 #include <lbfgs.h>
 
 typedef struct {
-	float_t	feature_minfreq;
+	floatval_t	feature_minfreq;
 	int		feature_possible_states;
 	int		feature_possible_transitions;
 	int		feature_bos_eos;
 	char*	regularization;
-	float_t	regularization_sigma;
+	floatval_t	regularization_sigma;
 } crf1ml_option_t;
 
 /**
@@ -58,7 +58,7 @@ struct tag_crf1ml {
 	int num_labels;			/**< Number of distinct output labels (L). */
 	int num_attributes;		/**< Number of distinct attributes (A). */
 
-	float_t sigma2inv;
+	floatval_t sigma2inv;
 
 	int max_items;
 
@@ -84,10 +84,10 @@ struct tag_crf1ml {
 	 */
 	crf1ml_feature_t *features;
 
-	float_t *lambda;			/**< Array of lambda (feature weights) */
-	float_t *best_lambda;
+	floatval_t *lambda;			/**< Array of lambda (feature weights) */
+	floatval_t *best_lambda;
 	int best;
-	float_t *prob;
+	floatval_t *prob;
 
 	crf_params_t* params;
 	crf1ml_option_t opt;
@@ -123,7 +123,7 @@ static void set_labels(crf1ml_t* trainer, const crf_instance_t* seq)
 static void state_score(crf1ml_t* trainer, const crf_instance_t* seq)
 {
 	int a, i, l, t, r;
-	float_t scale, *state = NULL;
+	floatval_t scale, *state = NULL;
 	crf1m_context_t* ctx = trainer->ctx;
 	const crf_item_t* item = NULL;
 	const crf1ml_feature_t* f = NULL;
@@ -164,7 +164,7 @@ static void state_score(crf1ml_t* trainer, const crf_instance_t* seq)
 static void transition_score(crf1ml_t* trainer)
 {
 	int i, j, r;
-	float_t *trans = NULL;
+	floatval_t *trans = NULL;
 	crf1m_context_t* ctx = trainer->ctx;
 	const crf1ml_feature_t* f = NULL;
 	const feature_refs_t* edge = NULL;
@@ -211,10 +211,10 @@ static void transition_score(crf1ml_t* trainer)
 static void accumulate_expectation(crf1ml_t* trainer, const crf_instance_t* seq)
 {
 	int a, c, i, j, t, r;
-	float_t scale, *prob = trainer->prob;
+	floatval_t scale, *prob = trainer->prob;
 	crf1m_context_t* ctx = trainer->ctx;
-	const float_t lognorm = ctx->log_norm;
-	const float_t *fwd = NULL, *bwd = NULL, *state = NULL;
+	const floatval_t lognorm = ctx->log_norm;
+	const floatval_t *fwd = NULL, *bwd = NULL, *state = NULL;
 	crf1ml_feature_t* f = NULL;
 	const feature_refs_t *attr = NULL, *trans = NULL;
 	const crf_item_t* item = NULL;
@@ -515,12 +515,12 @@ int crf1ml_prepare(
 	/* Initialization for features and their weights. */
 	trainer->features = features->features;
 	trainer->num_features = features->num_features;
-	trainer->lambda = (float_t*)calloc(trainer->num_features, sizeof(float_t));
-	trainer->best_lambda = (float_t*)calloc(trainer->num_features, sizeof(float_t));
+	trainer->lambda = (floatval_t*)calloc(trainer->num_features, sizeof(floatval_t));
+	trainer->best_lambda = (floatval_t*)calloc(trainer->num_features, sizeof(floatval_t));
 	trainer->best = 0;
 
 	/* Allocate the work space for probability calculation. */
-	trainer->prob = (float_t*)calloc(L, sizeof(float_t));
+	trainer->prob = (floatval_t*)calloc(L, sizeof(floatval_t));
 
 	/* Initialize the feature references. */
 	init_feature_references(trainer, A, L);
@@ -572,7 +572,7 @@ void crf1ml_delete(crf1ml_t* trainer)
 int crf_train_tag(crf_tagger_t* tagger, crf_instance_t *inst, crf_output_t* output)
 {
 	int i;
-	float_t logprob = 0;
+	floatval_t logprob = 0;
 	crf1ml_t *crf1mt = (crf1ml_t*)tagger->internal;
 
 	transition_score(crf1mt);
@@ -595,10 +595,10 @@ int crf_train_tag(crf_tagger_t* tagger, crf_instance_t *inst, crf_output_t* outp
 
 
 #if 1
-static lbfgsfloat_t lbfgs_evaluate(void *instance, const lbfgsfloat_t *x, lbfgsfloat_t *g, const int n, const lbfgsfloat_t step)
+static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, lbfgsfloatval_t *g, const int n, const lbfgsfloatval_t step)
 {
 	int i;
-	float_t logp = 0, logl = 0, norm = 0;
+	floatval_t logp = 0, logl = 0, norm = 0;
 	crf1ml_t* crf1mt = (crf1ml_t*)instance;
 	crf_data_t* data = crf1mt->data;
 
@@ -658,12 +658,12 @@ static lbfgsfloat_t lbfgs_evaluate(void *instance, const lbfgsfloat_t *x, lbfgsf
 
 static int lbfgs_progress(
 	void *instance,
-	const lbfgsfloat_t *x,
-	const lbfgsfloat_t *g,
-	const lbfgsfloat_t fx,
-	const lbfgsfloat_t xnorm,
-	const lbfgsfloat_t gnorm,
-	const lbfgsfloat_t step,
+	const lbfgsfloatval_t *x,
+	const lbfgsfloatval_t *g,
+	const lbfgsfloatval_t fx,
+	const lbfgsfloatval_t xnorm,
+	const lbfgsfloatval_t gnorm,
+	const lbfgsfloatval_t step,
 	int n,
 	int k,
 	int ls)
@@ -723,7 +723,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 {
 	int i;
 	int ret = 0;
-	float_t sigma = 10, *best_lambda = NULL;
+	floatval_t sigma = 10, *best_lambda = NULL;
 	crf1ml_features_t* features = NULL;
 	crf1ml_t *crf1mt = (crf1ml_t*)trainer->internal;
 	crf_params_t *params = crf1mt->params;
@@ -791,7 +791,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	int *fmap = NULL, *amap = NULL;
 	crf1mmw_t* writer = NULL;
 	const feature_refs_t *edge = NULL, *attr = NULL;
-	const float_t threshold = 0.01;
+	const floatval_t threshold = 0.01;
 	const int L = crf1mt->num_labels;
 	const int A = crf1mt->num_attributes;
 	const int K = crf1mt->num_features;

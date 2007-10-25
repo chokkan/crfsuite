@@ -3,7 +3,7 @@
 
 crf_params_t* params_create_instance();
 int params_add_int(crf_params_t* params, const char *name, int value);
-int params_add_float(crf_params_t* params, const char *name, float_t value);
+int params_add_float(crf_params_t* params, const char *name, floatval_t value);
 int params_add_string(crf_params_t* params, const char *name, const char *value);
 
 #define	BEGIN_PARAM_MAP(params, mode) \

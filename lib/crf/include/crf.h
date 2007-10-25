@@ -40,7 +40,7 @@ enum {
  */
 typedef struct {
 	int		aid;	/**< Attribute id. */
-	float_t	scale;	/**< Scale factor (frequency) of the attribute. */
+	floatval_t	scale;	/**< Scale factor (frequency) of the attribute. */
 } crf_content_t;
 
 /**
@@ -80,7 +80,7 @@ typedef struct {
 typedef struct {
 	int		num_labels;			/**< Number of output labels. */
 	int*	labels;				/**< Array of the output labels. */
-	float_t	probability;		/**< Probability of the output labels. */
+	floatval_t	probability;		/**< Probability of the output labels. */
 } crf_output_t;
 
 typedef struct {
@@ -88,9 +88,9 @@ typedef struct {
 	int		num_observation;
 	int		num_model;
 	int		num_total;
-	float_t	precision;
-	float_t	recall;
-	float_t	fmeasure;
+	floatval_t	precision;
+	floatval_t	recall;
+	floatval_t	fmeasure;
 } crf_label_evaluation_t;
 
 typedef struct {
@@ -100,15 +100,15 @@ typedef struct {
 	int		item_total_correct;
 	int		item_total_model;
 	int		item_total_observation;
-	float_t	item_accuracy;
+	floatval_t	item_accuracy;
 
 	int		inst_total_correct;
 	int		inst_total_num;
-	float_t	inst_accuracy;
+	floatval_t	inst_accuracy;
 
-	float_t	macro_precision;
-	float_t	macro_recall;
-	float_t	macro_fmeasure;
+	floatval_t	macro_precision;
+	floatval_t	macro_recall;
+	floatval_t	macro_fmeasure;
 } crf_evaluation_t;
 
 
@@ -255,11 +255,11 @@ struct tag_crf_params {
 
 	int (*set)(crf_params_t* params, const char *name, const char *value);
 	int (*set_int)(crf_params_t* params, const char *name, int value);
-	int (*set_float)(crf_params_t* params, const char *name, float_t value);
+	int (*set_float)(crf_params_t* params, const char *name, floatval_t value);
 	int (*set_string)(crf_params_t* params, const char *name, const char *value);
 
 	int (*get_int)(crf_params_t* params, const char *name, int *value);
-	int (*get_float)(crf_params_t* params, const char *name, float_t *value);
+	int (*get_float)(crf_params_t* params, const char *name, floatval_t *value);
 	int (*get_string)(crf_params_t* params, const char *name, char **value);
 };
 
@@ -277,7 +277,7 @@ int crf_create_tagger(
 
 
 void crf_content_init(crf_content_t* cont);
-void crf_content_set(crf_content_t* cont, int aid, float_t scale);
+void crf_content_set(crf_content_t* cont, int aid, floatval_t scale);
 void crf_content_copy(crf_content_t* dst, const crf_content_t* src);
 void crf_content_swap(crf_content_t* x, crf_content_t* y);
 

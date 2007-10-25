@@ -38,7 +38,7 @@
 
 #include "crf1m.h"
 
-inline static float_t logsumexp(float_t x, float_t y, int flag)
+inline static floatval_t logsumexp(floatval_t x, floatval_t y, int flag)
 {
 	double vmin, vmax;
 
@@ -62,7 +62,7 @@ crf1m_context_t* crf1mc_new(int L, int T)
 	if (ctx != NULL) {
 		ctx->num_labels = L;
 		ctx->log_norm = 0;
-		ctx->trans_score = (float_t*)calloc((L+1) * (L+1), sizeof(float_t));
+		ctx->trans_score = (floatval_t*)calloc((L+1) * (L+1), sizeof(floatval_t));
 		if (ctx->trans_score == NULL) goto error_exit;
 
 		if (ret = crf1mc_set_num_items(ctx, T)) {
@@ -92,11 +92,11 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
 
 		ctx->labels = (int*)calloc(T, sizeof(int));
 		if (ctx->labels == NULL) return CRFERR_OUTOFMEMORY;
-		ctx->forward_score = (float_t*)calloc((T+1) * L, sizeof(float_t));
+		ctx->forward_score = (floatval_t*)calloc((T+1) * L, sizeof(floatval_t));
 		if (ctx->forward_score == NULL) return CRFERR_OUTOFMEMORY;
-		ctx->backward_score = (float_t*)calloc((T+1) * L, sizeof(float_t));
+		ctx->backward_score = (floatval_t*)calloc((T+1) * L, sizeof(floatval_t));
 		if (ctx->backward_score == NULL) return CRFERR_OUTOFMEMORY;
-		ctx->state_score = (float_t*)calloc(T * L, sizeof(float_t));
+		ctx->state_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
 		if (ctx->state_score == NULL) return CRFERR_OUTOFMEMORY;
 		ctx->backward_edge = (int*)calloc(T * L, sizeof(int));
 		if (ctx->backward_edge == NULL) return CRFERR_OUTOFMEMORY;
@@ -123,8 +123,8 @@ void crf1mc_delete(crf1m_context_t* ctx)
 void crf1mc_forward_score(crf1m_context_t* ctx)
 {
 	int i, j, t;
-	float_t score, *cur = NULL;
-	const float_t *prev = NULL, *trans = NULL, *state = NULL;
+	floatval_t score, *cur = NULL;
+	const floatval_t *prev = NULL, *trans = NULL, *state = NULL;
 	const int T = ctx->num_items;
 	const int L = ctx->num_labels;
 
@@ -177,8 +177,8 @@ void crf1mc_forward_score(crf1m_context_t* ctx)
 void crf1mc_backward_score(crf1m_context_t* ctx)
 {
 	int i, j, t;
-	float_t score, *cur = NULL;
-	const float_t *next = NULL, *state = NULL, *trans = NULL;
+	floatval_t score, *cur = NULL;
+	const floatval_t *next = NULL, *state = NULL, *trans = NULL;
 	const int T = ctx->num_items;
 	const int L = ctx->num_labels;
 
@@ -218,11 +218,11 @@ void crf1mc_backward_score(crf1m_context_t* ctx)
 	}
 }
 
-float_t crf1mc_logprob(crf1m_context_t* ctx)
+floatval_t crf1mc_logprob(crf1m_context_t* ctx)
 {
 	int i, j, t;
-	float_t ret = 0;
-	const float_t *state = NULL, *cur = NULL, *trans = NULL;
+	floatval_t ret = 0;
+	const floatval_t *state = NULL, *cur = NULL, *trans = NULL;
 	const int T = ctx->num_items;
 	const int L = ctx->num_labels;
 	const int *labels = ctx->labels;
@@ -253,12 +253,12 @@ float_t crf1mc_logprob(crf1m_context_t* ctx)
 	return ret;
 }
 
-float_t crf1mc_viterbi(crf1m_context_t* ctx)
+floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
 {
 	int i, j, t;
 	int *back = NULL;
-	float_t max_score, score, *cur = NULL;
-	const float_t *prev = NULL, *state = NULL, *trans = NULL;
+	floatval_t max_score, score, *cur = NULL;
+	const floatval_t *prev = NULL, *state = NULL, *trans = NULL;
 	int *labels = ctx->labels;
 	const int T = ctx->num_items;
 	const int L = ctx->num_labels;
@@ -326,8 +326,8 @@ float_t crf1mc_viterbi(crf1m_context_t* ctx)
 void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp)
 {
 	int i, j, t;
-	const float_t *fwd = NULL, *bwd = NULL;
-	const float_t *state = NULL, *trans = NULL;
+	const floatval_t *fwd = NULL, *bwd = NULL;
+	const floatval_t *state = NULL, *trans = NULL;
 	const int T = ctx->num_items;
 	const int L = ctx->num_labels;
 

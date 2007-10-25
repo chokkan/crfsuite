@@ -52,7 +52,7 @@ static void state_score(crf1mt_t* tagger, const crf_instance_t* seq)
 	int a, i, l, t, r;
 	crf1mm_feature_t f;
 	feature_refs_t attr;
-	float_t scale, *state = NULL;
+	floatval_t scale, *state = NULL;
 	crf1mm_t* model = tagger->model;
 	crf1m_context_t* ctx = tagger->ctx;
 	const crf_item_t* item = NULL;
@@ -94,7 +94,7 @@ static void transition_score(crf1mt_t* tagger)
 	int i, j, r;
 	crf1mm_feature_t f;
 	feature_refs_t edge;
-	float_t *trans = NULL;
+	floatval_t *trans = NULL;
 	crf1mm_t* model = tagger->model;
 	crf1m_context_t* ctx = tagger->ctx;
 	const int L = tagger->num_labels;
@@ -159,7 +159,7 @@ void crf1mt_delete(crf1mt_t* crf1mt)
 int crf1mt_tag(crf1mt_t* crf1mt, crf_instance_t *inst, crf_output_t* output)
 {
 	int i;
-	float_t logprob = 0;
+	floatval_t logprob = 0;
 	crf1m_context_t* ctx = crf1mt->ctx;
 
 	crf1mc_set_num_items(ctx, inst->num_items);

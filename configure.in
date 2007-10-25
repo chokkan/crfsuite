@@ -106,5 +106,5 @@ AC_SUBST(INCLUDES)
 dnl ------------------------------------------------------------------
 dnl Output the configure results.
 dnl ------------------------------------------------------------------
-AC_CONFIG_FILES(Makefile frontend/Makefile lib/crf/Makefile lib/lbfgs/Makefile lib/cqdb/Makefile)
+AC_CONFIG_FILES(Makefile lib/cqdb/Makefile lib/lbfgs/Makefile lib/crf/Makefile frontend/Makefile)
 AC_OUTPUT

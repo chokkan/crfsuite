@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #include <stdlib.h>
 #include <memory.h>
@@ -48,7 +48,7 @@ inline static void vecfree(void *memblock)
 	free(memblock);
 }
 
-inline static void vecset(lbfgsfloat_t *x, const lbfgsfloat_t c, const int n)
+inline static void vecset(lbfgsfloatval_t *x, const lbfgsfloatval_t c, const int n)
 {
 	int i;
 	
@@ -57,7 +57,7 @@ inline static void vecset(lbfgsfloat_t *x, const lbfgsfloat_t c, const int n)
 	}
 }
 
-inline static void veccpy(lbfgsfloat_t *y, const lbfgsfloat_t *x, const int n)
+inline static void veccpy(lbfgsfloatval_t *y, const lbfgsfloatval_t *x, const int n)
 {
 	int i;
 
@@ -66,7 +66,7 @@ inline static void veccpy(lbfgsfloat_t *y, const lbfgsfloat_t *x, const int n)
 	}
 }
 
-inline static void vecncpy(lbfgsfloat_t *y, const lbfgsfloat_t *x, const int n)
+inline static void vecncpy(lbfgsfloatval_t *y, const lbfgsfloatval_t *x, const int n)
 {
 	int i;
 
@@ -75,7 +75,7 @@ inline static void vecncpy(lbfgsfloat_t *y, const lbfgsfloat_t *x, const int n)
 	}
 }
 
-inline static void vecadd(lbfgsfloat_t *y, const lbfgsfloat_t *x, const lbfgsfloat_t c, const int n)
+inline static void vecadd(lbfgsfloatval_t *y, const lbfgsfloatval_t *x, const lbfgsfloatval_t c, const int n)
 {
 	int i;
 
@@ -84,7 +84,7 @@ inline static void vecadd(lbfgsfloat_t *y, const lbfgsfloat_t *x, const lbfgsflo
 	}
 }
 
-inline static void vecdiff(lbfgsfloat_t *z, const lbfgsfloat_t *x, const lbfgsfloat_t *y, const int n)
+inline static void vecdiff(lbfgsfloatval_t *z, const lbfgsfloatval_t *x, const lbfgsfloatval_t *y, const int n)
 {
 	int i;
 
@@ -93,7 +93,7 @@ inline static void vecdiff(lbfgsfloat_t *z, const lbfgsfloat_t *x, const lbfgsfl
 	}
 }
 
-inline static void vecscale(lbfgsfloat_t *y, const lbfgsfloat_t c, const int n)
+inline static void vecscale(lbfgsfloatval_t *y, const lbfgsfloatval_t c, const int n)
 {
 	int i;
 
@@ -102,7 +102,7 @@ inline static void vecscale(lbfgsfloat_t *y, const lbfgsfloat_t c, const int n)
 	}
 }
 
-inline static void vecmul(lbfgsfloat_t *y, const lbfgsfloat_t *x, const int n)
+inline static void vecmul(lbfgsfloatval_t *y, const lbfgsfloatval_t *x, const int n)
 {
 	int i;
 
@@ -111,7 +111,7 @@ inline static void vecmul(lbfgsfloat_t *y, const lbfgsfloat_t *x, const int n)
 	}
 }
 
-inline static void vecdot(lbfgsfloat_t* s, const lbfgsfloat_t *x, const lbfgsfloat_t *y, const int n)
+inline static void vecdot(lbfgsfloatval_t* s, const lbfgsfloatval_t *x, const lbfgsfloatval_t *y, const int n)
 {
 	int i;
 	*s = 0.;
@@ -120,14 +120,14 @@ inline static void vecdot(lbfgsfloat_t* s, const lbfgsfloat_t *x, const lbfgsflo
 	}
 }
 
-inline static void vecnorm(lbfgsfloat_t* s, const lbfgsfloat_t *x, const int n)
+inline static void vecnorm(lbfgsfloatval_t* s, const lbfgsfloatval_t *x, const int n)
 {
 	vecdot(s, x, x, n);
-	*s = (lbfgsfloat_t)sqrt(*s);
+	*s = (lbfgsfloatval_t)sqrt(*s);
 }
 
-inline static void vecrnorm(lbfgsfloat_t* s, const lbfgsfloat_t *x, const int n)
+inline static void vecrnorm(lbfgsfloatval_t* s, const lbfgsfloatval_t *x, const int n)
 {
 	vecnorm(s, x, n);
-	*s = (lbfgsfloat_t)(1.0 / *s);
+	*s = (lbfgsfloatval_t)(1.0 / *s);
 }

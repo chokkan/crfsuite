@@ -105,7 +105,7 @@ static int featureset_add(featureset_t* set, const crf1ml_feature_t* f)
 	return 0;
 }
 
-static void featureset_generate(crf1ml_features_t* features, featureset_t* set, float_t minfreq)
+static void featureset_generate(crf1ml_features_t* features, featureset_t* set, floatval_t minfreq)
 {
 	int n = 0, k = 0;
 	RUMAVL_NODE *node = NULL;
@@ -138,7 +138,7 @@ crf1ml_features_t* crf1ml_generate_features(
 	const crf_data_t *data,
 	int connect_all_attrs,
 	int connect_all_edges,
-	float_t minfreq,
+	floatval_t minfreq,
 	crf_logging_callback func,
 	void *instance
 	)

@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #ifndef	__LBFGS_H__
 #define	__LBFGS_H__
@@ -48,10 +48,10 @@ extern "C" {
 #endif/*LBFGS_IEEE_FLOAT*/
 
 #if		LBFGS_FLOAT == 32
-typedef float lbfgsfloat_t;
+typedef float lbfgsfloatval_t;
 
 #elif	LBFGS_FLOAT == 64
-typedef double lbfgsfloat_t;
+typedef double lbfgsfloatval_t;
 
 #else
 #error "liblbfgs supports single (float; LBFGS_FLOAT = 32) or double (double; LBFGS_FLOAT=64) precision only."
@@ -84,22 +84,22 @@ enum {
 	LBFGSERR_INCREASEGRADIENT,
 };
 
-typedef lbfgsfloat_t (*lbfgs_evaluate_t)(
+typedef lbfgsfloatval_t (*lbfgs_evaluate_t)(
 	void *instance,
-	const lbfgsfloat_t *x,
-	lbfgsfloat_t *g,
+	const lbfgsfloatval_t *x,
+	lbfgsfloatval_t *g,
 	const int n,
-	const lbfgsfloat_t step
+	const lbfgsfloatval_t step
 	);
 
 typedef int (*lbfgs_progress_t)(
 	void *instance,
-	const lbfgsfloat_t *x,
-	const lbfgsfloat_t *g,
-	const lbfgsfloat_t fx,
-	const lbfgsfloat_t xnorm,
-	const lbfgsfloat_t gnorm,
-	const lbfgsfloat_t step,
+	const lbfgsfloatval_t *x,
+	const lbfgsfloatval_t *g,
+	const lbfgsfloatval_t fx,
+	const lbfgsfloatval_t xnorm,
+	const lbfgsfloatval_t gnorm,
+	const lbfgsfloatval_t step,
 	int n,
 	int k,
 	int ls
@@ -110,15 +110,15 @@ struct tag_lbfgs_parameter {
 	int				m;
 
 	/** Epsilon. */
-	lbfgsfloat_t	epsilon;
+	lbfgsfloatval_t	epsilon;
 
 	int				max_linesearch;
 
-	lbfgsfloat_t	min_step;
-	lbfgsfloat_t	max_step;
-	lbfgsfloat_t	ftol;
-	lbfgsfloat_t	gtol;
-	lbfgsfloat_t	xtol;
+	lbfgsfloatval_t	min_step;
+	lbfgsfloatval_t	max_step;
+	lbfgsfloatval_t	ftol;
+	lbfgsfloatval_t	gtol;
+	lbfgsfloatval_t	xtol;
 };
 typedef struct tag_lbfgs_parameter lbfgs_parameter_t;
 
@@ -144,7 +144,7 @@ In this formula, ||.|| denotes the Euclidean norm.
 */
 int lbfgs(
 	const int n,
-	lbfgsfloat_t *x,
+	lbfgsfloatval_t *x,
 	lbfgs_evaluate_t proc_evaluate,
 	lbfgs_progress_t proc_progress,
 	void *instance,
@@ -215,20 +215,20 @@ Among the various ports of L-BFGS, this library provides several features:
 #include <stdio.h>
 #include <lbfgs.h>
 
-static lbfgsfloat_t evaluate(
+static lbfgsfloatval_t evaluate(
 	void *instance,
-	const lbfgsfloat_t *x,
-	lbfgsfloat_t *g,
+	const lbfgsfloatval_t *x,
+	lbfgsfloatval_t *g,
 	const int n,
-	const lbfgsfloat_t step
+	const lbfgsfloatval_t step
 	)
 {
 	int i;
-	lbfgsfloat_t fx = 0.0;
+	lbfgsfloatval_t fx = 0.0;
 
 	for (i = 0;i < n;i += 2) {
-		lbfgsfloat_t t1 = 1.0 - x[i];
-		lbfgsfloat_t t2 = 10.0 * (x[i+1] - x[i] * x[i]);
+		lbfgsfloatval_t t1 = 1.0 - x[i];
+		lbfgsfloatval_t t2 = 10.0 * (x[i+1] - x[i] * x[i]);
 		if (g != NULL) {
 			g[i+1] = 20.0 * t2;
 			g[i] = -2.0 * (x[i] * g[i+1] + t1);
@@ -240,12 +240,12 @@ static lbfgsfloat_t evaluate(
 
 static int progress(
 	void *instance,
-	const lbfgsfloat_t *x,
-	const lbfgsfloat_t *g,
-	const lbfgsfloat_t fx,
-	const lbfgsfloat_t xnorm,
-	const lbfgsfloat_t gnorm,
-	const lbfgsfloat_t step,
+	const lbfgsfloatval_t *x,
+	const lbfgsfloatval_t *g,
+	const lbfgsfloatval_t fx,
+	const lbfgsfloatval_t xnorm,
+	const lbfgsfloatval_t gnorm,
+	const lbfgsfloatval_t step,
 	int n,
 	int k,
 	int ls
@@ -263,7 +263,7 @@ static int progress(
 int main(int argc, char *argv)
 {
 	int i, ret = 0;
-	lbfgsfloat_t x[N];
+	lbfgsfloatval_t x[N];
 
 	// Initialize the variables.
 	for (i = 0;i < N;i += 2) {

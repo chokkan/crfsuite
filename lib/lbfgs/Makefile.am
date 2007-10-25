@@ -13,7 +13,7 @@ liblbfgs_la_LDFLAGS = \
 	-no-undefined \
 	-release @VERSION@
 
-#liblbfgs_la_LIBADD = 
+liblbfgs_la_CFLAGS = -I./include
 
 AM_CFLAGS = @CFLAGS@
 INCLUDES = @INCLUDES@

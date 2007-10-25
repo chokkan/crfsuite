@@ -34,7 +34,7 @@ void crf_content_init(crf_content_t* cont)
 	cont->scale = 1;
 }
 
-void crf_content_set(crf_content_t* cont, int aid, float_t scale)
+void crf_content_set(crf_content_t* cont, int aid, floatval_t scale)
 {
 	crf_content_init(cont);
 	cont->aid = aid;

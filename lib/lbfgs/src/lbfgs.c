@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 /*
 This library is a C port of the FORTRAN implementation of Limited-memory
@@ -85,10 +85,10 @@ typedef unsigned int uint32_t;
 #define	max3(a, b, c)	max2(max2((a), (b)), (c));
 
 struct tag_iteration_data {
-	lbfgsfloat_t rho;
-	lbfgsfloat_t alpha;
-	lbfgsfloat_t *s;		/* [n] */
-	lbfgsfloat_t *y;		/* [n] */
+	lbfgsfloatval_t rho;
+	lbfgsfloatval_t alpha;
+	lbfgsfloatval_t *s;		/* [n] */
+	lbfgsfloatval_t *y;		/* [n] */
 };
 typedef struct tag_iteration_data iteration_data_t;
 
@@ -101,29 +101,29 @@ static const lbfgs_parameter_t _defparam = {
 
 static int line_search(
 	int n,
-	lbfgsfloat_t *x,
-	lbfgsfloat_t *f,
-	lbfgsfloat_t *g,
-	lbfgsfloat_t *s,
-	lbfgsfloat_t *stp,
-	lbfgsfloat_t *wa,
+	lbfgsfloatval_t *x,
+	lbfgsfloatval_t *f,
+	lbfgsfloatval_t *g,
+	lbfgsfloatval_t *s,
+	lbfgsfloatval_t *stp,
+	lbfgsfloatval_t *wa,
 	lbfgs_evaluate_t proc_evaluate,
 	void *instance,
 	const lbfgs_parameter_t *param
 	);
 
 static int update_trial_interval(
-	lbfgsfloat_t *x,
-	lbfgsfloat_t *fx,
-	lbfgsfloat_t *dx,
-	lbfgsfloat_t *y,
-	lbfgsfloat_t *fy,
-	lbfgsfloat_t *dy,
-	lbfgsfloat_t *t,
-	lbfgsfloat_t *ft,
-	lbfgsfloat_t *dt,
-	const lbfgsfloat_t tmin,
-	const lbfgsfloat_t tmax,
+	lbfgsfloatval_t *x,
+	lbfgsfloatval_t *fx,
+	lbfgsfloatval_t *dx,
+	lbfgsfloatval_t *y,
+	lbfgsfloatval_t *fy,
+	lbfgsfloatval_t *dy,
+	lbfgsfloatval_t *t,
+	lbfgsfloatval_t *ft,
+	lbfgsfloatval_t *dt,
+	const lbfgsfloatval_t tmin,
+	const lbfgsfloatval_t tmax,
 	int *brackt
 	);
 
@@ -133,7 +133,7 @@ static int update_trial_interval(
 
 int lbfgs(
 	const int n,
-	lbfgsfloat_t *x,
+	lbfgsfloatval_t *x,
 	lbfgs_evaluate_t proc_evaluate,
 	lbfgs_progress_t proc_progress,
 	void *instance,
@@ -142,17 +142,17 @@ int lbfgs(
 {
 	int ret;
 	int i, j, k, ls, end, bound;
-	lbfgsfloat_t step;
+	lbfgsfloatval_t step;
 
 	/* Constant parameters and their default values. */
 	const lbfgs_parameter_t* param = (_param != NULL) ? _param : &_defparam;
 	const int m = param->m;
 
-	lbfgsfloat_t *g = NULL, *h = NULL, *w = NULL;
+	lbfgsfloatval_t *g = NULL, *h = NULL, *w = NULL;
 	iteration_data_t *lm = NULL, *it = NULL;
-	lbfgsfloat_t ys, yy;
-	lbfgsfloat_t xnorm, gnorm, beta;
-	lbfgsfloat_t fx;
+	lbfgsfloatval_t ys, yy;
+	lbfgsfloatval_t xnorm, gnorm, beta;
+	lbfgsfloatval_t fx;
 
 	/* Check the input parameters for errors. */
 	if (n <= 0) {
@@ -183,9 +183,9 @@ int lbfgs(
 	}
 
 	/* Allocate working space. */
-	g = (lbfgsfloat_t*)vecalloc(n * sizeof(lbfgsfloat_t));
-	h = (lbfgsfloat_t*)vecalloc(n * sizeof(lbfgsfloat_t));
-	w = (lbfgsfloat_t*)vecalloc(n * sizeof(lbfgsfloat_t));
+	g = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
+	h = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
+	w = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
 	if (g == NULL || h == NULL || w == NULL) {
 		ret = LBFGSERR_OUTOFMEMORY;
 		goto lbfgs_exit;
@@ -203,8 +203,8 @@ int lbfgs(
 		it = &lm[i];
 		it->alpha = 0;
 		it->rho = 0;
-		it->s = (lbfgsfloat_t*)vecalloc(n * sizeof(lbfgsfloat_t));
-		it->y = (lbfgsfloat_t*)vecalloc(n * sizeof(lbfgsfloat_t));
+		it->s = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
+		it->y = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
 		if (it->s == NULL || it->y == NULL) {
 			ret = LBFGSERR_OUTOFMEMORY;
 			goto lbfgs_exit;
@@ -358,12 +358,12 @@ lbfgs_exit:
 
 static int line_search(
 	int n,
-	lbfgsfloat_t *x,
-	lbfgsfloat_t *f,
-	lbfgsfloat_t *g,
-	lbfgsfloat_t *s,
-	lbfgsfloat_t *stp,
-	lbfgsfloat_t *wa,
+	lbfgsfloatval_t *x,
+	lbfgsfloatval_t *f,
+	lbfgsfloatval_t *g,
+	lbfgsfloatval_t *s,
+	lbfgsfloatval_t *stp,
+	lbfgsfloatval_t *wa,
 	lbfgs_evaluate_t proc_evaluate,
 	void *instance,
 	const lbfgs_parameter_t *param
@@ -371,13 +371,13 @@ static int line_search(
 {
 	int count = 0;
 	int brackt, stage1, uinfo = 0;
-	lbfgsfloat_t dg;
-	lbfgsfloat_t stx, fx, dgx;
-	lbfgsfloat_t sty, fy, dgy;
-	lbfgsfloat_t fxm, dgxm, fym, dgym, fm, dgm;
-	lbfgsfloat_t finit, ftest1, dginit, dgtest;
-	lbfgsfloat_t width, prev_width;
-	lbfgsfloat_t stmin, stmax;
+	lbfgsfloatval_t dg;
+	lbfgsfloatval_t stx, fx, dgx;
+	lbfgsfloatval_t sty, fy, dgy;
+	lbfgsfloatval_t fxm, dgxm, fym, dgym, fm, dgm;
+	lbfgsfloatval_t finit, ftest1, dginit, dgtest;
+	lbfgsfloatval_t width, prev_width;
+	lbfgsfloatval_t stmin, stmax;
 
 	/* Check the input parameters for errors. */
 	if (*stp <= 0.) {
@@ -557,7 +557,7 @@ static int line_search(
  * Define the local variables for computing minimizers.
  */
 #define	USES_MINIMIZER \
-	lbfgsfloat_t a, d, gamma, theta, p, q, r, s;
+	lbfgsfloatval_t a, d, gamma, theta, p, q, r, s;
 
 /**
  * Find a minimizer of an interpolated cubic function.
@@ -674,25 +674,25 @@ static int line_search(
  *		Software (TOMS), Vol 20, No 3, pp. 286-307, 1994.
  */
 static int update_trial_interval(
-	lbfgsfloat_t *x,
-	lbfgsfloat_t *fx,
-	lbfgsfloat_t *dx,
-	lbfgsfloat_t *y,
-	lbfgsfloat_t *fy,
-	lbfgsfloat_t *dy,
-	lbfgsfloat_t *t,
-	lbfgsfloat_t *ft,
-	lbfgsfloat_t *dt,
-	const lbfgsfloat_t tmin,
-	const lbfgsfloat_t tmax,
+	lbfgsfloatval_t *x,
+	lbfgsfloatval_t *fx,
+	lbfgsfloatval_t *dx,
+	lbfgsfloatval_t *y,
+	lbfgsfloatval_t *fy,
+	lbfgsfloatval_t *dy,
+	lbfgsfloatval_t *t,
+	lbfgsfloatval_t *ft,
+	lbfgsfloatval_t *dt,
+	const lbfgsfloatval_t tmin,
+	const lbfgsfloatval_t tmax,
 	int *brackt
 	)
 {
 	int bound;
 	int dsign = fsigndiff(dt, dx);
-	lbfgsfloat_t mc;	/* minimizer of an interpolated cubic. */
-	lbfgsfloat_t mq;	/* minimizer of an interpolated quadratic. */
-	lbfgsfloat_t newt;	/* new trial value. */
+	lbfgsfloatval_t mc;	/* minimizer of an interpolated cubic. */
+	lbfgsfloatval_t mq;	/* minimizer of an interpolated quadratic. */
+	lbfgsfloatval_t newt;	/* new trial value. */
 	USES_MINIMIZER;		/* for CUBIC_MINIMIZER and QUARD_MINIMIZER. */
 
 	/* Check the input parameters for errors. */

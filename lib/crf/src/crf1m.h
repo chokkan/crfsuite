@@ -66,7 +66,7 @@ typedef struct {
 	 *	This is equivalent to the total scores of all paths from BOS to
 	 *	EOS, given an input sequence.
 	 */
-	float_t log_norm;
+	floatval_t log_norm;
 
 	/**
 	 * Forward score matrix.
@@ -74,7 +74,7 @@ typedef struct {
 	 *	score of paths starting at BOS and arraiving at (t, l), given an
 	 *	input sequence. Elements [T][l] for any l are zero.
 	 */
-	float_t *forward_score;
+	floatval_t *forward_score;
 
 	/**
 	 * Backward score matrix.
@@ -82,14 +82,14 @@ typedef struct {
 	 *	score of paths starting at (t, l) and arraiving at EOS, given an
 	 *	input sequence. Elements [T][l] for any l are zero.
 	 */
-	float_t *backward_score;
+	floatval_t *backward_score;
 
 	/**
 	 * State score matrix.
 	 *	This is a [T][L] matrix whose element [t][l] presents the total
 	 *	score when state features output label #l at position #i.
 	 */
-	float_t *state_score;
+	floatval_t *state_score;
 
 	/**
 	 * Transition score matrix.
@@ -97,7 +97,7 @@ typedef struct {
 	 *	score when a transition feature moves a label #i of the previous
 	 *	item to #j.
 	 */
-	float_t *trans_score;
+	floatval_t *trans_score;
 
 	/**
 	 * Backward edges.
@@ -128,8 +128,8 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T);
 void crf1mc_delete(crf1m_context_t* ctx);
 void crf1mc_forward_score(crf1m_context_t* ctx);
 void crf1mc_backward_score(crf1m_context_t* ctx);
-float_t crf1mc_logprob(crf1m_context_t* ctx);
-float_t crf1mc_viterbi(crf1m_context_t* ctx);
+floatval_t crf1mc_logprob(crf1m_context_t* ctx);
+floatval_t crf1mc_viterbi(crf1m_context_t* ctx);
 void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp);
 
 
@@ -181,17 +181,17 @@ typedef struct {
 	/**
 	 * Lambda (weight).
 	 */
-	float_t lambda;
+	floatval_t lambda;
 
 	/**
 	 * Observation expectation.
 	 */
-	float_t	oexp;
+	floatval_t	oexp;
 
 	/**
 	 * Model expectation.
 	 */
-	float_t	mexp;
+	floatval_t	mexp;
 } crf1ml_feature_t;
 
 /**
@@ -215,7 +215,7 @@ crf1ml_features_t* crf1ml_generate_features(
 	const crf_data_t *data,
 	int connect_all_attrs,
 	int connect_all_edges,
-	float_t minfreq,
+	floatval_t minfreq,
 	crf_logging_callback func,
 	void *instance
 	);
@@ -231,7 +231,7 @@ typedef struct {
 	int		type;
 	int		src;
 	int		dst;
-	float_t	weight;
+	floatval_t	weight;
 } crf1mm_feature_t;
 
 crf1mmw_t* crf1mmw(const char *filename);

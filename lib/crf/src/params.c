@@ -17,7 +17,7 @@ typedef struct {
 	char*	name;
 	int		type;
 	int		val_i;
-	float_t val_f;
+	floatval_t val_f;
 	char*	val_s;
 } param_t;
 
@@ -70,7 +70,7 @@ static int params_set(crf_params_t* params, const char *name, const char *value)
 		par->val_i = (value != NULL) ? atoi(value) : 0;
 		break;
 	case PT_FLOAT:
-		par->val_f = (value != NULL) ? (float_t)atof(value) : 0;
+		par->val_f = (value != NULL) ? (floatval_t)atof(value) : 0;
 		break;
 	case PT_STRING:
 		free(par->val_s);
@@ -89,7 +89,7 @@ static int params_set_int(crf_params_t* params, const char *name, int value)
 	return 0;
 }
 
-static int params_set_float(crf_params_t* params, const char *name, float_t value)
+static int params_set_float(crf_params_t* params, const char *name, floatval_t value)
 {
 	params_t* pars = (params_t*)params->internal;
 	param_t* par = find_param(pars, name);
@@ -120,7 +120,7 @@ static int params_get_int(crf_params_t* params, const char *name, int *value)
 	return 0;
 }
 
-static int params_get_float(crf_params_t* params, const char *name, float_t *value)
+static int params_get_float(crf_params_t* params, const char *name, floatval_t *value)
 {
 	params_t* pars = (params_t*)params->internal;
 	param_t* par = find_param(pars, name);
@@ -185,7 +185,7 @@ int params_add_int(crf_params_t* params, const char *name, int value)
 	return 0;
 }
 
-int params_add_float(crf_params_t* params, const char *name, float_t value)
+int params_add_float(crf_params_t* params, const char *name, floatval_t value)
 {
 	param_t* par = NULL;
 	params_t* pars = (params_t*)params->internal;

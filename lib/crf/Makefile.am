@@ -23,7 +23,7 @@ libcrf_la_SOURCES = \
 	src/crf.c
 
 
-crf_CFLAGS = -I./include -I$(top_builddir)/lib/lbfgs/include -I$(top_builddir)/lib/cqdb/include 
+libcrf_la_CFLAGS = -I./include -I$(top_builddir)/lib/lbfgs/include -I$(top_builddir)/lib/cqdb/include 
 
 libcrf_la_LDFLAGS = \
 	-no-undefined \

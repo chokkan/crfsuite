@@ -23,7 +23,7 @@
 #define	__OS_H__
 
 
-typedef double float_t;
+typedef double floatval_t;
 #define	FLOAT_MAX	DBL_MAX
 
 
