@@ -60,7 +60,6 @@ struct tag_crf1mm {
 	cqdb_t*		labels;
 	cqdb_t*		attrs;
 };
-typedef struct tag_crf1mm crf1mm_t;
 
 struct tag_crf1mmw {
 	FILE *fp;
@@ -741,12 +740,16 @@ int crf1mm_get_attrref(crf1mm_t* model, int aid, feature_refs_t* ref)
 int crf1mm_get_feature(crf1mm_t* model, int fid, crf1mm_feature_t* f)
 {
 	uint8_t *p = NULL;
+	uint32_t val = 0;
 	uint32_t offset = model->header->off_features + sizeof(feature_header_t);
 	offset += (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(floatval_t)) * fid;
 	p = model->buffer + offset;
-	p += read_uint32(p, &f->type);
-	p += read_uint32(p, &f->src);
-	p += read_uint32(p, &f->dst);
+	p += read_uint32(p, &val);
+	f->type = val;
+	p += read_uint32(p, &val);
+	f->src = val;
+	p += read_uint32(p, &val);
+	f->dst = val;
 	p += read_float(p, &f->weight);
 	return 0;
 }
