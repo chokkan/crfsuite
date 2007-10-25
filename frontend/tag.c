@@ -17,7 +17,7 @@
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #include <os.h>
 
@@ -73,7 +73,7 @@ BEGIN_OPTION_MAP(parse_tagger_options, tagger_option_t)
 		free(opt->model);
 		opt->model = strdup(arg);
 
-	ON_OPTION(SHORTOPT('e') || LONGOPT("evaluate"))
+	ON_OPTION(SHORTOPT('t') || LONGOPT("test"))
 		opt->evaluate = 1;
 
 	ON_OPTION(SHORTOPT('q') || LONGOPT("quiet"))
@@ -94,13 +94,13 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
 	fprintf(fp, "USAGE: %s %s [OPTIONS] [DATA]\n", argv0, command);
 	fprintf(fp, "Assign suitable labels to the instances in the data set given by a file (DATA).\n");
 	fprintf(fp, "If the argument DATA is omitted or '-', this utility reads a data from STDIN.\n");
-	fprintf(fp, "Evaluate the performance of the model on labeled instances (with -e option).\n");
+	fprintf(fp, "Evaluate the performance of the model on labeled instances (with -t option).\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "OPTIONS:\n");
-	fprintf(fp, "    -m, --model     Specify the model used for tagging\n");
-	fprintf(fp, "    -e, --evaluate  Report the performance of the model on the labeled data\n");
-	fprintf(fp, "    -q, --quiet     Suppress tagging results (useful for evaluation)\n");
-	fprintf(fp, "    -h, --help      Show the usage of this command\n");
+	fprintf(fp, "    -m, --model=MODEL   Read a model from a file (MODEL)\n");
+	fprintf(fp, "    -t, --test          Report the performance of the model on the data\n");
+	fprintf(fp, "    -q, --quiet         Suppress tagging results (useful for test mode)\n");
+	fprintf(fp, "    -h, --help          Show the usage of this command and exit\n");
 }
 
 static void output_result(FILE *fpo, crf_output_t *output, crf_dictionary_t *labels)

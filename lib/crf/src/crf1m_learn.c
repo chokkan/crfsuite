@@ -574,6 +574,9 @@ int crf_train_tag(crf_tagger_t* tagger, crf_instance_t *inst, crf_output_t* outp
 	int i;
 	floatval_t logprob = 0;
 	crf1ml_t *crf1mt = (crf1ml_t*)tagger->internal;
+	crf1m_context_t* ctx = crf1mt->ctx;
+
+	crf1mc_set_num_items(ctx, inst->num_items);
 
 	transition_score(crf1mt);
 	set_labels(crf1mt, inst);
@@ -583,6 +586,7 @@ int crf_train_tag(crf_tagger_t* tagger, crf_instance_t *inst, crf_output_t* outp
 	logprob = crf1mc_viterbi(crf1mt->ctx);
 	logprob -= crf1mt->ctx->log_norm;
 
+	crf_output_init_n(output, inst->num_items);
 	output->probability = exp(logprob);
 	for (i = 0;i < inst->num_items;++i) {
 		output->labels[i] = crf1mt->ctx->labels[i];

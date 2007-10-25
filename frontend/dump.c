@@ -17,7 +17,7 @@
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #include <os.h>
 
@@ -56,7 +56,7 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
 	fprintf(fp, "Output the model stored in the file (MODEL) in a plain-text format\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "OPTIONS:\n");
-	fprintf(fp, "    -h, --help      Show the usage of this command\n");
+	fprintf(fp, "    -h, --help      Show the usage of this command and exit\n");
 }
 
 int main_dump(int argc, char *argv[], const char *argv0)

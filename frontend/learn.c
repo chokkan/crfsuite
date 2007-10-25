@@ -30,14 +30,16 @@
 #include "option.h"
 #include "readdata.h"
 
+#define	SAFE_RELEASE(obj)	if ((obj) != NULL) { (obj)->release(obj); (obj) = NULL; }
+#define	MAX(a, b)	((a) < (b) ? (b) : (a))
+
+
 typedef struct {
 	char *model;
 	char *training;
 	char *evaluation;
-	char *output;
-	int shuffle;
-	int cross_validation;
-	double holdout_validation;
+
+	int help;
 
 	int num_params;
 	char **params;
@@ -46,10 +48,6 @@ typedef struct {
 static void learn_option_init(learn_option_t* opt)
 {
 	memset(opt, 0, sizeof(*opt));
-
-	opt->shuffle = 0;
-	opt->cross_validation = 0;
-	opt->holdout_validation = 0;
 	opt->num_params = 0;
 }
 
@@ -60,7 +58,6 @@ static void learn_option_finish(learn_option_t* opt)
 	free(opt->model);
 	free(opt->training);
 	free(opt->evaluation);
-	free(opt->output);
 
 	for (i = 0;i < opt->num_params;++i) {
 		free(opt->params[i]);
@@ -74,24 +71,12 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
 		free(opt->model);
 		opt->model = strdup(arg);
 
-	ON_OPTION_WITH_ARG(SHORTOPT('o') || LONGOPT("output"))
-		free(opt->output);
-		opt->output = strdup(arg);
-
 	ON_OPTION_WITH_ARG(SHORTOPT('t') || LONGOPT("test"))
 		free(opt->evaluation);
 		opt->evaluation = strdup(arg);
 
-	ON_OPTION_WITH_ARG(SHORTOPT('x') || LONGOPT("cross-validation"))
-		opt->cross_validation = atoi(arg);
-		opt->holdout_validation = 0;
-
-	ON_OPTION_WITH_ARG(SHORTOPT('h') || LONGOPT("holdout-validation"))
-		opt->cross_validation = 0;
-		opt->holdout_validation = atof(arg);
-
-	ON_OPTION(SHORTOPT('s') || LONGOPT("shuffle"))
-		opt->shuffle = 1;
+	ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
+		opt->help = 1;
 
 	ON_OPTION_WITH_ARG(SHORTOPT('p') || LONGOPT("param"))
 		opt->params = (char **)realloc(opt->params, sizeof(char*) * (opt->num_params + 1));
@@ -100,149 +85,69 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
 
 END_OPTION_MAP()
 
-
-#define	MAX(a, b)	((a) < (b) ? (b) : (a))
-
-static int trainer_callback(void *instance, const char *format, va_list args)
+static void show_usage(FILE *fp, const char *argv0, const char *command)
 {
-	FILE *fpo = stdout;
+	fprintf(fp, "USAGE: %s %s [OPTIONS] [DATA]\n", argv0, command);
+	fprintf(fp, "Obtain a model from a training set of instances given by a file (DATA).\n");
+	fprintf(fp, "If argument DATA is omitted or '-', this utility reads a data from STDIN.\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "OPTIONS:\n");
+	fprintf(fp, "    -m, --model=MODEL   Store the obtained model in a file (MODEL)\n");
+	fprintf(fp, "    -t, --test=TEST     Report the performance of the model on a data (TEST)\n");
+	fprintf(fp, "    -h, --help          Show the usage of this command and exit\n");
+}
+
+
+
+typedef struct {
+	FILE *fpo;
+	crf_data_t* data;
+	crf_evaluation_t* eval;
+	crf_dictionary_t* attrs;
+	crf_dictionary_t* labels;
+} callback_data_t;
+
+static int message_callback(void *instance, const char *format, va_list args)
+{
+	callback_data_t* cd = (callback_data_t*)instance;
+	FILE *fpo = cd->fpo;
 	vfprintf(fpo, format, args);
 	fflush(fpo);
 	return 0;
 }
 
-typedef struct {
-	FILE *fpo;
-	double best_accuracy;
-	crf_data_t* data;
-	crf_output_t out;
-	crf_evaluation_t eval;
-	crf_dictionary_t* attrs;
-	crf_dictionary_t* labels;
-} evaluation_data_t;
-
 static int evaluate_callback(void *instance, crf_tagger_t* tagger)
 {
-	int i, best = 0;
-	evaluation_data_t* ed = (evaluation_data_t*)instance;
-	FILE *fpo = ed->fpo;
-	crf_data_t* data = ed->data;
-	crf_dictionary_t* labels = ed->labels;
-	int total_correct = 0, total_model = 0, total_observation = 0;
-	double accuracy = 0;
-#if 0
-	int j;
-	int num_match = 0, num_extracted = 0, num_to_extract = 0;
-	int lid_other = labels->to_id(labels, "O");
-#endif
+	int i, ret = 0;
+	crf_output_t output;
+	callback_data_t* cd = (callback_data_t*)instance;
+	FILE *fpo = cd->fpo;
+	crf_data_t* data = cd->data;
+	crf_dictionary_t* labels = cd->labels;
 
-	/* Initialize the evaluation table. */
-	crf_evaluation_clear(&ed->eval);
+	/* Clear the evaluation table. */
+	crf_evaluation_clear(cd->eval);
 
-	/* Tag the evaluation data and accumulate the classification performance. */
+	/* Tag the evaluation instances and accumulate the performance. */
 	for (i = 0;i < data->num_instances;++i) {
+		/* An instance to be tagged. */
 		crf_instance_t* instance = &data->instances[i];
 
-#if 1
-		/* Tag an instance. */
-		tagger->tag(tagger, instance, &ed->out);
-		/* Compare the tagged output with the reference. */
-		crf_evaluation_accmulate(&ed->eval, instance, &ed->out);
-#endif
+		crf_output_init(&output);
 
-#if 0
-		for (j = 0;j < instance->num_items;++j) {
-			if (instance->labels[j] != lid_other) {
-				break;
-			}
-		}
-		if (j != instance->num_items) {
-			++num_to_extract;
-			for (j = 0;j < instance->num_items;++j) {
-				if (ed->out.labels[j] != lid_other) {
-					break;
-				}
-			}
-			if (j != instance->num_items) {
-				++num_extracted;
-				for (j = 0;j < instance->num_items;++j) {
-					if (ed->out.labels[j] != instance->labels[j]) {
-						break;
-					}
-				}
-				if (j == instance->num_items) {
-					++num_match;
-				}			
-			}
-		}
-#endif
+		/* Tag an instance (ignoring any error occurrence). */
+		ret = tagger->tag(tagger, instance, &output);
+
+		/* Accumulate the tagging performance. */
+		crf_evaluation_accmulate(cd->eval, instance, &output);
 	}
 
-#if 1
-	/* Report the classification performance for each output label. */
-	fprintf(fpo, "Performance (#match, #model, #ref), (prec, rec, f1):\n");
-	for (i = 0;i < labels->num(labels);++i) {
-		char *lstr = NULL;
-		double precision = 0, recall = 0, f1 = 0;
-		crf_label_evaluation_t* lev = &ed->eval.tbl[i];
+	/* Compute the performance. */
+	crf_evaluation_compute(cd->eval);
 
-		/* Sum the number of correct labels for accuracy calculation. */
-		total_correct += lev->num_correct;
-		total_model += lev->num_model;
-		total_observation += lev->num_observation;
+	/* Report the performance. */
+	crf_evaluation_output(cd->eval, labels, fpo);
 
-		/* Compute the precision, recall, f1-measure. */
-		if (lev->num_model > 0) {
-			precision = lev->num_correct * 100.0 / (double)lev->num_model;
-		}
-		if (lev->num_observation > 0) {
-			recall = lev->num_correct * 100.0 / (double)lev->num_observation;
-		}
-		if (precision + recall > 0) {
-			f1 = precision * recall * 2 / (precision + recall);
-		}
-
-		/* Output the performance for the label. */
-		labels->to_string(labels, i, &lstr);
-		fprintf(fpo, "    %s: (%d, %d, %d) (%3.2f, %3.2f, %3.2f)\n",
-			lstr, lev->num_correct, lev->num_model, lev->num_observation, precision, recall, f1
-			);
-		labels->free(labels, lstr);
-	}
-
-	/* Compute the accuracy. */
-	accuracy = total_correct * 100.0 / (double)total_observation;
-
-	/* Check whether the current model achieved the best result. */
-	if (ed->best_accuracy < accuracy) {
-		ed->best_accuracy = accuracy;
-		best = 1;
-	}
-
-	/* Report the accuracy. */
-	fprintf(
-		fpo,
-		"%s: %d / %d (%3.2f%%)\n",
-		(best == 1) ? "Best accuracy" : "Accuracy",
-		total_correct,
-		total_observation,
-		accuracy
-		);
-	fflush(fpo);
-#endif
-#if 0
-	fprintf(fpo, "Overall precision = %f (%d/%d)\n",
-		(double)num_match / (double)num_extracted,
-		num_match,
-		num_extracted
-		);
-	fprintf(fpo, "Overall recall = %f (%d/%d)\n",
-		(double)num_match / (double)num_to_extract,
-		num_match,
-		num_to_extract
-		);
-	fprintf(fpo, "Seconds = %f\n", clock() / (double)CLOCKS_PER_SEC);
-#endif
 	return 0;
 }
 
@@ -252,16 +157,29 @@ int main_learn(int argc, char *argv[], const char *argv0)
 	learn_option_t opt;
 	const char *command = argv[0];
 	FILE *fp = NULL, *fpi = stdin, *fpo = stdout, *fpe = stderr;
-	crf_data_t data, eval;
+	callback_data_t cd;
+	crf_data_t data_train, data_test;
+	crf_evaluation_t eval;
 	crf_trainer_t *trainer = NULL;
 	crf_dictionary_t *attrs = NULL, *labels = NULL;
-	evaluation_data_t ed;
+
+	/* Initializations. */
+	learn_option_init(&opt);
+	crf_data_init(&data_train);
+	crf_data_init(&data_test);
+	crf_evaluation_init(&eval, 0);
 
 	/* Parse the command-line option. */
-	learn_option_init(&opt);
 	arg_used = option_parse(++argv, --argc, parse_learn_options, &opt);
 	if (arg_used < 0) {
-		return -1;
+		ret = 1;
+		goto force_exit;
+	}
+
+	/* Show the help message for this command if specified. */
+	if (opt.help) {
+		show_usage(fpo, argv0, command);
+		goto force_exit;
 	}
 
 	/* Set a training file. */
@@ -274,22 +192,22 @@ int main_learn(int argc, char *argv[], const char *argv0)
 	/* Create dictionaries for attributes and labels. */
 	ret = crf_create_instance("dictionary", (void**)&attrs);
 	if (!ret) {
-		ret = -1;
 		fprintf(fpe, "ERROR: Failed to create a dictionary instance.\n");
+		ret = 1;
 		goto force_exit;
 	}
 	ret = crf_create_instance("dictionary", (void**)&labels);
 	if (!ret) {
-		ret = -1;
 		fprintf(fpe, "ERROR: Failed to create a dictionary instance.\n");
+		ret = 1;
 		goto force_exit;
 	}
 
 	/* Create a trainer instance. */
 	ret = crf_create_instance("trainer.crf1m", (void**)&trainer);
 	if (!ret) {
-		ret = -1;
 		fprintf(fpe, "ERROR: Failed to create a trainer instance.\n");
+		ret = 1;
 		goto force_exit;
 	}
 
@@ -309,78 +227,89 @@ int main_learn(int argc, char *argv[], const char *argv0)
 		params->release(params);
 	}
 
-	/* Initialize the training data and evaluation data. */
-	crf_data_init(&data);
-	crf_data_init(&eval);
-
-	/*
-		Read a training data.
-	 */
+	/* Open the training data. */
 	fp = (strcmp(opt.training, "-") == 0) ? fpi : fopen(opt.training, "r");
 	if (fp == NULL) {
-		ret = -1;
 		fprintf(fpe, "ERROR: Failed to open the training data.\n");
+		ret = 1;
 		goto force_exit;		
 	}
 
-	/* Read the data. */
+	/* Read the training data. */
 	fprintf(fpo, "Reading the training data\n");
-	read_data(fp, fpo, &data, attrs, labels);
+	read_data(fp, fpo, &data_train, attrs, labels);
 	if (fp != fpi) fclose(fp);
 
-	/* Set parameters. */
-
-	/* Report the statistics of the data. */
-	fprintf(fpo, "Number of instances: %d\n", data.num_instances);
-	fprintf(fpo, "Total number of items: %d\n", crf_data_totalitems(&data));
+	/* Report the statistics of the training data. */
+	fprintf(fpo, "Number of instances: %d\n", data_train.num_instances);
+	fprintf(fpo, "Total number of items: %d\n", crf_data_totalitems(&data_train));
 	fprintf(fpo, "Number of attributes: %d\n", labels->num(attrs));
 	fprintf(fpo, "Number of labels: %d\n", labels->num(labels));
 	fprintf(fpo, "\n");
 	fflush(fpo);
 
-	/*
-		Read an evaluation data.
-	 */
+	/* Read a test data if necessary */
 	if (opt.evaluation != NULL) {
 		fp = fopen(opt.evaluation, "r");
 		if (fp == NULL) {
-			ret = -1;
 			fprintf(fpe, "ERROR: Failed to open the evaluation data.\n");
+			ret = 1;
 			goto force_exit;		
 		}
+
+		/* Read the test data. */
 		fprintf(fpo, "Reading the evaluation data\n");
-		read_data(fp, fpo, &eval, attrs, labels);
-		fprintf(fpo, "Number of instances: %d\n", eval.num_instances);
-		fprintf(fpo, "Number of total items: %d\n", crf_data_totalitems(&eval));
+		read_data(fp, fpo, &data_test, attrs, labels);
+		fclose(fp);
+
+		/* Report the statistics of the test data. */
+		fprintf(fpo, "Number of instances: %d\n", data_test.num_instances);
+		fprintf(fpo, "Number of total items: %d\n", crf_data_totalitems(&data_test));
 		fprintf(fpo, "\n");
 		fflush(fpo);
-		fclose(fp);
 	}
 
-	data.num_labels = labels->num(labels);
-	data.num_attrs = labels->num(attrs);
-	data.max_item_length = MAX(crf_data_maxlength(&data), crf_data_maxlength(&eval));
+	/* Fill the supplementary information for the data. */
+	data_train.num_labels = labels->num(labels);
+	data_train.num_attrs = labels->num(attrs);
+	data_train.max_item_length = crf_data_maxlength(&data_train);
 
-	ed.fpo = fpo;
-	ed.best_accuracy = 0;
-	crf_evaluation_init(&ed.eval, labels->num(labels));
-	ed.attrs = attrs;
-	ed.labels = labels;
-	ed.out.num_labels = crf_data_maxlength(&eval);
-	ed.out.labels = (int*)calloc(ed.out.num_labels, sizeof(int));
-	ed.out.probability = 0;
-	ed.data = &eval;
+	/* Initialize an evaluation object. */
+	crf_evaluation_finish(&eval);
+	crf_evaluation_init(&eval, labels->num(labels));
 
-	trainer->set_message_callback(trainer, NULL, trainer_callback);
-	trainer->set_evaluate_callback(trainer, &ed, evaluate_callback);
-	trainer->trainer(trainer, &data);
+	/* Fill the callback data. */
+	cd.fpo = fpo;
+	cd.eval = &eval;
+	cd.attrs = attrs;
+	cd.labels = labels;
+	cd.data = &data_test;
 
+	/* Set callback procedures that receive messages and taggers. */
+	trainer->set_message_callback(trainer, &cd, message_callback);
+	trainer->set_evaluate_callback(trainer, &cd, evaluate_callback);
+
+	/* Start training. */
+	if (ret = trainer->trainer(trainer, &data_train)) {
+		goto force_exit;
+	}
+
+	/* Write out the obtained model. */
 	if (opt.model != NULL) {
-		trainer->save(trainer, opt.model, attrs, labels);
+		if (ret = trainer->save(trainer, opt.model, attrs, labels)) {
+			goto force_exit;
+		}
 	}
 
 force_exit:
-	crf_evaluation_finish(&ed.eval);
+	SAFE_RELEASE(trainer);
+	SAFE_RELEASE(labels);
+	SAFE_RELEASE(attrs);
+
+	crf_data_finish(&data_test);
+	crf_data_finish(&data_train);
+	crf_evaluation_finish(&eval);
 	learn_option_finish(&opt);
+
 	return ret;
 }
