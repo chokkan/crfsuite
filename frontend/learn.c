@@ -17,7 +17,7 @@
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #include <os.h>
 
@@ -226,6 +226,7 @@ static int evaluate_callback(void *instance, crf_tagger_t* tagger)
 		total_observation,
 		accuracy
 		);
+	fflush(fpo);
 #endif
 #if 0
 	fprintf(fpo, "Overall precision = %f (%d/%d)\n",
@@ -333,6 +334,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
 	fprintf(fpo, "Number of attributes: %d\n", labels->num(attrs));
 	fprintf(fpo, "Number of labels: %d\n", labels->num(labels));
 	fprintf(fpo, "\n");
+	fflush(fpo);
 
 	/*
 		Read an evaluation data.
@@ -349,6 +351,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
 		fprintf(fpo, "Number of instances: %d\n", eval.num_instances);
 		fprintf(fpo, "Number of total items: %d\n", crf_data_totalitems(&eval));
 		fprintf(fpo, "\n");
+		fflush(fpo);
 		fclose(fp);
 	}
 
