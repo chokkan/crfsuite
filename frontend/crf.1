@@ -1,0 +1,41 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH CRF 1 "Oct  25, 2007"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+crf \- libCRF command-line frontend
+.SH SYNOPSIS
+.B crf
+.RB [ -c | -u "] [" -t
+.IR csv-word-list ]
+.RB [ -p " [" -P
+.IR source-dir "] [" -r "] [" -f "] [" -i "]]" 
+.RB [ -R " [" -L 
+.IR level "]]"
+.RB [ -d
+.IR device-id ]
+.RB [ -s
+.IR name:value ]
+.RB [ -e
+.IR system-encoding ]
+.RB [ -w
+.IR tag-encoding]
+.RI [ mount-point ]
+.br
+.BR "crf " [ -h | -x | -v | -l ]
+
+.SH DESCRIPTION
+\fBcrf\fP is a command line utility.
+
+.br
+.SH AUTHORS
+\fBcrf\fP was written by Naoaki Okazaki
+<okazaki at chokkan dot org>.
