@@ -10,7 +10,7 @@ dnl INCLUDES
 dnl ------------------------------------------------------------------
 dnl Initialization for autoconf
 dnl ------------------------------------------------------------------
-AC_PREREQ(2.61)
+AC_PREREQ(2.59)
 AC_INIT
 AC_CONFIG_SRCDIR([frontend/main.c])
 
