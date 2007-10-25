@@ -17,7 +17,7 @@
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #include <os.h>
 
@@ -34,8 +34,10 @@ static int progress(FILE *fpo, int prev, int current)
 		if (prev % 2 == 0) {
 			if (prev % 10 == 0) {
 				fprintf(fpo, "%d", prev / 10);
+				fflush(fpo);
 			} else {
 				fprintf(fpo, ".", prev / 10);
+				fflush(fpo);
 			}
 		}
 	}
@@ -64,6 +66,7 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
 
 	/* */
 	fprintf(fpo, "0");
+	fflush(fpo);
 	prev = 0;
 
 	iwa = iwa_reader(fpi);
