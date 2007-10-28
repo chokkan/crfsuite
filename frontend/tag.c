@@ -103,18 +103,74 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
 	fprintf(fp, "    -h, --help          Show the usage of this command and exit\n");
 }
 
-static void output_result(FILE *fpo, crf_output_t *output, crf_dictionary_t *labels)
+
+
+typedef struct {
+	char **array;
+	int num;
+	int max;
+} comments_t;
+
+static void comments_init(comments_t* comments)
+{
+	memset(comments, 0, sizeof(*comments));
+}
+
+static void comments_finish(comments_t* comments)
 {
 	int i;
 
-	fprintf(fpo, "BOS\t%f\n", output->probability);
+	for (i = 0;i < comments->num;++i) {
+		free(comments->array[i]);
+	}
+	free(comments->array);
+	comments_init(comments);
+}
+
+static int comments_append(comments_t* comments, const char *value)
+{
+	int i;
+
+	if (comments->max <= comments->num) {
+		comments->max = (comments->max + 1) * 2;
+		comments->array = realloc(comments->array, sizeof(char*) * comments->max);
+		if (comments->array == NULL) {
+			return 1;
+		}
+
+		for (i = comments->num;i < comments->max;++i) {
+			comments->array[i] = NULL;
+		}
+	}
+
+	comments->array[comments->num++] = strdup(value);
+	return 0;
+}
+
+
+
+static void
+output_result(
+	FILE *fpo,
+	crf_output_t *output,
+	crf_dictionary_t *labels,
+	comments_t* comments)
+{
+	int i;
+
 	for (i = 0;i < output->num_labels;++i) {
 		char *label = NULL;
 		labels->to_string(labels, output->labels[i], &label);
-		fprintf(fpo, "%s\n", label);
+		fprintf(fpo, "%s", label);
 		labels->free(labels, label);
+
+		if (i < comments->num && comments->array[i] != NULL) {
+			fprintf(fpo, "\t%s\n", comments->array[i]);
+		} else {
+			fprintf(fpo, "\n");
+		}
 	}
-	fprintf(fpo, "EOS\n");
+	fprintf(fpo, "\n");
 }
 
 static int tag(tagger_option_t* opt, crf_model_t* model)
@@ -126,6 +182,8 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 	crf_content_t cont;
 	crf_output_t output;
 	crf_evaluation_t eval;
+	char *comment = NULL;
+	comments_t comments;
 	iwa_t* iwa = NULL;
 	const iwa_token_t* token = NULL;
 	crf_tagger_t *tagger = NULL;
@@ -170,17 +228,26 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 	}
 
 	/* Read the input data and assign labels. */
+	comments_init(&comments);
 	clk0 = clock();
 	while (token = iwa_read(iwa), token != NULL) {
 		switch (token->type) {
 		case IWA_BOI:
+			printf("BOI\n");
 			/* Initialize an item. */
 			lid = -1;
 			crf_item_init(&item);
+			free(comment);
+			comment = NULL;
 			break;
 		case IWA_EOI:
-			/* Append the item to the instance. */
-			crf_instance_append(&inst, &item, lid);
+			printf("EOI\n");
+			/* Skip an item with no content. */
+			if (!crf_item_empty(&item)) {
+				/* Append the item to the instance. */
+				crf_instance_append(&inst, &item, lid);
+				comments_append(&comments, comment);
+			}
 			crf_item_finish(&item);
 			break;
 		case IWA_ITEM:
@@ -200,7 +267,9 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 			}
 			break;
 		case IWA_NONE:
-			if (0 < inst.num_items) {
+		case IWA_EOF:
+			printf("NONE\n");
+			if (!crf_instance_empty(&inst)) {
 				/* Initialize the object to receive the tagging result. */
 				crf_output_init(&output);
 
@@ -216,14 +285,18 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 				}
 
 				if (!opt->quiet) {
-					output_result(fpo, &output, labels);
+					output_result(fpo, &output, labels, &comments);
 				}
 
 				crf_output_finish(&output);
 				crf_instance_finish(&inst);
+
+				comments_finish(&comments);
+				comments_init(&comments);
 			}
 			break;
 		case IWA_COMMENT:
+			comment = strdup(token->comment);
 			break;
 		}
 	}
@@ -248,6 +321,7 @@ force_exit:
 		fp = NULL;
 	}
 
+	free(comment);
 	crf_instance_finish(&inst);
 	crf_evaluation_finish(&eval);
 

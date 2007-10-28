@@ -23,7 +23,7 @@
  *
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -151,7 +151,7 @@ static int read_comment(iwa_t* iwa, iwa_string_t* str)
 	int c;
 
 	/* Read until an end-of-line. */
-	while (c = get_char(iwa), c != '\n') {
+	while (c = get_char(iwa), c != '\n' && c != EOF) {
 		string_append(str, c);
 	}
 
@@ -243,11 +243,17 @@ const iwa_token_t* iwa_read(iwa_t* iwa)
 
 	/* Return NULL if the stream hits EOF. */
 	if (peek_char(iwa) == EOF) {
-		if (token->type != IWA_NONE) {
-			token->type = IWA_NONE;
-			return token;
-		} else {
+		switch (token->type) {
+		case IWA_EOF:
 			return NULL;
+		case IWA_COMMENT:
+		case IWA_BOI:
+			token->type = IWA_EOI;
+			return token;
+		case IWA_NONE:
+		case IWA_EOI:
+			token->type = IWA_EOF;
+			return token;
 		}
 	}
 

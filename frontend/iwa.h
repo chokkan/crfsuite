@@ -23,7 +23,7 @@
  *
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #ifndef	__IWA_H__
 #define	__IWA_H__
@@ -36,6 +36,7 @@ typedef struct tag_iwa iwa_t;
 
 enum {
 	IWA_NONE,
+	IWA_EOF,
 	IWA_BOI,
 	IWA_EOI,
 	IWA_ITEM,

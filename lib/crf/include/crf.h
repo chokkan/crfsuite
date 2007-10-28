@@ -287,6 +287,7 @@ void crf_item_finish(crf_item_t* item);
 void crf_item_copy(crf_item_t* dst, const crf_item_t* src);
 void crf_item_swap(crf_item_t* x, crf_item_t* y);
 int  crf_item_append_content(crf_item_t* item, const crf_content_t* cont);
+int  crf_item_empty(crf_item_t* item);
 
 void crf_instance_init(crf_instance_t* inst);
 void crf_instance_init_n(crf_instance_t* inst, int num_items);
@@ -294,6 +295,7 @@ void crf_instance_finish(crf_instance_t* inst);
 void crf_instance_copy(crf_instance_t* dst, const crf_instance_t* src);
 void crf_instance_swap(crf_instance_t* x, crf_instance_t* y);
 int  crf_instance_append(crf_instance_t* inst, const crf_item_t* item, int label);
+int  crf_instance_empty(crf_instance_t* inst);
 
 void crf_data_init(crf_data_t* data);
 void crf_data_init_n(crf_data_t* data, int n);

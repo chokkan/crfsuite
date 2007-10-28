@@ -500,7 +500,7 @@ int crf1ml_prepare(
 	crf1ml_features_t* features
 	)
 {
-	int i;
+	int i, ret = 0;
 	const int L = data->num_labels;
 	const int A = data->num_attrs;
 	const int T = data->max_item_length;
@@ -511,27 +511,44 @@ int crf1ml_prepare(
 
 	/* Construct a CRF context. */
 	trainer->ctx = crf1mc_new(L, T);
+	if (trainer->ctx == NULL) {
+		ret = CRFERR_OUTOFMEMORY;
+		goto error_exit;
+	}
 
 	/* Initialization for features and their weights. */
 	trainer->features = features->features;
 	trainer->num_features = features->num_features;
 	trainer->lambda = (floatval_t*)calloc(trainer->num_features, sizeof(floatval_t));
+	if (trainer->lambda == NULL) {
+		ret = CRFERR_OUTOFMEMORY;
+		goto error_exit;
+	}
 	trainer->best_lambda = (floatval_t*)calloc(trainer->num_features, sizeof(floatval_t));
+	if (trainer->best_lambda == NULL) {
+		ret = CRFERR_OUTOFMEMORY;
+		goto error_exit;
+	}
 	trainer->best = 0;
 
 	/* Allocate the work space for probability calculation. */
 	trainer->prob = (floatval_t*)calloc(L, sizeof(floatval_t));
+	if (trainer->prob == NULL) {
+		ret = CRFERR_OUTOFMEMORY;
+		goto error_exit;
+	}
 
 	/* Initialize the feature references. */
 	init_feature_references(trainer, A, L);
 
-	return 0;
+	return ret;
 
 error_exit:
 	free(trainer->attributes);
 	free(trainer->forward_trans);
 	free(trainer->backward_trans);
 	free(trainer->prob);
+	free(trainer->ctx);
 	return 0;
 }
 

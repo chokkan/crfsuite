@@ -111,6 +111,11 @@ int crf_item_append_content(crf_item_t* item, const crf_content_t* cont)
 	return 0;
 }
 
+int  crf_item_empty(crf_item_t* item)
+{
+	return (item->num_contents == 0);
+}
+
 
 
 
@@ -183,6 +188,14 @@ int crf_instance_append(crf_instance_t* inst, const crf_item_t* item, int label)
 	}
 	return 0;
 }
+
+int  crf_instance_empty(crf_instance_t* inst)
+{
+	return (inst->num_items == 0);
+}
+
+
+
 
 void crf_data_init(crf_data_t* data)
 {
@@ -294,8 +307,6 @@ static char *safe_strncpy(char *dst, const char *src, size_t n)
 
 void crf_evaluation_init(crf_evaluation_t* eval, int n)
 {
-	int i;
-
 	memset(eval, 0, sizeof(*eval));
 	eval->tbl = (crf_label_evaluation_t*)calloc(n+1, sizeof(crf_label_evaluation_t));
 	if (eval->tbl != NULL) {
