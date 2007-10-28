@@ -47,6 +47,7 @@ typedef struct {
 	int		feature_possible_states;
 	int		feature_possible_transitions;
 	int		feature_bos_eos;
+	int		max_iterations;
 	char*	regularization;
 	floatval_t	regularization_sigma;
 } crf1ml_option_t;
@@ -559,6 +560,7 @@ static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, i
 		DDX_PARAM_INT("feature.possible_states", opt->feature_possible_states, 0)
 		DDX_PARAM_INT("feature.possible_transitions", opt->feature_possible_transitions, 0)
 		DDX_PARAM_INT("feature.bos_eos", opt->feature_bos_eos, 1)
+		DDX_PARAM_INT("max_iterations", opt->max_iterations, INT_MAX)
 		DDX_PARAM_STRING("regularization", opt->regularization, "L2")
 		DDX_PARAM_FLOAT("regularization.sigma", opt->regularization_sigma, 100.0)
 	END_PARAM_MAP()
@@ -615,7 +617,6 @@ int crf_train_tag(crf_tagger_t* tagger, crf_instance_t *inst, crf_output_t* outp
 
 
 
-#if 1
 static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, lbfgsfloatval_t *g, const int n, const lbfgsfloatval_t step)
 {
 	int i;
@@ -719,11 +720,16 @@ static int lbfgs_progress(
 		/* Callback notification with the tagger object. */
 		ret = crf1mt->cbe_proc(crf1mt->cbe_instance, &tagger);
 	}
-
 	logging(crf1mt->lg, "\n");
+
+	/* Terminate the L-BFGS library after the maximum number of iterations. */
+	if (crf1mt->opt.max_iterations <= k) {
+		return LBFGSERR_MAXIMUMITERATION;
+	}
+
+	/* Continue. */
 	return 0;
 }
-#endif
 
 
 void crf_train_set_message_callback(crf_trainer_t* trainer, void *instance, crf_logging_callback cbm)
@@ -755,6 +761,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 
 	/* Report the parameters. */
 	logging(crf1mt->lg, "Training first-order linear-chain CRFs (trainer.crf1m)\n");
+	logging(crf1mt->lg, "max_iterations: %d\n", opt->max_iterations);
 	logging(crf1mt->lg, "feature.minfreq: %f\n", opt->feature_minfreq);
 	logging(crf1mt->lg, "feature.possible_states: %d\n", opt->feature_possible_states);
 	logging(crf1mt->lg, "feature.possible_transitions: %d\n", opt->feature_possible_transitions);
@@ -791,9 +798,12 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	ret = lbfgs(crf1mt->num_features, crf1mt->lambda, lbfgs_evaluate, lbfgs_progress, crf1mt, NULL);
 	if (ret == 0) {
 		logging(crf1mt->lg, "L-BFGS resulted in convergence\n");
+	} else if (ret == LBFGSERR_MAXIMUMITERATION) {
+		logging(crf1mt->lg, "L-BFGS terminated with the maximum number of iterations");
 	} else {
 		logging(crf1mt->lg, "L-BFGS terminated with error code (%d)\n", ret);
 	}
+	logging(crf1mt->lg, "\n");
 
 	/* Store the feature weights. */
 	best_lambda = ret == 0 ? crf1mt->lambda : crf1mt->best_lambda;

@@ -247,8 +247,7 @@ int lbfgs(
 
 		/* Report the progress. */
 		if (proc_progress) {
-			if (proc_progress(instance, x, g, fx, xnorm, gnorm, step, n, k, ls) != 0) {
-				ret = LBFGSERR_CANCELED;
+			if (ret = proc_progress(instance, x, g, fx, xnorm, gnorm, step, n, k, ls)) {
 				goto lbfgs_exit;
 			}
 		}
