@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <crf.h>
 #include "logging.h"
@@ -15,6 +16,20 @@ void logging(logging_t* lg, const char *format, ...)
 	if (lg->func != NULL) {
 		lg->func(lg->instance, format, args);
 	}
+}
+
+void logging_timestamp(logging_t* lg, const char *format)
+{
+	time_t ts;
+	char timestamp[80];
+
+	time(&ts);
+	strftime(
+		timestamp, sizeof(timestamp),
+		"%Y-%m-%dT%H:%M:%SZ",
+		gmtime(&ts)
+		);
+	logging(lg, format, timestamp);
 }
 
 void logging_progress_start(logging_t* lg)

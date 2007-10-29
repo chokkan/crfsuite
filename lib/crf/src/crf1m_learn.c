@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <time.h>
 
 #include <crf.h>
 #include "params.h"
@@ -93,6 +94,9 @@ struct tag_crf1ml {
 
 	crf_params_t* params;
 	crf1ml_option_t opt;
+
+	clock_t clk_begin;
+	clock_t clk_prev;
 };
 
 #define	FEATURE(trainer, k) \
@@ -692,7 +696,12 @@ static int lbfgs_progress(
 	int ls)
 {
 	int i;
+	clock_t duration, clk = clock();
 	crf1ml_t* crf1mt = (crf1ml_t*)instance;
+
+	/* Compute the duration required for this iteration. */
+	duration = clk - crf1mt->clk_prev;
+	crf1mt->clk_prev = clk;
 
 	/* Set feature weights from the L-BFGS solver. */
 	for (i = 0;i < crf1mt->num_features;++i) {
@@ -708,6 +717,7 @@ static int lbfgs_progress(
 	logging(crf1mt->lg, "Error norm: %f\n", gnorm);
 	logging(crf1mt->lg, "Line search trials: %d\n", ls);
 	logging(crf1mt->lg, "Line search step: %f\n", step);
+	logging(crf1mt->lg, "Seconds required for this iteration: %.3f\n", duration / (double)CLOCKS_PER_SEC);
 
 	/* Send the tagger with the current parameters. */
 	if (crf1mt->cbe_proc != NULL) {
@@ -776,6 +786,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 
 	/* Generate features. */
 	logging(crf1mt->lg, "Feature generation\n");
+	crf1mt->clk_begin = clock();
 	features = crf1ml_generate_features(
 		data,
 		opt->feature_possible_states ? 1 : 0,
@@ -785,6 +796,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 		crf1mt->lg->instance
 		);
 	logging(crf1mt->lg, "Number of features: %d\n", features->num_features);
+	logging(crf1mt->lg, "Seconds required: %.3f\n", (clock() - crf1mt->clk_begin) / (double)CLOCKS_PER_SEC);
 	logging(crf1mt->lg, "\n");
 
 	/* Preparation for training. */
@@ -796,14 +808,17 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	/* Call the L-BFGS solver. */
 	logging(crf1mt->lg, "L-BFGS optimization\n");
 	logging(crf1mt->lg, "\n");
+	crf1mt->clk_begin = clock();
+	crf1mt->clk_prev = crf1mt->clk_begin;
 	ret = lbfgs(crf1mt->num_features, crf1mt->lambda, lbfgs_evaluate, lbfgs_progress, crf1mt, NULL);
 	if (ret == 0) {
 		logging(crf1mt->lg, "L-BFGS resulted in convergence\n");
 	} else if (ret == LBFGSERR_MAXIMUMITERATION) {
-		logging(crf1mt->lg, "L-BFGS terminated with the maximum number of iterations");
+		logging(crf1mt->lg, "L-BFGS terminated with the maximum number of iterations\n");
 	} else {
 		logging(crf1mt->lg, "L-BFGS terminated with error code (%d)\n", ret);
 	}
+	logging(crf1mt->lg, "Total seconds required for L-BFGS: %.3f\n", (clock() - crf1mt->clk_begin) / (double)CLOCKS_PER_SEC);
 	logging(crf1mt->lg, "\n");
 
 	/* Store the feature weights. */
@@ -828,6 +843,10 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	const int A = crf1mt->num_attributes;
 	const int K = crf1mt->num_features;
 	int J = 0, B = 0;
+
+	/* Start storing the model. */
+	logging(crf1mt->lg, "Storing the model\n");
+	crf1mt->clk_begin = clock();
 
 	/* Allocate and initialize the feature mapping. */
 	fmap = (int*)calloc(K, sizeof(int));
@@ -887,11 +906,12 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 		goto error_exit;
 	}
 
-	logging(crf1mt->lg, "Feature pruning %d -> %d\n", K, J);
-	logging(crf1mt->lg, "Attribute pruning %d -> %d\n", A, B);
+	logging(crf1mt->lg, "Number of active features: %d (%d)\n", J, K);
+	logging(crf1mt->lg, "Number of active attributes: %d (%d)\n", B, A);
+	logging(crf1mt->lg, "Number of active labels: %d (%d)\n", L, L);
 
 	/* Write labels. */
-	logging(crf1mt->lg, "Writing %d labels\n", L);
+	logging(crf1mt->lg, "Writing labels\n", L);
 	if (ret = crf1mmw_open_labels(writer, L)) {
 		goto error_exit;
 	}
@@ -910,7 +930,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	}
 
 	/* Write attributes. */
-	logging(crf1mt->lg, "Writing %d attributes\n", B);
+	logging(crf1mt->lg, "Writing attributes\n");
 	if (ret = crf1mmw_open_attrs(writer, B)) {
 		goto error_exit;
 	}
@@ -931,7 +951,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	}
 
 	/* Write label feature references. */
-	logging(crf1mt->lg, "Writing label feature references\n");
+	logging(crf1mt->lg, "Writing feature references for transitions\n");
 	if (ret = crf1mmw_open_labelrefs(writer, L+2)) {
 		goto error_exit;
 	}
@@ -954,7 +974,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	}
 
 	/* Write attribute feature references. */
-	logging(crf1mt->lg, "Writing attribute feature references\n");
+	logging(crf1mt->lg, "Writing feature references for attributes\n");
 	if (ret = crf1mmw_open_attrrefs(writer, B)) {
 		goto error_exit;
 	}
@@ -970,7 +990,11 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 		goto error_exit;
 	}
 
+	/* Close the writer. */
 	crf1mmw_close(writer);
+	logging(crf1mt->lg, "Seconds required: %.3f\n", (clock() - crf1mt->clk_begin) / (double)CLOCKS_PER_SEC);
+	logging(crf1mt->lg, "\n");
+
 	free(amap);
 	free(fmap);
 	return 0;

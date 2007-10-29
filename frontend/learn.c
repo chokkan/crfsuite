@@ -154,6 +154,9 @@ static int evaluate_callback(void *instance, crf_tagger_t* tagger)
 int main_learn(int argc, char *argv[], const char *argv0)
 {
 	int i, ret = 0, arg_used = 0;
+	time_t ts;
+	char timestamp[80];
+	clock_t clk_begin, clk_current;
 	learn_option_t opt;
 	const char *command = argv[0];
 	FILE *fp = NULL, *fpi = stdin, *fpo = stdout, *fpe = stderr;
@@ -235,9 +238,17 @@ int main_learn(int argc, char *argv[], const char *argv0)
 		goto force_exit;		
 	}
 
+	/* Log the start time. */
+	time(&ts);
+	strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", gmtime(&ts));
+	fprintf(fpo, "Start time of the training: %s\n", timestamp);
+	fprintf(fpo, "\n");
+
 	/* Read the training data. */
 	fprintf(fpo, "Reading the training data\n");
+	clk_begin = clock();
 	read_data(fp, fpo, &data_train, attrs, labels);
+	clk_current = clock();
 	if (fp != fpi) fclose(fp);
 
 	/* Report the statistics of the training data. */
@@ -245,6 +256,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
 	fprintf(fpo, "Total number of items: %d\n", crf_data_totalitems(&data_train));
 	fprintf(fpo, "Number of attributes: %d\n", labels->num(attrs));
 	fprintf(fpo, "Number of labels: %d\n", labels->num(labels));
+	fprintf(fpo, "Seconds required: %.3f\n", (clk_current - clk_begin) / (double)CLOCKS_PER_SEC);
 	fprintf(fpo, "\n");
 	fflush(fpo);
 
@@ -259,12 +271,15 @@ int main_learn(int argc, char *argv[], const char *argv0)
 
 		/* Read the test data. */
 		fprintf(fpo, "Reading the evaluation data\n");
+		clk_begin = clock();
 		read_data(fp, fpo, &data_test, attrs, labels);
+		clk_current = clock();
 		fclose(fp);
 
 		/* Report the statistics of the test data. */
 		fprintf(fpo, "Number of instances: %d\n", data_test.num_instances);
 		fprintf(fpo, "Number of total items: %d\n", crf_data_totalitems(&data_test));
+		fprintf(fpo, "Seconds required: %.3f\n", (clk_current - clk_begin) / (double)CLOCKS_PER_SEC);
 		fprintf(fpo, "\n");
 		fflush(fpo);
 	}
@@ -300,6 +315,12 @@ int main_learn(int argc, char *argv[], const char *argv0)
 			goto force_exit;
 		}
 	}
+
+	/* Log the end time. */
+	time(&ts);
+	strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", gmtime(&ts));
+	fprintf(fpo, "End time of the training: %s\n", timestamp);
+	fprintf(fpo, "\n");
 
 force_exit:
 	SAFE_RELEASE(trainer);
