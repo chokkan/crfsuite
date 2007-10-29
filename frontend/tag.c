@@ -143,7 +143,7 @@ static int comments_append(comments_t* comments, const char *value)
 		}
 	}
 
-	comments->array[comments->num++] = strdup(value);
+	comments->array[comments->num++] = (value != NULL ? strdup(value) : NULL);
 	return 0;
 }
 
