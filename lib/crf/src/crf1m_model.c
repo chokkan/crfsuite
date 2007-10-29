@@ -867,6 +867,11 @@ void crf1mm_dump(crf1mm_t* crf1mm, FILE *fp)
 			const char *attr = NULL, *to = NULL;
 
 			crf1mm_get_feature(crf1mm, fid, &f);
+#if 0
+			if (f.src != i) {
+				fprintf(fp, "WARNING: an inconsistent attribute reference.\n");
+			}
+#endif
 			attr = crf1mm_to_attr(crf1mm, f.src);
 			to = crf1mm_to_label(crf1mm, f.dst);
 			fprintf(fp, "  (%d) %s --> %s: %f\n", f.type, attr, to, f.weight);

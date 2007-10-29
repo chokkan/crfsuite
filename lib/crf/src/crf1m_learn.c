@@ -831,6 +831,8 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	return 0;
 }
 
+/*#define	CRF_TRAIN_SAVE_NO_PRUNING	1*/
+
 static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dictionary_t* attrs, crf_dictionary_t* labels)
 {
 	crf1ml_t *crf1mt = (crf1ml_t*)trainer->internal;
@@ -853,14 +855,24 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	if (fmap == NULL) {
 		goto error_exit;
 	}
+#ifdef	CRF_TRAIN_SAVE_NO_PRUNING
+	for (k = 0;k < K;++k) fmap[k] = k;
+	J = K;
+#else
 	for (k = 0;k < K;++k) fmap[k] = -1;
+#endif/*CRF_TRAIN_SAVE_NO_PRUNING*/
 
 	/* Allocate and initialize the attribute mapping. */
 	amap = (int*)calloc(A, sizeof(int));
 	if (amap == NULL) {
 		goto error_exit;
 	}
+#ifdef	CRF_TRAIN_SAVE_NO_PRUNING
+	for (a = 0;a < A;++a) amap[a] = a;
+	B = A;
+#else
 	for (a = 0;a < A;++a) amap[a] = -1;
+#endif/*CRF_TRAIN_SAVE_NO_PRUNING*/
 
 	/*
 	 *	Open a model writer.
@@ -876,27 +888,34 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	}
 
 	/* Determine a set of active features and attributes. */
-	for (k = 0, J = 0;k < crf1mt->num_features;++k) {
+	for (k = 0;k < crf1mt->num_features;++k) {
 		crf1ml_feature_t* f = &crf1mt->features[k];
 		if (f->lambda != 0) {
-			/* Model feature. */
+			int src;
 			crf1mm_feature_t feat;
+
+#ifndef	CRF_TRAIN_SAVE_NO_PRUNING
+			/* The feature (#k) will have a new feature id (#J). */
+			fmap[k] = J++;		/* Feature #k -> #fmap[k]. */
+
+			/* Map the source of the field. */
+			if (f->type == FT_STATE) {
+				/* The attribute #(f->src) will have a new attribute id (#B). */
+				if (amap[f->src] < 0) amap[f->src] = B++;	/* Attribute #a -> #amap[a]. */
+				src = amap[f->src];
+			} else {
+				src = f->src;
+			}
+#endif/*CRF_TRAIN_SAVE_NO_PRUNING*/
+
 			feat.type = f->type;
-			feat.src = f->src;
+			feat.src = src;
 			feat.dst = f->dst;
 			feat.weight = f->lambda;
-
-			/* The feature (f) will have a new feature id (#J). */
-			fmap[k] = J++;		/* Feature #k -> #fmap[k]. */
 
 			/* Write the feature. */
 			if (ret = crf1mmw_put_feature(writer, fmap[k], &feat)) {
 				goto error_exit;
-			}
-
-			if (f->type == FT_STATE) {
-				a = f->src;
-				if (amap[a] < 0) amap[a] = B++;	/* Attribute #a -> #amap[a]. */
 			}
 		}
 	}
@@ -980,7 +999,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	}
 	for (a = 0;a < A;++a) {
 		if (0 <= amap[a]) {
-			attr = ATTRIBUTE(crf1mt, amap[a]);
+			attr = ATTRIBUTE(crf1mt, a);
 			if (ret = crf1mmw_put_attrref(writer, amap[a], attr, fmap)) {
 				goto error_exit;
 			}
