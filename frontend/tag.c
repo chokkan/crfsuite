@@ -233,7 +233,6 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 	while (token = iwa_read(iwa), token != NULL) {
 		switch (token->type) {
 		case IWA_BOI:
-			printf("BOI\n");
 			/* Initialize an item. */
 			lid = -1;
 			crf_item_init(&item);
@@ -241,7 +240,6 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 			comment = NULL;
 			break;
 		case IWA_EOI:
-			printf("EOI\n");
 			/* Skip an item with no content. */
 			if (!crf_item_empty(&item)) {
 				/* Append the item to the instance. */
@@ -268,7 +266,6 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 			break;
 		case IWA_NONE:
 		case IWA_EOF:
-			printf("NONE\n");
 			if (!crf_instance_empty(&inst)) {
 				/* Initialize the object to receive the tagging result. */
 				crf_output_init(&output);

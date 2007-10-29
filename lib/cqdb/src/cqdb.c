@@ -486,11 +486,12 @@ int cqdb_to_id(cqdb_t* db, const char *str)
 	uint32_t hv = hashlittle(str, strlen(str)+1, 0);
 	int t = hv % 256;
 	table_t* ht = &db->ht[t];
-	int n = ht->num;
-	int k = (hv >> 8) % n;
-	bucket_t* p = NULL;
 
 	if (ht->num && ht->bucket != NULL) {
+		int n = ht->num;
+		int k = (hv >> 8) % n;
+		bucket_t* p = NULL;
+
 		while (p = &ht->bucket[k], p->offset) {
 			if (p->hash == hv) {
 				uint8_t *begin = db->buffer + p->offset;
