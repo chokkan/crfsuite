@@ -2,7 +2,7 @@
 
 bin_PROGRAMS = crf
 man_MANS = crf.1
-#EXTRA_DIST = ${man_MANS}
+EXTRA_DIST = ${man_MANS}
 
 crf_SOURCES = \
 	iwa.h \
