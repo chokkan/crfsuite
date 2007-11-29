@@ -846,7 +846,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	logging(crf1mt->lg, "\n");
 	crf1mt->clk_begin = clock();
 	crf1mt->clk_prev = crf1mt->clk_begin;
-	ret = lbfgs_ow(
+	ret = lbfgs(
 		crf1mt->num_features,
 		crf1mt->lambda,
 		lbfgs_evaluate,

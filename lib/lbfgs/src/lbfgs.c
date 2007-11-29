@@ -100,6 +100,19 @@ static const lbfgs_parameter_t _defparam = {
 
 /* Forward function declarations. */
 
+static int line_search2(
+	int n,
+	lbfgsfloatval_t *x,
+	lbfgsfloatval_t *f,
+	lbfgsfloatval_t *g,
+	lbfgsfloatval_t *s,
+	lbfgsfloatval_t *stp,
+	lbfgsfloatval_t *wa,
+	lbfgs_evaluate_t proc_evaluate,
+	void *instance,
+	const lbfgs_parameter_t *param
+	);
+
 static int line_search(
 	int n,
 	lbfgsfloatval_t *x,
@@ -169,7 +182,7 @@ int lbfgs(
 	const lbfgs_parameter_t* param = (_param != NULL) ? _param : &_defparam;
 	const int m = param->m;
 
-	lbfgsfloatval_t *g = NULL, *h = NULL, *w = NULL;
+	lbfgsfloatval_t *g = NULL, *h = NULL, *w = NULL, *dir = NULL;
 	iteration_data_t *lm = NULL, *it = NULL;
 	lbfgsfloatval_t ys, yy;
 	lbfgsfloatval_t xnorm, gnorm, beta;
@@ -207,7 +220,8 @@ int lbfgs(
 	g = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
 	h = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
 	w = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
-	if (g == NULL || h == NULL || w == NULL) {
+	dir = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
+	if (g == NULL || h == NULL || w == NULL || dir == NULL) {
 		ret = LBFGSERR_OUTOFMEMORY;
 		goto lbfgs_exit;
 	}
@@ -242,6 +256,8 @@ int lbfgs(
 		lm[0].s[i] = -g[i] * h[i];
 	}
 
+	veccpy(dir, lm[0].s, n);
+
 	/* step = 1.0 / sqrt(vecdot(g, g, n)) */
 	vecrnorm(&step, g, n);
 
@@ -255,7 +271,7 @@ int lbfgs(
 		it = &lm[end];
 
 		/* Search for the optimal step. */
-		ls = line_search(
+		ls = line_search2(
 			n, x, &fx, g, it->s, &step, h, proc_evaluate, instance, param);
 		if (ls < 0) {
 			ret = ls;
@@ -320,29 +336,48 @@ int lbfgs(
 		++k;
 		end = (end + 1) % m;
 
-		vecncpy(w, g, n);
+		if (param->orthantwise_c != 0.) {
+			for (i = 0;i < n;++i) {
+				if (x[i] < 0.) {
+					dir[i] = -g[i] + param->orthantwise_c;
+				} else if (0. < x[i]) {
+					dir[i] = -g[i] - param->orthantwise_c;
+				} else {
+					if (g[i] < -param->orthantwise_c) {
+						dir[i] = -g[i] - param->orthantwise_c;
+					} else if (param->orthantwise_c < g[i]) {
+						dir[i] = -g[i] + param->orthantwise_c;
+					} else {
+						dir[i] = 0.;
+					}
+				}
+			}
+		} else {
+			vecncpy(dir, g, n);
+		}
+		veccpy(w, dir, n);
 
 		j = end;
 		for (i = 0;i < bound;++i) {
 			j = (j + m - 1) % m;	/* if (--j == -1) j = m-1; */
 			it = &lm[j];
 			/* \alpha_{j} = \rho_{j} s^{t}_{j} \cdot q_{k+1}. */
-			vecdot(&it->alpha, it->s, w, n);
+			vecdot(&it->alpha, it->s, dir, n);
 			it->alpha *= it->rho;
 			/* q_{i} = q_{i+1} - \alpha_{i} y_{i}. */
-			vecadd(w, it->y, -it->alpha, n);
+			vecadd(dir, it->y, -it->alpha, n);
 		}
 
 		/* \gamma_0 = H \cdot q_{0}. */
-		vecmul(w, h, n);
+		vecmul(dir, h, n);
 
 		for (i = 0;i < bound;++i) {
 			it = &lm[j];
 			/* \beta_{j} = \rho_{j} y^t_{j} \cdot \gamma_{i}. */
-			vecdot(&beta, it->y, w, n);
+			vecdot(&beta, it->y, dir, n);
 			beta *= it->rho;
 			/* \gamma_{i+1} = \gamma_{i} + (\alpha_{j} - \beta_{j}) s_{j}. */
-			vecadd(w, it->s, it->alpha - beta, n);
+			vecadd(dir, it->s, it->alpha - beta, n);
 			j = (j + 1) % m;		/* if (++j == m) j = 0; */
 		}
 
@@ -350,7 +385,13 @@ int lbfgs(
 			Store d_{k} = -H_{k} \cdot g_{k} into lm[end].s.
 		 */
 		it = &lm[end];
-		veccpy(it->s, w, n);
+		veccpy(it->s, dir, n);
+
+		if (param->orthantwise_c != 0.) {
+			for (i = 0;i < n;++i) {
+				dir[i] = project(dir[i], w[i]);
+			}
+		}
 
 		/*
 			We try step = 1 first.
@@ -372,6 +413,86 @@ lbfgs_exit:
 	vecfree(g);
 
 	return ret;
+}
+
+
+
+static int line_search2(
+	int n,
+	lbfgsfloatval_t *x,
+	lbfgsfloatval_t *f,
+	lbfgsfloatval_t *g,
+	lbfgsfloatval_t *s,
+	lbfgsfloatval_t *stp,
+	lbfgsfloatval_t *wa,
+	lbfgs_evaluate_t proc_evaluate,
+	void *instance,
+	const lbfgs_parameter_t *param
+	)
+{
+	int i, count = 0;
+	lbfgsfloatval_t dg;
+	lbfgsfloatval_t width = 0.5;
+	lbfgsfloatval_t finit, ftest1, dginit, dgtest;
+
+	/* Check the input parameters for errors. */
+	if (*stp <= 0.) {
+		return LBFGSERR_INVALIDPARAMETERS;
+	}
+
+	/*
+		Compute the initial gradient in the search direction
+		and check that s points to a descent direction.
+	 */
+	vecdot(&dginit, g, s, n);
+	if (param->orthantwise_c != 0.) {
+		dginit = 0.;
+		for (i = 0;i < n;++i) {
+			if (x[i] < 0.) {
+				dginit += s[i] * (g[i] - param->orthantwise_c);
+			} else if (0. < x[i]) {
+				dginit += s[i] * (g[i] + param->orthantwise_c);
+			} else if (s[i] < 0.) {
+				dginit += s[i] * (g[i] - param->orthantwise_c);
+			} else if (0. < s[i]) {
+				dginit += s[i] * (g[i] + param->orthantwise_c);
+			}
+		}
+	}
+
+	if (0 < dginit) {
+		return LBFGSERR_INCREASEGRADIENT;
+	}
+
+	/* Initialize local variables. */
+	finit = *f;
+	dgtest = param->ftol * dginit;
+
+	/* Copy the value of x to the work area. */
+	veccpy(wa, x, n);
+
+	for (;;) {
+		veccpy(x, wa, n);
+		vecadd(x, s, *stp, n);
+
+		if (param->orthantwise_c != 0.) {
+			/* The current point is projected onto the orthant of the previous one. */
+			for (i = 0;i < n;++i) {
+				x[i] = project(x[i], wa[i]);
+			}
+		}
+
+		/* Evaluate the function and gradient values. */
+		*f = proc_evaluate(instance, x, g, n, *stp);
+
+		++count;
+
+		if (*f <= finit + (*stp) * dgtest) return count;
+
+		(*stp) *= width;
+	}
+
+	return LBFGSERR_LOGICERROR;
 }
 
 
