@@ -61,6 +61,10 @@ struct tag_crf1ml {
 	int num_labels;			/**< Number of distinct output labels (L). */
 	int num_attributes;		/**< Number of distinct attributes (A). */
 
+	int l1_regularization;
+	floatval_t sigmainv;
+
+	int l2_regularization;
 	floatval_t sigma2inv;
 
 	int max_items;
@@ -506,7 +510,7 @@ int crf1ml_prepare(
 	crf1ml_features_t* features
 	)
 {
-	int i, ret = 0;
+	int ret = 0;
 	const int L = data->num_labels;
 	const int A = data->num_attrs;
 	const int T = data->max_item_length;
@@ -674,12 +678,32 @@ static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, 
 	 */
 	for (i = 0;i < crf1mt->num_features;++i) {
 		const crf1ml_feature_t* f = &crf1mt->features[i];
-		g[i] = -((f->oexp - f->mexp) - crf1mt->sigma2inv * f->lambda);
-		norm += f->lambda * f->lambda;
-		/*printf("%d (%f): %f -> %f, %f\n", i, f->lambda, f->mexp, f->oexp, g[i]);*/
+		g[i] = -(f->oexp - f->mexp);
 	}
 
-	logl -= (crf1mt->sigma2inv * norm * 0.5);
+	/*
+		L1 regularization for orthant-wise L-BFGS.
+	 */
+	if (crf1mt->l1_regularization) {
+		for (i = 0;i < crf1mt->num_features;++i) {
+			const crf1ml_feature_t* f = &crf1mt->features[i];
+			norm += fabs(f->lambda);
+		}
+		//logl -= (crf1mt->sigmainv * norm);
+	}
+
+	/*
+		L2 regularization.
+	 */
+	if (crf1mt->l2_regularization) {
+		for (i = 0;i < crf1mt->num_features;++i) {
+			const crf1ml_feature_t* f = &crf1mt->features[i];
+			g[i] -= (crf1mt->sigma2inv * f->lambda);
+			norm += f->lambda * f->lambda;
+		}
+		logl -= (crf1mt->sigma2inv * norm * 0.5);
+	}
+
 	return -logl;
 }
 
@@ -766,6 +790,10 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	crf1ml_t *crf1mt = (crf1ml_t*)trainer->internal;
 	crf_params_t *params = crf1mt->params;
 	crf1ml_option_t *opt = &crf1mt->opt;
+	lbfgs_parameter_t lbfgsopt;
+
+	/* Initialize the L-BFGS parameters with default values. */
+	lbfgs_parameter_init(&lbfgsopt);
 
 	/* Access parameters. */
 	crf1ml_exchange_options(crf1mt->params, opt, -1);
@@ -801,16 +829,31 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 
 	/* Preparation for training. */
 	crf1ml_prepare(crf1mt, data, features);
-
 	crf1mt->data = data;
-	crf1mt->sigma2inv = 1.0 / (opt->regularization_sigma * opt->regularization_sigma);
+
+	if (strcmp(opt->regularization, "L1") == 0) {
+		crf1mt->l1_regularization = 1;
+		crf1mt->sigmainv = 1.0 / opt->regularization_sigma;
+		lbfgsopt.orthantwise_c = 1.0 / opt->regularization_sigma;
+	} else if (strcmp(opt->regularization, "L2") == 0) {
+		crf1mt->l2_regularization = 1;
+		crf1mt->sigma2inv = 1.0 / (opt->regularization_sigma * opt->regularization_sigma);
+		lbfgsopt.orthantwise_c = 0.;
+	}
 
 	/* Call the L-BFGS solver. */
 	logging(crf1mt->lg, "L-BFGS optimization\n");
 	logging(crf1mt->lg, "\n");
 	crf1mt->clk_begin = clock();
 	crf1mt->clk_prev = crf1mt->clk_begin;
-	ret = lbfgs(crf1mt->num_features, crf1mt->lambda, lbfgs_evaluate, lbfgs_progress, crf1mt, NULL);
+	ret = lbfgs_ow(
+		crf1mt->num_features,
+		crf1mt->lambda,
+		lbfgs_evaluate,
+		lbfgs_progress,
+		crf1mt,
+		&lbfgsopt
+		);
 	if (ret == 0) {
 		logging(crf1mt->lg, "L-BFGS resulted in convergence\n");
 	} else if (ret == LBFGSERR_MAXIMUMITERATION) {

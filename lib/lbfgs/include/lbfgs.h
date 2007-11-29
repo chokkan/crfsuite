@@ -153,6 +153,17 @@ int lbfgs(
 	lbfgs_parameter_t *param
 	);
 
+int lbfgs_ow(
+	const int n,
+	lbfgsfloatval_t *x,
+	lbfgs_evaluate_t proc_evaluate,
+	lbfgs_progress_t proc_progress,
+	void *instance,
+	lbfgs_parameter_t *param
+	);
+
+void lbfgs_parameter_init(lbfgs_parameter_t *param);
+
 #ifdef	__cplusplus
 }
 #endif/*__cplusplus*/

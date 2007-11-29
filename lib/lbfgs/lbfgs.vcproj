@@ -152,6 +152,14 @@
 				RelativePath=".\src\lbfgs.c"
 				>
 			</File>
+			<File
+				RelativePath=".\src\lbfgs_ow.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\OWLQN.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="ヘッダー ファイル"
@@ -172,6 +180,10 @@
 			</File>
 			<File
 				RelativePath=".\include\lbfgs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\OWLQN.h"
 				>
 			</File>
 		</Filter>

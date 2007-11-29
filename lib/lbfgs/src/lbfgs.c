@@ -147,6 +147,11 @@ inline static lbfgsfloatval_t project(lbfgsfloatval_t x, lbfgsfloatval_t y)
 	return fsigndiff(&x, &y) ? 0 : x;
 }
 
+void lbfgs_parameter_init(lbfgs_parameter_t *param)
+{
+	memcpy(param, &_defparam, sizeof(*param));
+}
+
 int lbfgs(
 	const int n,
 	lbfgsfloatval_t *x,
@@ -476,12 +481,12 @@ static int line_search(
 					/* The left and right partial derivatives are the same. */
 					pg = g[i] + param->orthantwise_c;
 				} else {
-					pgl = g[i] - param->orthantwise_c;	/* The left partial derivative. */
 					pgr = g[i] + param->orthantwise_c;	/* The right partial derivative. */
-					if (0. < pgl) {
-						pg = pgl;
-					} else if (pgr < 0.) {
+					pgl = g[i] - param->orthantwise_c;	/* The left partial derivative. */
+					if (pgr < 0.) {
 						pg = pgr;
+					} else if (0. < pgl) {
+						pg = pgl;
 					} else {
 						pg = 0.;
 					}
@@ -497,8 +502,7 @@ static int line_search(
 					The current value is projected onto the orthant of the
 					previous point.
 				 */
-				x[i] = (wa[i] == 0.) ?
-					project(x[i], -pg) : project(x[i], wa[i]);
+				x[i] = project(x[i], wa[i]);
 			}
 		} else {
 			/*
