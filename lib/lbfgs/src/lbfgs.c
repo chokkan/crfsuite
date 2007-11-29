@@ -95,6 +95,7 @@ typedef struct tag_iteration_data iteration_data_t;
 static const lbfgs_parameter_t _defparam = {
 	5, 1e-5, 20,
 	1e-20, 1e20, 1e-4, 0.9, 1.0e-16,
+	0.0,
 };
 
 /* Forward function declarations. */
@@ -130,6 +131,21 @@ static int update_trial_interval(
 
 
 
+inline static lbfgsfloatval_t sign(lbfgsfloatval_t v)
+{
+	if (v < 0.) {
+		return -1.;
+	} else if (0. < v) {
+		return 1.;
+	} else {
+		return 0.;
+	}
+}
+
+inline static lbfgsfloatval_t project(lbfgsfloatval_t x, lbfgsfloatval_t y)
+{
+	return fsigndiff(&x, &y) ? 0 : x;
+}
 
 int lbfgs(
 	const int n,
@@ -441,12 +457,57 @@ static int line_search(
 			*stp = stx;
 		}
 
-		/*
-			Compute the current value of x:
-				x <- x + (*stp) * s.
-		 */
-		veccpy(x, wa, n);
-		vecadd(x, s, *stp, n);
+		if (param->orthantwise_c != 0.) {
+			/*
+				Orthant-wise updates for L-BFGS with L1 regularization.
+					f(x) must be a regularized objective
+					g(x) must be the gradient of an unregularized objective.
+			 */
+			int i;
+			lbfgsfloatval_t pg = 0., pgl = 0., pgr = 0.;
+			lbfgsfloatval_t p = 0.;
+
+			for (i = 0;i < n;++i) {
+				/* Compute the pseudo-gradient of f at x. */
+				if (wa[i] < 0.) {
+					/* The left and right partial derivatives are the same. */
+					pg = g[i] - param->orthantwise_c;
+				} else if (0. < wa[i]) {
+					/* The left and right partial derivatives are the same. */
+					pg = g[i] + param->orthantwise_c;
+				} else {
+					pgl = g[i] - param->orthantwise_c;	/* The left partial derivative. */
+					pgr = g[i] + param->orthantwise_c;	/* The right partial derivative. */
+					if (0. < pgl) {
+						pg = pgl;
+					} else if (pgr < 0.) {
+						pg = pgr;
+					} else {
+						pg = 0.;
+					}
+				}
+
+				/* Constrain the search direction to match the sign of (-pg). */
+				p = project(s[i], -pg);
+
+				/* Compute the current value of x[i]. */
+				x[i] = wa[i] + (*stp) * p;
+
+				/*
+					The current value is projected onto the orthant of the
+					previous point.
+				 */
+				x[i] = (wa[i] == 0.) ?
+					project(x[i], -pg) : project(x[i], wa[i]);
+			}
+		} else {
+			/*
+				Compute the current value of x:
+					x <- x + (*stp) * s.
+			 */
+			veccpy(x, wa, n);
+			vecadd(x, s, *stp, n);
+		}
 
 		/* Evaluate the function and gradient values. */
 		*f = proc_evaluate(instance, x, g, n, *stp);

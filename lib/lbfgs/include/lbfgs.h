@@ -119,6 +119,8 @@ struct tag_lbfgs_parameter {
 	lbfgsfloatval_t	ftol;
 	lbfgsfloatval_t	gtol;
 	lbfgsfloatval_t	xtol;
+
+	lbfgsfloatval_t	orthantwise_c;
 };
 typedef struct tag_lbfgs_parameter lbfgs_parameter_t;
 
