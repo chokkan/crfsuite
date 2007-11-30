@@ -705,7 +705,7 @@ static int lbfgs_progress(
 	int k,
 	int ls)
 {
-	int i;
+	int i, num_active_features = 0;
 	clock_t duration, clk = clock();
 	crf1ml_t* crf1mt = (crf1ml_t*)instance;
 
@@ -718,6 +718,7 @@ static int lbfgs_progress(
 		crf1ml_feature_t* f = &crf1mt->features[i];
 		f->lambda = x[i];
 		crf1mt->best_lambda[i] = x[i];
+		if (x[i] != 0.) ++num_active_features;
 	}
 
 	/* Report the progress. */
@@ -725,6 +726,7 @@ static int lbfgs_progress(
 	logging(crf1mt->lg, "Log-likelihood: %f\n", -fx);
 	logging(crf1mt->lg, "Feature norm: %f\n", xnorm);
 	logging(crf1mt->lg, "Error norm: %f\n", gnorm);
+	logging(crf1mt->lg, "Active features: %d\n", num_active_features);
 	logging(crf1mt->lg, "Line search trials: %d\n", ls);
 	logging(crf1mt->lg, "Line search step: %f\n", step);
 	logging(crf1mt->lg, "Seconds required for this iteration: %.3f\n", duration / (double)CLOCKS_PER_SEC);
