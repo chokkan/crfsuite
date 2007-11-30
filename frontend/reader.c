@@ -53,7 +53,7 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
 	iwa_t* iwa = NULL;
 	const iwa_token_t* token = NULL;
 	long filesize = 0, begin = 0, offset = 0;
-	int i, prev = 0, current = 0;
+	int prev = 0, current = 0;
 
 	/* Initialize the instance.*/
 	crf_instance_init(&inst);

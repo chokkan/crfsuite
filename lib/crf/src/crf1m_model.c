@@ -756,7 +756,8 @@ int crf1mm_get_feature(crf1mm_t* model, int fid, crf1mm_feature_t* f)
 
 void crf1mm_dump(crf1mm_t* crf1mm, FILE *fp)
 {
-	int i, j;
+	int j;
+	uint32_t i;
 	feature_refs_t refs;
 	const header_t* hfile = crf1mm->header;
 

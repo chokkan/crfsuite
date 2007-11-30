@@ -218,10 +218,10 @@ int cqdb_writer_put(cqdb_writer_t* dbw, const char *str, int id)
 	/* Store the backlink if specified. */
 	if (!(dbw->flag & CQDB_ONEWAY)) {
 		/* Expand the backlink array if necessary. */
-		if (dbw->bwd_size <= id) {
+		if (dbw->bwd_size <= (uint32_t)id) {
 			uint32_t size = dbw->bwd_size;
 
-			while (size <= id) size = (size + 1) * 2;
+			while (size <= (uint32_t)id) size = (size + 1) * 2;
 			dbw->bwd = (uint32_t*)realloc(dbw->bwd, sizeof(uint32_t) * size);
 			if (dbw->bwd == NULL) {
 				ret = CQDB_ERROR_OUTOFMEMORY;
@@ -232,8 +232,8 @@ int cqdb_writer_put(cqdb_writer_t* dbw, const char *str, int id)
 			}
 		}
 
-		if (dbw->bwd_num <= id) {
-			dbw->bwd_num = id+1;
+		if (dbw->bwd_num <= (uint32_t)id) {
+			dbw->bwd_num = (uint32_t)id+1;
 		}
 
 		dbw->bwd[id] = dbw->cur;
@@ -250,7 +250,8 @@ error_exit:
 
 int cqdb_writer_close(cqdb_writer_t* dbw)
 {
-	int i, j, k, ret = 0;
+	uint32_t i, j;
+	int k, ret = 0;
 	long offset = 0;
 	header_t header;
 
@@ -512,7 +513,7 @@ int cqdb_to_id(cqdb_t* db, const char *str)
 const char* cqdb_to_string(cqdb_t* db, int id)
 {
 	/* Check if the current database supports the backward look-up. */
-	if (db->bwd != NULL && id < db->header.bwd_size) {
+	if (db->bwd != NULL && (uint32_t)id < db->header.bwd_size) {
 		uint32_t offset = db->bwd[id];
 		if (offset) {
 			uint32_t *p = (uint32_t*)(db->buffer + offset);

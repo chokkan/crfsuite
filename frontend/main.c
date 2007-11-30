@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "option.h"
 
 #define	APPLICATION_S	"CRFsuite"
