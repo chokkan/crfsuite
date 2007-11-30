@@ -1,5 +1,5 @@
 /*
- *		libCRF frontend.
+ *		CRFsuite frontend.
  *
  *	Copyright (C) 2007 Naoaki Okazaki
  *
@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include "option.h"
 
-#define	APPLICATION_S	"libCRF"
+#define	APPLICATION_S	"CRFsuite"
 #define	VERSION_S		"0.2"
 #define	COPYRIGHT_S		"Copyright (c) 2007 Naoaki Okazaki"
 

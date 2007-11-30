@@ -1,4 +1,4 @@
-# $Id: Makefile.am 334 2007-02-11 15:55:30Z nyaochi $
+# $Id$
 
 SUBDIRS = lib/cqdb lib/lbfgs lib/crf frontend
 

@@ -1,5 +1,5 @@
 /*
- *		Tag command for libCRF frontend.
+ *		Tag command for CRFsuite frontend.
  *
  *	Copyright (C) 2007 Naoaki Okazaki
  *

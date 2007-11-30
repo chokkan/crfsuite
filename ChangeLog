@@ -1,1 +1,5 @@
-libCRF 0.1
+CRFsuite 0.1
+- Internal release.
+
+CRFsuite 0.2
+- Orthant-wise L1 regularization

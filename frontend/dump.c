@@ -1,5 +1,5 @@
 /*
- *		Dump command for libCRF frontend.
+ *		Dump command for CRFsuite frontend.
  *
  *	Copyright (C) 2007 Naoaki Okazaki
  *

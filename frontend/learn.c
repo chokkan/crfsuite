@@ -1,5 +1,5 @@
 /*
- *		Learn command for libCRF frontend.
+ *		Learn command for CRFsuite frontend.
  *
  *	Copyright (C) 2007 Naoaki Okazaki
  *
