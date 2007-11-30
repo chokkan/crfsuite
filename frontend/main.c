@@ -26,7 +26,7 @@
 #include "option.h"
 
 #define	APPLICATION_S	"libCRF"
-#define	VERSION_S		"0.1"
+#define	VERSION_S		"0.2"
 #define	COPYRIGHT_S		"Copyright (c) 2007 Naoaki Okazaki"
 
 

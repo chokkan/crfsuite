@@ -46,12 +46,14 @@
 
 typedef struct {
 	floatval_t	feature_minfreq;
-	int		feature_possible_states;
-	int		feature_possible_transitions;
-	int		feature_bos_eos;
-	int		max_iterations;
-	char*	regularization;
+	int			feature_possible_states;
+	int			feature_possible_transitions;
+	int			feature_bos_eos;
+	int			max_iterations;
+	char*		regularization;
 	floatval_t	regularization_sigma;
+	int			lbfgs_memory;
+	floatval_t	lbfgs_epsilon;
 } crf1ml_option_t;
 
 /**
@@ -569,6 +571,8 @@ static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, i
 		DDX_PARAM_INT("max_iterations", opt->max_iterations, INT_MAX)
 		DDX_PARAM_STRING("regularization", opt->regularization, "L2")
 		DDX_PARAM_FLOAT("regularization.sigma", opt->regularization_sigma, 100.0)
+		DDX_PARAM_INT("lbfgs.num_memories", opt->lbfgs_memory, 6)
+		DDX_PARAM_FLOAT("lbfgs.epsilon", opt->lbfgs_epsilon, 1e-5)
 	END_PARAM_MAP()
 
 	return 0;
@@ -795,6 +799,8 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	logging(crf1mt->lg, "feature.bos_eos: %d\n", opt->feature_bos_eos);
 	logging(crf1mt->lg, "regularization: %s\n", opt->regularization);
 	logging(crf1mt->lg, "regularization.sigma: %f\n", opt->regularization_sigma);
+	logging(crf1mt->lg, "lbfgs.num_memories: %d\n", opt->lbfgs_memory);
+	logging(crf1mt->lg, "lbfgs.epsilon: %f\n", opt->lbfgs_epsilon);
 	logging(crf1mt->lg, "Number of instances: %d\n", data->num_instances);
 	logging(crf1mt->lg, "Number of distinct attributes: %d\n", data->num_attrs);
 	logging(crf1mt->lg, "Number of distinct labels: %d\n", data->num_labels);
@@ -819,6 +825,11 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	crf1ml_prepare(crf1mt, data, features);
 	crf1mt->data = data;
 
+	/* Set parameters for L-BFGS. */
+	lbfgsopt.m = opt->lbfgs_memory;
+	lbfgsopt.epsilon = opt->lbfgs_epsilon;
+
+	/* Set regularization parameters. */
 	if (strcmp(opt->regularization, "L1") == 0) {
 		crf1mt->l2_regularization = 0;
 		lbfgsopt.orthantwise_c = 1.0 / opt->regularization_sigma;
