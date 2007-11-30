@@ -61,9 +61,6 @@ struct tag_crf1ml {
 	int num_labels;			/**< Number of distinct output labels (L). */
 	int num_attributes;		/**< Number of distinct attributes (A). */
 
-	int l1_regularization;
-	floatval_t sigmainv;
-
 	int l2_regularization;
 	floatval_t sigma2inv;
 
@@ -682,17 +679,6 @@ static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, 
 	}
 
 	/*
-		L1 regularization for orthant-wise L-BFGS.
-	 */
-	if (crf1mt->l1_regularization) {
-		for (i = 0;i < crf1mt->num_features;++i) {
-			const crf1ml_feature_t* f = &crf1mt->features[i];
-			norm += fabs(f->lambda);
-		}
-		//logl -= (crf1mt->sigmainv * norm);
-	}
-
-	/*
 		L2 regularization.
 	 */
 	if (crf1mt->l2_regularization) {
@@ -832,8 +818,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	crf1mt->data = data;
 
 	if (strcmp(opt->regularization, "L1") == 0) {
-		crf1mt->l1_regularization = 1;
-		crf1mt->sigmainv = 1.0 / opt->regularization_sigma;
+		crf1mt->l2_regularization = 0;
 		lbfgsopt.orthantwise_c = 1.0 / opt->regularization_sigma;
 	} else if (strcmp(opt->regularization, "L2") == 0) {
 		crf1mt->l2_regularization = 1;

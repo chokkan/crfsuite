@@ -85,22 +85,22 @@ typedef unsigned int uint32_t;
 #define	max3(a, b, c)	max2(max2((a), (b)), (c));
 
 struct tag_iteration_data {
-	lbfgsfloatval_t rho;
 	lbfgsfloatval_t alpha;
 	lbfgsfloatval_t *s;		/* [n] */
 	lbfgsfloatval_t *y;		/* [n] */
+	lbfgsfloatval_t ys;		/* vecdot(y, s) */
 };
 typedef struct tag_iteration_data iteration_data_t;
 
 static const lbfgs_parameter_t _defparam = {
-	5, 1e-5, 20,
+	10, 1e-5, 100,
 	1e-20, 1e20, 1e-4, 0.9, 1.0e-16,
 	0.0,
 };
 
 /* Forward function declarations. */
 
-static int line_search2(
+static int line_search_backtracking(
 	int n,
 	lbfgsfloatval_t *x,
 	lbfgsfloatval_t *f,
@@ -144,22 +144,6 @@ static int update_trial_interval(
 
 
 
-inline static lbfgsfloatval_t sign(lbfgsfloatval_t v)
-{
-	if (v < 0.) {
-		return -1.;
-	} else if (0. < v) {
-		return 1.;
-	} else {
-		return 0.;
-	}
-}
-
-inline static lbfgsfloatval_t project(lbfgsfloatval_t x, lbfgsfloatval_t y)
-{
-	return fsigndiff(&x, &y) ? 0 : x;
-}
-
 void lbfgs_parameter_init(lbfgs_parameter_t *param)
 {
 	memcpy(param, &_defparam, sizeof(*param));
@@ -182,10 +166,10 @@ int lbfgs(
 	const lbfgs_parameter_t* param = (_param != NULL) ? _param : &_defparam;
 	const int m = param->m;
 
-	lbfgsfloatval_t *g = NULL, *h = NULL, *w = NULL, *dir = NULL;
+	lbfgsfloatval_t *xp = NULL, *g = NULL, *gp = NULL, *d = NULL, *w = NULL;
 	iteration_data_t *lm = NULL, *it = NULL;
 	lbfgsfloatval_t ys, yy;
-	lbfgsfloatval_t xnorm, gnorm, beta;
+	lbfgsfloatval_t norm, xnorm, gnorm, beta;
 	lbfgsfloatval_t fx;
 
 	/* Check the input parameters for errors. */
@@ -215,13 +199,17 @@ int lbfgs(
 	if (param->max_linesearch <= 0) {
 		return LBFGSERR_INVALID_MAXLINESEARCH;
 	}
+	if (param->orthantwise_c < 0.) {
+		return LBFGSERR_INVALID_ORTHANTWISE;
+	}
 
 	/* Allocate working space. */
+	xp = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
 	g = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
-	h = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
+	gp = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
+	d = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
 	w = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
-	dir = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
-	if (g == NULL || h == NULL || w == NULL || dir == NULL) {
+	if (xp == NULL || g == NULL || gp == NULL || d == NULL || w == NULL) {
 		ret = LBFGSERR_OUTOFMEMORY;
 		goto lbfgs_exit;
 	}
@@ -237,7 +225,7 @@ int lbfgs(
 	for (i = 0;i < m;++i) {
 		it = &lm[i];
 		it->alpha = 0;
-		it->rho = 0;
+		it->ys = 0;
 		it->s = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
 		it->y = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
 		if (it->s == NULL || it->y == NULL) {
@@ -248,31 +236,56 @@ int lbfgs(
 
 	/* Evaluate the function value and its gradient. */
     fx = proc_evaluate(instance, x, g, n, 0);
-
-	/* Initialize the hessian matrix H_0 as the identity matrix. */
-	vecset(h, 1.0, n);
-
-	for (i = 0;i < n;++i) {
-		lm[0].s[i] = -g[i] * h[i];
+	if (0. < param->orthantwise_c) {
+		/* Compute L1-regularization factor and add it to the object value. */
+		norm = 0.;
+		for (i = 0;i < n;++i) {
+			norm += fabs(x[i]);
+		}
+		fx += norm * param->orthantwise_c;
 	}
 
-	veccpy(dir, lm[0].s, n);
+	/* We assume the initial hessian matrix H_0 as the identity matrix. */
+	if (param->orthantwise_c == 0.) {
+		vecncpy(d, g, n);
+	} else {
+		/* Compute the negative of psuedo-gradients. */
+		for (i = 0;i < n;++i) {
+			if (x[i] < 0.) {
+				/* Differentiable. */
+				d[i] = -g[i] + param->orthantwise_c;
+			} else if (0. < x[i]) {
+				/* Differentiable. */
+				d[i] = -g[i] - param->orthantwise_c;
+			} else {
+				if (g[i] < -param->orthantwise_c) {
+					/* Take the right partial derivative. */
+					d[i] = -g[i] - param->orthantwise_c;
+				} else if (param->orthantwise_c < g[i]) {
+					/* Take the left partial derivative. */
+					d[i] = -g[i] + param->orthantwise_c;
+				} else {
+					d[i] = 0.;
+				}
+			}
+		}
+	}
 
-	/* step = 1.0 / sqrt(vecdot(g, g, n)) */
-	vecrnorm(&step, g, n);
+	/* Compute the initial step:
+		step = 1.0 / sqrt(vecdot(d, d, n))
+	 */
+	vecrnorm(&step, d, n);
 
 	k = 1;
 	end = 0;
 	for (;;) {
-		/* Store the current gradient vector to the work area. */
-		veccpy(w, g, n);
+		/* Store the current position and gradient vectors. */
+		veccpy(xp, x, n);
+		veccpy(gp, g, n);
 
-		/* Current limited memory. */
-		it = &lm[end];
-
-		/* Search for the optimal step. */
-		ls = line_search2(
-			n, x, &fx, g, it->s, &step, h, proc_evaluate, instance, param);
+		/* Search for an optimal step. */
+		ls = line_search_backtracking(
+			n, x, &fx, g, d, &step, w, proc_evaluate, instance, param);
 		if (ls < 0) {
 			ret = ls;
 			goto lbfgs_exit;
@@ -305,28 +318,24 @@ int lbfgs(
 			Update vectors s and y:
 				s_{k+1} = x_{k+1} - x_{k} = \step * d_{k}.
 				y_{k+1} = g_{k+1} - g_{k}.
-
-			Before this point, the vector lm[end].s is equivalent to d_{k},
-			and the work area w stores the previous gradient, g_{k}.
 		 */
-		vecscale(it->s, step, n);
-		vecdiff(it->y, g, w, n);
+		it = &lm[end];
+		vecdiff(it->s, x, xp, n);
+		vecdiff(it->y, g, gp, n);
 
 		/*
-			Update rho:
-				\rho = 1/(y^t \cdot s).
+			Compute scalars ys and yy:
+				ys = y^t \cdot s = 1 / \rho.
+				yy = y^t \cdot y.
+			Notice that yy is used for scaling the hessian matrix H_0 (Cholesky factor).
 		 */
 		vecdot(&ys, it->y, it->s, n);
-		it->rho = 1.0 / ys;
-
-		/*
-			Scale the hessian matrix H_0 with Cholesky factor.
-		 */
 		vecdot(&yy, it->y, it->y, n);
-		vecset(h, ys / yy, n);
+		it->ys = ys;
 
 		/*
-			Recursive formula to compute H \cdot g described in page 779 of:
+			Recursive formula to compute dir = -(H \cdot g).
+				This is described in page 779 of:
 				Jorge Nocedal.
 				Updating Quasi-Newton Matrices with Limited Storage.
 				Mathematics of Computation, Vol. 35, No. 151,
@@ -336,65 +345,70 @@ int lbfgs(
 		++k;
 		end = (end + 1) % m;
 
-		if (param->orthantwise_c != 0.) {
+		if (param->orthantwise_c == 0.) {
+			/* Compute the negative of gradients. */
+			vecncpy(d, g, n);
+		} else {
+			/* Compute the negative of psuedo-gradients. */
 			for (i = 0;i < n;++i) {
 				if (x[i] < 0.) {
-					dir[i] = -g[i] + param->orthantwise_c;
+					/* Differentiable. */
+					d[i] = -g[i] + param->orthantwise_c;
 				} else if (0. < x[i]) {
-					dir[i] = -g[i] - param->orthantwise_c;
+					/* Differentiable. */
+					d[i] = -g[i] - param->orthantwise_c;
 				} else {
 					if (g[i] < -param->orthantwise_c) {
-						dir[i] = -g[i] - param->orthantwise_c;
+						/* Take the right partial derivative. */
+						d[i] = -g[i] - param->orthantwise_c;
 					} else if (param->orthantwise_c < g[i]) {
-						dir[i] = -g[i] + param->orthantwise_c;
+						/* Take the left partial derivative. */
+						d[i] = -g[i] + param->orthantwise_c;
 					} else {
-						dir[i] = 0.;
+						d[i] = 0.;
 					}
 				}
 			}
-		} else {
-			vecncpy(dir, g, n);
+			/* Store the steepest direction.*/
+			veccpy(w, d, n);
 		}
-		veccpy(w, dir, n);
 
 		j = end;
 		for (i = 0;i < bound;++i) {
 			j = (j + m - 1) % m;	/* if (--j == -1) j = m-1; */
 			it = &lm[j];
 			/* \alpha_{j} = \rho_{j} s^{t}_{j} \cdot q_{k+1}. */
-			vecdot(&it->alpha, it->s, dir, n);
-			it->alpha *= it->rho;
+			vecdot(&it->alpha, it->s, d, n);
+			it->alpha /= it->ys;
 			/* q_{i} = q_{i+1} - \alpha_{i} y_{i}. */
-			vecadd(dir, it->y, -it->alpha, n);
+			vecadd(d, it->y, -it->alpha, n);
 		}
 
-		/* \gamma_0 = H \cdot q_{0}. */
-		vecmul(dir, h, n);
+		vecscale(d, ys / yy, n);
 
 		for (i = 0;i < bound;++i) {
 			it = &lm[j];
 			/* \beta_{j} = \rho_{j} y^t_{j} \cdot \gamma_{i}. */
-			vecdot(&beta, it->y, dir, n);
-			beta *= it->rho;
+			vecdot(&beta, it->y, d, n);
+			beta /= it->ys;
 			/* \gamma_{i+1} = \gamma_{i} + (\alpha_{j} - \beta_{j}) s_{j}. */
-			vecadd(dir, it->s, it->alpha - beta, n);
+			vecadd(d, it->s, it->alpha - beta, n);
 			j = (j + 1) % m;		/* if (++j == m) j = 0; */
 		}
 
 		/*
-			Store d_{k} = -H_{k} \cdot g_{k} into lm[end].s.
+			Constrain the search direction for orthant-wise updates.
 		 */
-		it = &lm[end];
-		veccpy(it->s, dir, n);
-
 		if (param->orthantwise_c != 0.) {
 			for (i = 0;i < n;++i) {
-				dir[i] = project(dir[i], w[i]);
+				if (d[i] * w[i] <= 0) {
+					d[i] = 0;
+				}
 			}
 		}
 
 		/*
-			We try step = 1 first.
+			Now the search direction d is ready. We try step = 1 first.
 		 */
 		step = 1.0;
 	}
@@ -409,90 +423,127 @@ lbfgs_exit:
 		vecfree(lm);
 	}
 	vecfree(w);
-	vecfree(h);
+	vecfree(d);
+	vecfree(gp);
 	vecfree(g);
+	vecfree(xp);
 
 	return ret;
 }
 
 
 
-static int line_search2(
+static int line_search_backtracking(
 	int n,
 	lbfgsfloatval_t *x,
 	lbfgsfloatval_t *f,
 	lbfgsfloatval_t *g,
 	lbfgsfloatval_t *s,
 	lbfgsfloatval_t *stp,
-	lbfgsfloatval_t *wa,
+	lbfgsfloatval_t *xp,
 	lbfgs_evaluate_t proc_evaluate,
 	void *instance,
 	const lbfgs_parameter_t *param
 	)
 {
-	int i, count = 0;
-	lbfgsfloatval_t dg;
-	lbfgsfloatval_t width = 0.5;
-	lbfgsfloatval_t finit, ftest1, dginit, dgtest;
+	int i, ret = 0, count = 0;
+	lbfgsfloatval_t width = 0.5, norm = 0.;
+	lbfgsfloatval_t finit, dginit = 0., dg, dgtest;
 
 	/* Check the input parameters for errors. */
 	if (*stp <= 0.) {
 		return LBFGSERR_INVALIDPARAMETERS;
 	}
 
-	/*
-		Compute the initial gradient in the search direction
-		and check that s points to a descent direction.
-	 */
-	vecdot(&dginit, g, s, n);
+	/* Compute the initial gradient in the search direction. */
 	if (param->orthantwise_c != 0.) {
-		dginit = 0.;
+		/* Use psuedo-gradients for orthant-wise updates. */
 		for (i = 0;i < n;++i) {
-			if (x[i] < 0.) {
-				dginit += s[i] * (g[i] - param->orthantwise_c);
-			} else if (0. < x[i]) {
-				dginit += s[i] * (g[i] + param->orthantwise_c);
-			} else if (s[i] < 0.) {
-				dginit += s[i] * (g[i] - param->orthantwise_c);
-			} else if (0. < s[i]) {
-				dginit += s[i] * (g[i] + param->orthantwise_c);
+			/* Notice that:
+				(-s[i] < 0)  <==>  (g[i] < -param->orthantwise_c)
+				(-s[i] > 0)  <==>  (param->orthantwise_c < g[i])
+			   as the result of the lbfgs() function for orthant-wise updates.
+			 */
+			if (s[i] != 0.) {
+				if (x[i] < 0.) {
+					/* Differentiable. */
+					dginit += s[i] * (g[i] - param->orthantwise_c);
+				} else if (0. < x[i]) {
+					/* Differentiable. */
+					dginit += s[i] * (g[i] + param->orthantwise_c);
+				} else if (s[i] < 0.) {
+					/* Take the left partial derivative. */
+					dginit += s[i] * (g[i] - param->orthantwise_c);
+				} else if (0. < s[i]) {
+					/* Take the right partial derivative. */
+					dginit += s[i] * (g[i] + param->orthantwise_c);
+				}
 			}
 		}
+	} else {
+		vecdot(&dginit, g, s, n);
 	}
 
+	/* Make sure that s points to a descent direction. */
 	if (0 < dginit) {
 		return LBFGSERR_INCREASEGRADIENT;
 	}
 
-	/* Initialize local variables. */
+	/* The initial value of the object function. */
 	finit = *f;
 	dgtest = param->ftol * dginit;
 
 	/* Copy the value of x to the work area. */
-	veccpy(wa, x, n);
+	veccpy(xp, x, n);
 
 	for (;;) {
-		veccpy(x, wa, n);
+		veccpy(x, xp, n);
 		vecadd(x, s, *stp, n);
 
 		if (param->orthantwise_c != 0.) {
-			/* The current point is projected onto the orthant of the previous one. */
+			/* The current point is projected onto the orthant of the initial one. */
 			for (i = 0;i < n;++i) {
-				x[i] = project(x[i], wa[i]);
+				if (x[i] * xp[i] < 0.) {
+					x[i] = 0.;
+				}
 			}
 		}
 
 		/* Evaluate the function and gradient values. */
 		*f = proc_evaluate(instance, x, g, n, *stp);
+		if (0. < param->orthantwise_c) {
+			/* Compute L1-regularization factor and add it to the object value. */
+			norm = 0.;
+			for (i = 0;i < n;++i) {
+				norm += fabs(x[i]);
+			}
+			*f += norm * param->orthantwise_c;
+		}
 
+		vecdot(&dg, g, s, n);
 		++count;
 
-		if (*f <= finit + (*stp) * dgtest) return count;
+		if (*f <= finit + *stp * dgtest) {
+			/* The sufficient decrease condition. */
+			return count;
+		}
+		if (*stp < param->min_step) {
+			/* The step is the minimum value. */
+			ret = LBFGSERR_MINIMUMSTEP;
+			break;
+		}
+		if (param->max_linesearch <= count) {
+			/* Maximum number of iteration. */
+			ret = LBFGSERR_MAXIMUMITERATION;
+			break;
+		}
 
 		(*stp) *= width;
 	}
 
-	return LBFGSERR_LOGICERROR;
+	/* Revert to the previous position. */
+	veccpy(x, xp, n);
+	return ret;
 }
 
 
@@ -510,9 +561,9 @@ static int line_search(
 	const lbfgs_parameter_t *param
 	)
 {
-	int count = 0;
+	int i, count = 0;
 	int brackt, stage1, uinfo = 0;
-	lbfgsfloatval_t dg;
+	lbfgsfloatval_t dg, norm;
 	lbfgsfloatval_t stx, fx, dgx;
 	lbfgsfloatval_t sty, fy, dgy;
 	lbfgsfloatval_t fxm, dgxm, fym, dgym, fm, dgm;
@@ -525,11 +576,36 @@ static int line_search(
 		return LBFGSERR_INVALIDPARAMETERS;
 	}
 
-	/*
-		Compute the initial gradient in the search direction
-		and check that s points to a descent direction.
-	 */
-	vecdot(&dginit, g, s, n);
+	/* Compute the initial gradient in the search direction. */
+	if (param->orthantwise_c != 0.) {
+		/* Use psuedo-gradients for orthant-wise updates. */
+		for (i = 0;i < n;++i) {
+			/* Notice that:
+				(-s[i] < 0)  <==>  (g[i] < -param->orthantwise_c)
+				(-s[i] > 0)  <==>  (param->orthantwise_c < g[i])
+			   as the result of the lbfgs() function for orthant-wise updates.
+			 */
+			if (s[i] != 0.) {
+				if (x[i] < 0.) {
+					/* Differentiable. */
+					dginit += s[i] * (g[i] - param->orthantwise_c);
+				} else if (0. < x[i]) {
+					/* Differentiable. */
+					dginit += s[i] * (g[i] + param->orthantwise_c);
+				} else if (s[i] < 0.) {
+					/* Take the left partial derivative. */
+					dginit += s[i] * (g[i] - param->orthantwise_c);
+				} else if (0. < s[i]) {
+					/* Take the right partial derivative. */
+					dginit += s[i] * (g[i] + param->orthantwise_c);
+				}
+			}
+		}
+	} else {
+		vecdot(&dginit, g, s, n);
+	}
+
+	/* Make sure that s points to a descent direction. */
 	if (0 < dginit) {
 		return LBFGSERR_INCREASEGRADIENT;
 	}
@@ -583,59 +659,32 @@ static int line_search(
 			*stp = stx;
 		}
 
+		/*
+			Compute the current value of x:
+				x <- x + (*stp) * s.
+		 */
+		veccpy(x, wa, n);
+		vecadd(x, s, *stp, n);
+
 		if (param->orthantwise_c != 0.) {
-			/*
-				Orthant-wise updates for L-BFGS with L1 regularization.
-					f(x) must be a regularized objective
-					g(x) must be the gradient of an unregularized objective.
-			 */
-			int i;
-			lbfgsfloatval_t pg = 0., pgl = 0., pgr = 0.;
-			lbfgsfloatval_t p = 0.;
-
+			/* The current point is projected onto the orthant of the previous one. */
 			for (i = 0;i < n;++i) {
-				/* Compute the pseudo-gradient of f at x. */
-				if (wa[i] < 0.) {
-					/* The left and right partial derivatives are the same. */
-					pg = g[i] - param->orthantwise_c;
-				} else if (0. < wa[i]) {
-					/* The left and right partial derivatives are the same. */
-					pg = g[i] + param->orthantwise_c;
-				} else {
-					pgr = g[i] + param->orthantwise_c;	/* The right partial derivative. */
-					pgl = g[i] - param->orthantwise_c;	/* The left partial derivative. */
-					if (pgr < 0.) {
-						pg = pgr;
-					} else if (0. < pgl) {
-						pg = pgl;
-					} else {
-						pg = 0.;
-					}
+				if (x[i] * wa[i] < 0.) {
+					x[i] = 0.;
 				}
-
-				/* Constrain the search direction to match the sign of (-pg). */
-				p = project(s[i], -pg);
-
-				/* Compute the current value of x[i]. */
-				x[i] = wa[i] + (*stp) * p;
-
-				/*
-					The current value is projected onto the orthant of the
-					previous point.
-				 */
-				x[i] = project(x[i], wa[i]);
 			}
-		} else {
-			/*
-				Compute the current value of x:
-					x <- x + (*stp) * s.
-			 */
-			veccpy(x, wa, n);
-			vecadd(x, s, *stp, n);
 		}
 
 		/* Evaluate the function and gradient values. */
 		*f = proc_evaluate(instance, x, g, n, *stp);
+		if (0. < param->orthantwise_c) {
+			/* Compute L1-regularization factor and add it to the object value. */
+			norm = 0.;
+			for (i = 0;i < n;++i) {
+				norm += fabs(x[i]);
+			}
+			*f += norm * param->orthantwise_c;
+		}
 
 		++count;
 
