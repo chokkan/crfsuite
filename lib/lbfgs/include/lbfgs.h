@@ -412,6 +412,8 @@ Among the various ports of L-BFGS, this library provides several features:
 - <b>Thread safe</b>:
   The library is thread-safe, which is the secondary gain from the callback
   interface.
+- <b>Cross platform.</b> The source code can be compiled on Microsoft Visual
+  Studio 2005, GNU C Compiler (gcc), etc.
 - <b>Configurable precision</b>: A user can choose single-precision (float)
   or double-precision (double) accuracy by changing ::LBFGS_FLOAT macro.
 - <b>SSE/SSE2 optimization</b>:
