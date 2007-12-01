@@ -29,7 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #ifndef	__CQDB_H__
 #define	__CQDB_H__
@@ -441,7 +441,7 @@ error_exit:
 
 @section download Download
 
-- <a href="http://www.chokkan.org/software/dist/cqdb-1.0.zip">Source code</a>
+- <a href="http://www.chokkan.org/software/dist/cqdb-1.1.zip">Source code</a>
 
 CQDB is distributed under the term of the
 <a href="http://www.opensource.org/licenses/bsd-license.php">modified BSD license</a>.

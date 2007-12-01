@@ -1,5 +1,5 @@
 /*
- *      C port of Limited memory BFGS (L-BFGS).
+ *      Limited memory BFGS (L-BFGS).
  *
  * Copyright (c) 1990, Jorge Nocedal
  * Copyright (c) 2007, Naoaki Okazaki
@@ -40,11 +40,21 @@ The L-BFGS algorithm is described in:
 	  On the limited memory BFGS method for large scale optimization.
 	  <i>Mathematical Programming</i> B, Vol. 45, No. 3, pp. 503-528, 1989.
 
-The line search algorithm used in this implementation is described in:
+The line search algorithms used in this implementation are described in:
+	- John E. Dennis and Robert B. Schnabel.
+	  <i>Numerical Methods for Unconstrained Optimization and Nonlinear
+	  Equations</i>, Englewood Cliffs, 1983.
 	- Jorge J. More and David J. Thuente.
 	  Line search algorithm with guaranteed sufficient decrease.
 	  <i>ACM Transactions on Mathematical Software (TOMS)</i>, Vol. 20, No. 3,
 	  pp. 286-307, 1994.
+
+This library also implements Orthant-Wise Limited-memory Quasi-Newton (OW-LQN)
+method presented in:
+	- Galen Andrew and Jianfeng Gao.
+	  Scalable training of L1-regularized log-linear models.
+	  In <i>Proceedings of the 24th International Conference on Machine
+	  Learning (ICML 2007)</i>, pp. 33-40, 2007.
 
 I would like to thank the original author, Jorge Nocedal, who has been
 distributing the effieicnt and explanatory implementation in an open source
@@ -93,7 +103,7 @@ struct tag_iteration_data {
 typedef struct tag_iteration_data iteration_data_t;
 
 static const lbfgs_parameter_t _defparam = {
-	10, 1e-5, 100,
+	6, 1e-5, 0, 20,
 	1e-20, 1e20, 1e-4, 0.9, 1.0e-16,
 	0.0,
 };
@@ -284,7 +294,7 @@ int lbfgs(
 		veccpy(gp, g, n);
 
 		/* Search for an optimal step. */
-		ls = line_search_backtracking(
+		ls = line_search(
 			n, x, &fx, g, d, &step, w, proc_evaluate, instance, param);
 		if (ls < 0) {
 			ret = ls;
@@ -311,6 +321,12 @@ int lbfgs(
 		if (gnorm / xnorm <= param->epsilon) {
 			/* Convergence. */
 			ret = 0;
+			break;
+		}
+
+		if (param->max_iterations != 0 && param->max_iterations < k+1) {
+			/* Maximum number of iterations. */
+			ret = LBFGSERR_MAXIMUMITERATION;
 			break;
 		}
 
@@ -534,7 +550,7 @@ static int line_search_backtracking(
 		}
 		if (param->max_linesearch <= count) {
 			/* Maximum number of iteration. */
-			ret = LBFGSERR_MAXIMUMITERATION;
+			ret = LBFGSERR_MAXIMUMLINESEARCH;
 			break;
 		}
 
@@ -710,7 +726,7 @@ static int line_search(
 		}
 		if (param->max_linesearch <= count) {
 			/* Maximum number of iteration. */
-			return LBFGSERR_MAXIMUMITERATION;
+			return LBFGSERR_MAXIMUMLINESEARCH;
 		}
 		if (*f <= ftest1 && fabs(dg) <= param->gtol * (-dginit)) {
 			/* The sufficient decrease condition and the directional derivative condition hold. */

@@ -166,10 +166,6 @@
 				RelativePath=".\include\cqdb.h"
 				>
 			</File>
-			<File
-				RelativePath=".\src\stdint.h"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="リソース ファイル"

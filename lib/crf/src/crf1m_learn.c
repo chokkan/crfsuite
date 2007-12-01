@@ -49,7 +49,7 @@ typedef struct {
 	int			feature_possible_states;
 	int			feature_possible_transitions;
 	int			feature_bos_eos;
-	int			max_iterations;
+	int			lbfgs_max_iterations;
 	char*		regularization;
 	floatval_t	regularization_sigma;
 	int			lbfgs_memory;
@@ -568,11 +568,11 @@ static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, i
 		DDX_PARAM_INT("feature.possible_states", opt->feature_possible_states, 0)
 		DDX_PARAM_INT("feature.possible_transitions", opt->feature_possible_transitions, 0)
 		DDX_PARAM_INT("feature.bos_eos", opt->feature_bos_eos, 1)
-		DDX_PARAM_INT("max_iterations", opt->max_iterations, INT_MAX)
 		DDX_PARAM_STRING("regularization", opt->regularization, "L2")
 		DDX_PARAM_FLOAT("regularization.sigma", opt->regularization_sigma, 100.0)
-		DDX_PARAM_INT("lbfgs.num_memories", opt->lbfgs_memory, 6)
+		DDX_PARAM_INT("lbfgs.max_iterations", opt->lbfgs_max_iterations, INT_MAX)
 		DDX_PARAM_FLOAT("lbfgs.epsilon", opt->lbfgs_epsilon, 1e-5)
+		DDX_PARAM_INT("lbfgs.num_memories", opt->lbfgs_memory, 6)
 	END_PARAM_MAP()
 
 	return 0;
@@ -749,11 +749,6 @@ static int lbfgs_progress(
 	}
 	logging(crf1mt->lg, "\n");
 
-	/* Terminate the L-BFGS library after the maximum number of iterations. */
-	if (crf1mt->opt.max_iterations <= k) {
-		return LBFGSERR_MAXIMUMITERATION;
-	}
-
 	/* Continue. */
 	return 0;
 }
@@ -792,7 +787,6 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 
 	/* Report the parameters. */
 	logging(crf1mt->lg, "Training first-order linear-chain CRFs (trainer.crf1m)\n");
-	logging(crf1mt->lg, "max_iterations: %d\n", opt->max_iterations);
 	logging(crf1mt->lg, "feature.minfreq: %f\n", opt->feature_minfreq);
 	logging(crf1mt->lg, "feature.possible_states: %d\n", opt->feature_possible_states);
 	logging(crf1mt->lg, "feature.possible_transitions: %d\n", opt->feature_possible_transitions);
@@ -800,6 +794,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	logging(crf1mt->lg, "regularization: %s\n", opt->regularization);
 	logging(crf1mt->lg, "regularization.sigma: %f\n", opt->regularization_sigma);
 	logging(crf1mt->lg, "lbfgs.num_memories: %d\n", opt->lbfgs_memory);
+	logging(crf1mt->lg, "lbfgs.max_iterations: %d\n", opt->lbfgs_max_iterations);
 	logging(crf1mt->lg, "lbfgs.epsilon: %f\n", opt->lbfgs_epsilon);
 	logging(crf1mt->lg, "Number of instances: %d\n", data->num_instances);
 	logging(crf1mt->lg, "Number of distinct attributes: %d\n", data->num_attrs);
@@ -828,6 +823,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	/* Set parameters for L-BFGS. */
 	lbfgsopt.m = opt->lbfgs_memory;
 	lbfgsopt.epsilon = opt->lbfgs_epsilon;
+	lbfgsopt.max_iterations = opt->lbfgs_max_iterations;
 
 	/* Set regularization parameters. */
 	if (strcmp(opt->regularization, "L1") == 0) {

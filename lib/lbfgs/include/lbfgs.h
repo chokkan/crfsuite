@@ -59,32 +59,194 @@ typedef double lbfgsfloatval_t;
 #endif
 
 
+/** 
+ * \addtogroup liblbfgs_api libLBFGS API
+ * @{
+ *
+ *	The libLBFGS API.
+ */
+
+/**
+ * Return values of lbfgs().
+ */
 enum {
+	/** False value. */
 	LBFGSFALSE = 0,
+	/** True value. */
 	LBFGSTRUE,
-	LBFGSERR_LOGICERROR = -1024,
+
+	/** Unknown error. */
+	LBFGSERR_UNKNOWNERROR = -1024,
+	/** Logic error. */
+	LBFGSERR_LOGICERROR,
+	/** Insufficient memory. */
 	LBFGSERR_OUTOFMEMORY,
+	/** The minimization process has been canceled. */
 	LBFGSERR_CANCELED,
+	/** Invalid number of variables specified. */
 	LBFGSERR_INVALID_N,
+	/** Invalid number of variables (for SSE) specified. */
 	LBFGSERR_INVALID_N_SSE,
+	/** Invalid parameter lbfgs_parameter_t::max_step specified. */
 	LBFGSERR_INVALID_MINSTEP,
+	/** Invalid parameter lbfgs_parameter_t::max_step specified. */
 	LBFGSERR_INVALID_MAXSTEP,
+	/** Invalid parameter lbfgs_parameter_t::ftol specified. */
 	LBFGSERR_INVALID_FTOL,
+	/** Invalid parameter lbfgs_parameter_t::gtol specified. */
 	LBFGSERR_INVALID_GTOL,
+	/** Invalid parameter lbfgs_parameter_t::xtol specified. */
 	LBFGSERR_INVALID_XTOL,
+	/** Invalid parameter lbfgs_parameter_t::max_linesearch specified. */
 	LBFGSERR_INVALID_MAXLINESEARCH,
+	/** Invalid parameter lbfgs_parameter_t::orthantwise_c specified. */
 	LBFGSERR_INVALID_ORTHANTWISE,
+	/** The line-search step went out of the interval of uncertainty. */
 	LBFGSERR_OUTOFINTERVAL,
+	/** A logic error occurred; alternatively, the interval of uncertainty
+		became too small. */
 	LBFGSERR_INCORRECT_TMINMAX,
+	/** A rounding error occurred; alternatively, no line-search step
+		satisfies the sufficient decrease and curvature conditions. */
 	LBFGSERR_ROUNDING_ERROR,
+	/** The line-search step became smaller than lbfgs_parameter_t::min_step. */
 	LBFGSERR_MINIMUMSTEP,
+	/** The line-search step became larger than lbfgs_parameter_t::max_step. */
 	LBFGSERR_MAXIMUMSTEP,
+	/** The line-search routine reaches the maximum number of evaluations. */
+	LBFGSERR_MAXIMUMLINESEARCH,
+	/** The algorithm routine reaches the maximum number of iterations. */
 	LBFGSERR_MAXIMUMITERATION,
+	/** Relative width of the interval of uncertainty is at most
+		lbfgs_parameter_t::xtol. */
 	LBFGSERR_WIDTHTOOSMALL,
+	/** A logic error (negative line-search step) occurred. */
 	LBFGSERR_INVALIDPARAMETERS,
+	/** The current search direction increases the object function value. */
 	LBFGSERR_INCREASEGRADIENT,
 };
 
+/**
+ * L-BFGS optimization parameters.
+ *	Call lbfgs_parameter_init() function to initialize parameters to the
+ *	default values.
+ */
+typedef struct {
+	/**
+	 * The number of corrections to approximate the inverse hessian matrix.
+	 *	The L-BFGS routine stores the computation results of previous \ref m
+	 *	iterations to approximate the inverse hessian matrix of the current
+	 *	iteration. This parameter controls the size of the limited memories
+	 *	(corrections). The default value is \c 6. Values less than \c 3 are
+	 *	not recommended. Large values will result in excessive computing time.
+	 */
+	int				m;
+
+	/**
+	 * Epsilon for convergence test.
+	 *	This parameter determines the accuracy with which the solution is to
+	 *	be found. A minimization terminates when
+	 *		||g|| < \ref epsilon * max(1, ||x||),
+	 *	where ||.|| denotes the Euclidean (L2) norm. The default value is
+	 *	\c 1e-5.
+	 */
+	lbfgsfloatval_t	epsilon;
+
+	/**
+	 * The maximum number of iterations.
+	 *	The lbfgs() function terminates an optimization process with
+	 *	::LBFGSERR_MAXIMUMITERATION status code when the iteration count
+	 *	exceedes this parameter. Setting this parameter to zero continues an
+	 *	optimization process until a convergence or error. The default value
+	 *	is \c 0.
+	 */
+	int				max_iterations;
+
+	/**
+	 * The maximum number of trials for the line search.
+	 *	This parameter controls the number of function and gradients evaluations
+	 *	per iteration for the line search routine. The default value is \c 20.
+	 */
+	int				max_linesearch;
+
+	/**
+	 * The minimum step of the line search routine.
+	 *	The default value is \c 1e-20. This value need not be modified unless
+	 *	the exponents are too large for the machine being used, or unless the
+	 *	problem is extremely badly scaled (in which case the exponents should
+	 *	be increased).
+	 */
+	lbfgsfloatval_t	min_step;
+
+	/**
+	 * The maximum step of the line search.
+	 *	The default value is \c 1e+20. This value need not be modified unless
+	 *	the exponents are too large for the machine being used, or unless the
+	 *	problem is extremely badly scaled (in which case the exponents should
+	 *	be increased).
+	 */
+	lbfgsfloatval_t	max_step;
+
+	/**
+	 * A parameter to control the accuracy of the line search routine.
+	 *	The default value is \c 1e-4. This parameter should be greater
+	 *	than zero and smaller than \c 0.5.
+	 */
+	lbfgsfloatval_t	ftol;
+
+	/**
+	 * A parameter to control the accuracy of the line search routine.
+	 *	The default value is \c 0.9. If the function and gradient
+	 *	evaluations are inexpensive with respect to the cost of the
+	 *	iteration (which is sometimes the case when solving very large
+	 *	problems) it may be advantageous to set this parameter to a small
+	 *	value. A typical small value is \c 0.1. This parameter shuold be
+	 *	greater than the \ref ftol parameter (\c 1e-4) and smaller than
+	 *	\c 1.0.
+	 */
+	lbfgsfloatval_t	gtol;
+
+	/**
+	 * The machine precision for floating-point values.
+	 *	This parameter must be a positive value set by a client program to
+	 *	estimate the machine precision. The line search routine will terminate
+	 *	with the status code (::LBFGSERR_ROUNDING_ERROR) if the relative width
+	 *	of the interval of uncertainty is less than this parameter.
+	 */
+	lbfgsfloatval_t	xtol;
+
+	/**
+	 * Coeefficient for the L1 norm of variables.
+	 *	This parameter should be set to zero for standard minimization
+	 *	problems. Setting this parameter to a positive value minimizes the
+	 *	object function F(x) combined with the L1 norm |x| of the variables,
+	 *	{F(x) + C |x|}. This parameter is the coeefficient for the |x|, i.e.,
+	 *	C. As the L1 norm |x| is not differentiable at zero, the library
+	 *	modify function and gradient evaluations from a client program
+	 *	suitably; a client program thus have only to return the function value
+	 *	F(x) and gradients G(x) as usual. The default value is zero.
+	 */
+	lbfgsfloatval_t	orthantwise_c;
+} lbfgs_parameter_t;
+
+
+/**
+ * Callback interface to provide object function and gradient evaluations.
+ *
+ *	The lbfgs() function call this function to obtain the values of object
+ *	function and its gradients when needed. A client program must implement
+ *	this function to evaluate the values of the object function and its
+ *	gradients, given current values of variables.
+ *	
+ *	@param	instance	The user data sent for lbfgs() function by the client.
+ *	@param	x			The current values of variables.
+ *	@param	g			The gradient vector. The callback function must compute
+ *						the gradient values for the current variables.
+ *	@param	n			The number of variables.
+ *	@param	step		The current step of the line search routine.
+ *	@retval	lbfgsfloatval_t	The value of the object function for the current
+ *							variables.
+ */
 typedef lbfgsfloatval_t (*lbfgs_evaluate_t)(
 	void *instance,
 	const lbfgsfloatval_t *x,
@@ -93,6 +255,26 @@ typedef lbfgsfloatval_t (*lbfgs_evaluate_t)(
 	const lbfgsfloatval_t step
 	);
 
+/**
+ * Callback interface to receive the progress of the optimization process.
+ *
+ *	The lbfgs() function call this function for each iteration. Implementing
+ *	this function, a client program can store or display the current progress
+ *	of the optimization process.
+ *
+ *	@param	instance	The user data sent for lbfgs() function by the client.
+ *	@param	x			The current values of variables.
+ *	@param	g			The current gradient values of variables.
+ *	@param	fx			The current value of the object function.
+ *	@param	xnorm		The Euclidean norm of the variables.
+ *	@param	gnorm		The Euclidean norm of the gradients.
+ *	@param	step		The line-search step used for this iteration.
+ *	@param	n			The number of variables.
+ *	@param	k			The iteration count.
+ *	@param	ls			The number of evaluations called for this iteration.
+ *	@retval	int			Zero to continue the optimization process. Returning a
+ *						non-zero value will cancel the optimization process.
+ */
 typedef int (*lbfgs_progress_t)(
 	void *instance,
 	const lbfgsfloatval_t *x,
@@ -105,25 +287,6 @@ typedef int (*lbfgs_progress_t)(
 	int k,
 	int ls
 	);
-
-struct tag_lbfgs_parameter {
-	/** The size of corrections. */
-	int				m;
-
-	/** Epsilon. */
-	lbfgsfloatval_t	epsilon;
-
-	int				max_linesearch;
-
-	lbfgsfloatval_t	min_step;
-	lbfgsfloatval_t	max_step;
-	lbfgsfloatval_t	ftol;
-	lbfgsfloatval_t	gtol;
-	lbfgsfloatval_t	xtol;
-
-	lbfgsfloatval_t	orthantwise_c;
-};
-typedef struct tag_lbfgs_parameter lbfgs_parameter_t;
 
 /*
 A user must implement a function compatible with ::lbfgs_evaluate_t (evaluation
@@ -145,6 +308,36 @@ when:
 
 In this formula, ||.|| denotes the Euclidean norm.
 */
+
+/**
+ * Start a L-BFGS optimization.
+ *
+ *	@param	n			The number of variables.
+ *	@param	x			The array of variables. A client program can set
+ *						default values for the optimization and receive the
+ *						optimization result through this array.
+ *	@param	proc_evaluate	The callback function to provide function and
+ *							gradient evaluations given a current values of
+ *							variables. A client program must implement a
+ *							callback function compatible with \ref
+ *							lbfgs_evaluate_t and pass the pointer to the
+ *							callback function.
+ *	@param	proc_progress	The callback function to receive the progress
+ *							(the number of iterations, the current value of
+ *							the object function) of the minimization process.
+ *							This argument can be set to \c NULL if a progress
+ *							report is unnecessary.
+ *	@param	instance	A user data for the client program. The callback
+ *						functions will receive the value of this argument.
+ *	@param	param		The pointer to a structure representing parameters for
+ *						L-BFGS optimization. A client program can set this
+ *						parameter to \c NULL to use the default parameters.
+ *						Call lbfgs_parameter_init() function to fill a
+ *						structure with the default values.
+ *	@retval	int			The status code. This function returns zero if the
+ *						minimization process terminates without an error. A
+ *						non-zero value indicates an error.
+ */
 int lbfgs(
 	const int n,
 	lbfgsfloatval_t *x,
@@ -154,16 +347,17 @@ int lbfgs(
 	lbfgs_parameter_t *param
 	);
 
-int lbfgs_ow(
-	const int n,
-	lbfgsfloatval_t *x,
-	lbfgs_evaluate_t proc_evaluate,
-	lbfgs_progress_t proc_progress,
-	void *instance,
-	lbfgs_parameter_t *param
-	);
-
+/**
+ * Initialize L-BFGS parameters to the default values.
+ *
+ *	Call this function to fill a parameter structure with the default values
+ *	and overwrite parameter values if necessary.
+ *
+ *	@param	param		The pointer to the parameter structure.
+ */
 void lbfgs_parameter_init(lbfgs_parameter_t *param);
+
+/** @} */
 
 #ifdef	__cplusplus
 }
@@ -192,12 +386,17 @@ Newton's method, which is a well-known algorithm for the optimization,
 requires computation or approximation of the inverse of the hessian matrix of
 the object function in order to find the point where the gradient G(X) = 0.
 The computational cost for the inverse hessian matrix is expensive especially
-when the object function depends on a large number of variables. The L-BFGS
-method approximates the inverse hessian matrix efficiently by using
-information from last m iterations. This innovation saves the memory storage
-and computational time a lot for large-scaled problems.
+when the object function takes a large number of variables. The L-BFGS method
+approximates the inverse hessian matrix efficiently by using information from
+last m iterations. This innovation saves the memory storage and computational
+time a lot for large-scaled problems.
 
 Among the various ports of L-BFGS, this library provides several features:
+- <b>Optimization with L1-norm (orthant-wise L-BFGS)</b>:
+  In addition to standard minimization problems, the library can minimize
+  a function F(x) combined with L1-norm |x| of the variables,
+  {F(x) + C |x|}, where C is a constant scalar parameter. This feature is
+  useful for estimating parameters of log-linear models with L1-regularization.
 - <b>Clean C code</b>:
   Unlike C codes generated automatically by f2c (Fortran 77 into C converter),
   this port includes changes based on my interpretations, improvements,
@@ -224,87 +423,28 @@ Among the various ports of L-BFGS, this library provides several features:
 
 @section sample Sample code
 
-@code
+@include main.c
 
-#include <stdio.h>
-#include <lbfgs.h>
+@section api Documentation
 
-static lbfgsfloatval_t evaluate(
-	void *instance,
-	const lbfgsfloatval_t *x,
-	lbfgsfloatval_t *g,
-	const int n,
-	const lbfgsfloatval_t step
-	)
-{
-	int i;
-	lbfgsfloatval_t fx = 0.0;
-
-	for (i = 0;i < n;i += 2) {
-		lbfgsfloatval_t t1 = 1.0 - x[i];
-		lbfgsfloatval_t t2 = 10.0 * (x[i+1] - x[i] * x[i]);
-		if (g != NULL) {
-			g[i+1] = 20.0 * t2;
-			g[i] = -2.0 * (x[i] * g[i+1] + t1);
-		}
-		fx += t1 * t1 + t2 * t2;
-	}
-	return fx;
-}
-
-static int progress(
-	void *instance,
-	const lbfgsfloatval_t *x,
-	const lbfgsfloatval_t *g,
-	const lbfgsfloatval_t fx,
-	const lbfgsfloatval_t xnorm,
-	const lbfgsfloatval_t gnorm,
-	const lbfgsfloatval_t step,
-	int n,
-	int k,
-	int ls
-	)
-{
-	printf("Iteration %d:\n", k);
-	printf("  fx = %f, x[0] = %f, x[1] = %f\n", fx, x[0], x[1]);
-	printf("  xnorm = %f, gnorm = %f, step = %f\n", xnorm, gnorm, step);
-	printf("\n");
-	return 0;
-}
-
-#define	N	4096
-
-int main(int argc, char *argv)
-{
-	int i, ret = 0;
-	lbfgsfloatval_t x[N];
-
-	// Initialize the variables.
-	for (i = 0;i < N;i += 2) {
-		x[i] = -1.2;
-		x[i+1] = 1.0;
-	}
-
-	// Start the L-BFGS optimization.
-	// This will invoke the callback functions evaluate() and progress().
-	ret = lbfgs(N, x, evaluate, progress, NULL, NULL);
-
-	// Report the result.
-	printf("L-BFGS optimization terminated with status code = %d\n", ret);
-	printf("  fx = %f, x[0] = %f, x[1] = %f\n",
-		evaluate(NULL, x, NULL, N, 0), x[0], x[1]);
-
-	return 0;
-}
-
-@endcode
+- @ref liblbfgs_api "libLBFGS API"
 
 @section download Download
 
-- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.0.zip">Source code</a>
+- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.1.zip">Source code</a>
 
 libLBFGS is distributed under the term of the
 <a href="http://opensource.org/licenses/mit-license.php">MIT license</a>.
+
+@section changelog History
+- Version 1.1 (2007-12-01):
+	- Implemented orthant-wise L-BFGS.
+	- Implemented lbfgs_parameter_init() function.
+	- Fixed several bugs.
+	- API documentation.
+
+- Version 1.0 (2007-09-20):
+	- Initial release.
 
 @section ack Acknowledgements
 
@@ -316,11 +456,21 @@ The L-BFGS algorithm is described in:
 	  On the limited memory BFGS method for large scale optimization.
 	  <i>Mathematical Programming</i> B, Vol. 45, No. 3, pp. 503-528, 1989.
 
-The line search algorithm used in this implementation is described in:
+The line search algorithms used in this implementation are described in:
+	- John E. Dennis and Robert B. Schnabel.
+	  <i>Numerical Methods for Unconstrained Optimization and Nonlinear
+	  Equations</i>, Englewood Cliffs, 1983.
 	- Jorge J. More and David J. Thuente.
 	  Line search algorithm with guaranteed sufficient decrease.
 	  <i>ACM Transactions on Mathematical Software (TOMS)</i>, Vol. 20, No. 3,
 	  pp. 286-307, 1994.
+
+This library also implements Orthant-Wise Limited-memory Quasi-Newton (OW-LQN)
+method presented in:
+	- Galen Andrew and Jianfeng Gao.
+	  Scalable training of L1-regularized log-linear models.
+	  In <i>Proceedings of the 24th International Conference on Machine
+	  Learning (ICML 2007)</i>, pp. 33-40, 2007.
 
 Finally I would like to thank the original author, Jorge Nocedal, who has been
 distributing the effieicnt and explanatory implementation in an open source
@@ -329,6 +479,7 @@ licence.
 @section reference Reference
 
 - <a href="http://www.ece.northwestern.edu/~nocedal/lbfgs.html">L-BFGS</a> by Jorge Nocedal.
+- <a href="http://research.microsoft.com/research/downloads/Details/3f1840b2-dbb3-45e5-91b0-5ecd94bb73cf/Details.aspx">OWL-QN</a> by Galen Andrew.
 - <a href="http://chasen.org/~taku/software/misc/lbfgs/">C port (via f2c)</a> by Taku Kudo.
 - <a href="http://www.alglib.net/optimization/lbfgs.php">C#/C++/Delphi/VisualBasic6 port</a> in ALGLIB.
 - <a href="http://cctbx.sourceforge.net/">Computational Crystallography Toolbox</a> includes

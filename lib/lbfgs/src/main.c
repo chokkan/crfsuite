@@ -1,24 +1,22 @@
 #include <stdio.h>
 #include <lbfgs.h>
 
-static lbfgsfloat_t evaluate(
+static lbfgsfloatval_t evaluate(
 	void *instance,
-	const lbfgsfloat_t *x,
-	lbfgsfloat_t *g,
+	const lbfgsfloatval_t *x,
+	lbfgsfloatval_t *g,
 	const int n,
-	const lbfgsfloat_t step
+	const lbfgsfloatval_t step
 	)
 {
 	int i;
-	lbfgsfloat_t fx = 0.0;
+	lbfgsfloatval_t fx = 0.0;
 
 	for (i = 0;i < n;i += 2) {
-		lbfgsfloat_t t1 = 1.0 - x[i];
-		lbfgsfloat_t t2 = 10.0 * (x[i+1] - x[i] * x[i]);
-		if (g != NULL) {
-			g[i+1] = 20.0 * t2;
-			g[i] = -2.0 * (x[i] * g[i+1] + t1);
-		}
+		lbfgsfloatval_t t1 = 1.0 - x[i];
+		lbfgsfloatval_t t2 = 10.0 * (x[i+1] - x[i] * x[i]);
+		g[i+1] = 20.0 * t2;
+		g[i] = -2.0 * (x[i] * g[i+1] + t1);
 		fx += t1 * t1 + t2 * t2;
 	}
 	return fx;
@@ -26,12 +24,12 @@ static lbfgsfloat_t evaluate(
 
 static int progress(
 	void *instance,
-	const lbfgsfloat_t *x,
-	const lbfgsfloat_t *g,
-	const lbfgsfloat_t fx,
-	const lbfgsfloat_t xnorm,
-	const lbfgsfloat_t gnorm,
-	const lbfgsfloat_t step,
+	const lbfgsfloatval_t *x,
+	const lbfgsfloatval_t *g,
+	const lbfgsfloatval_t fx,
+	const lbfgsfloatval_t xnorm,
+	const lbfgsfloatval_t gnorm,
+	const lbfgsfloatval_t step,
 	int n,
 	int k,
 	int ls
@@ -44,12 +42,12 @@ static int progress(
 	return 0;
 }
 
-#define	N	4096
+#define	N	8
 
 int main(int argc, char *argv)
 {
 	int i, ret = 0;
-	lbfgsfloat_t x[N];
+	lbfgsfloatval_t x[N];
 
 	/* Initialize the variables. */
 	for (i = 0;i < N;i += 2) {
