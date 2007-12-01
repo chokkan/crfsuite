@@ -421,13 +421,8 @@ Among the various ports of L-BFGS, this library provides several features:
   routine is disabled by default; compile the library with __SSE__ symbol
   defined to activate the optimization routine.
 
-@section sample Sample code
-
-@include main.c
-
-@section api Documentation
-
-- @ref liblbfgs_api "libLBFGS API"
+This library is used by the 
+<a href="http://www.chokkan.org/software/crfsuite/">CRFsuite</a> project.
 
 @section download Download
 
@@ -445,6 +440,14 @@ libLBFGS is distributed under the term of the
 
 - Version 1.0 (2007-09-20):
 	- Initial release.
+
+@section api Documentation
+
+- @ref liblbfgs_api "libLBFGS API"
+
+@section sample Sample code
+
+@include main.c
 
 @section ack Acknowledgements
 

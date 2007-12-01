@@ -279,6 +279,29 @@ modify associations, nor check collisions in strings and identifiers; thus,
 it may be necessary to use an existing Quark implementation to manage proper
 associations between strings and identifiers on memory.
 
+This library is used by the 
+<a href="http://www.chokkan.org/software/crfsuite/">CRFsuite</a> project.
+
+@section download Download
+
+- <a href="http://www.chokkan.org/software/dist/cqdb-1.1.zip">Source code</a>
+
+CQDB is distributed under the term of the
+<a href="http://www.opensource.org/licenses/bsd-license.php">modified BSD license</a>.
+
+@section changelog History
+- Version 1.1 (2007-12-01):
+	- Fixed a bug when a CQDB chunk is embedded to a file.
+
+- Version 1.0 (2007-09-20):
+	- Initial release.
+
+@section api Documentation
+
+- @ref cqdb_const "CQDB Constants"
+- @ref cqdb_reader "CQDB Reader API"
+- @ref cqdb_writer "CQDB Writer API"
+
 @section sample Sample programs
 @subsection sample_writer A writer sample
 
@@ -432,19 +455,6 @@ error_exit:
 }
 
 @endcode
-
-@section api Documentation
-
-- @ref cqdb_const "CQDB Constants"
-- @ref cqdb_reader "CQDB Reader API"
-- @ref cqdb_writer "CQDB Writer API"
-
-@section download Download
-
-- <a href="http://www.chokkan.org/software/dist/cqdb-1.1.zip">Source code</a>
-
-CQDB is distributed under the term of the
-<a href="http://www.opensource.org/licenses/bsd-license.php">modified BSD license</a>.
 
 @section performance Performance
 
