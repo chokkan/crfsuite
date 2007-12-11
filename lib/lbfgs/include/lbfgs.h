@@ -428,7 +428,7 @@ This library is used by the
 
 @section download Download
 
-- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.1.zip">Source code</a>
+- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.1.tar.gz">Source code</a>
 
 libLBFGS is distributed under the term of the
 <a href="http://opensource.org/licenses/mit-license.php">MIT license</a>.

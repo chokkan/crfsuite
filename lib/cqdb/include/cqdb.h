@@ -284,7 +284,7 @@ This library is used by the
 
 @section download Download
 
-- <a href="http://www.chokkan.org/software/dist/cqdb-1.1.zip">Source code</a>
+- <a href="http://www.chokkan.org/software/dist/cqdb-1.1.tar.gz">Source code</a>
 
 CQDB is distributed under the term of the
 <a href="http://www.opensource.org/licenses/bsd-license.php">modified BSD license</a>.
