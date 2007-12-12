@@ -1,4 +1,4 @@
-dnl $Id:$
+dnl $Id$
 dnl
 dnl
 dnl Exported and configured variables:
@@ -27,7 +27,7 @@ AC_ISC_POSIX
 dnl ------------------------------------------------------------------
 dnl Initialization for automake
 dnl ------------------------------------------------------------------
-AM_INIT_AUTOMAKE(libcrf, 0.1)
+AM_INIT_AUTOMAKE(crfsuite, 0.3)
 AC_CONFIG_HEADERS(config.h)
 AM_MAINTAINER_MODE
 AM_C_PROTOTYPES

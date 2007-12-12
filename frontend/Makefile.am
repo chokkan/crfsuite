@@ -1,10 +1,10 @@
 # $Id:$
 
-bin_PROGRAMS = crf
-man_MANS = crf.1
+bin_PROGRAMS = crfsuite
+man_MANS = crfsuite.1
 EXTRA_DIST = ${man_MANS}
 
-crf_SOURCES = \
+crfsuite_SOURCES = \
 	iwa.h \
 	iwa.c \
 	option.h \
@@ -16,11 +16,11 @@ crf_SOURCES = \
 	dump.c \
 	main.c
 
-#crf_CPPFLAGS =
+#crfsuite_CPPFLAGS =
 
 AM_CFLAGS = @CFLAGS@
 INCLUDES = @INCLUDES@
 AM_LDFLAGS = @LDFLAGS@
 
-crf_CFLAGS = -I$(top_builddir)/lib/crf/include
-crf_LDADD = $(top_builddir)/lib/crf/libcrf.la
+crfsuite_CFLAGS = -I$(top_builddir)/lib/crf/include
+crfsuite_LDADD = $(top_builddir)/lib/crf/libcrf.la
