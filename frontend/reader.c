@@ -97,6 +97,7 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
 			}
 			break;
 		case IWA_NONE:
+		case IWA_EOF:
 			/* Put the training instance. */
 			crf_data_append(data, &inst);
 			crf_instance_finish(&inst);
