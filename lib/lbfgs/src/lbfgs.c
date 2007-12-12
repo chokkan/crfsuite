@@ -595,6 +595,7 @@ static int line_search(
 	/* Compute the initial gradient in the search direction. */
 	if (param->orthantwise_c != 0.) {
 		/* Use psuedo-gradients for orthant-wise updates. */
+		dginit = 0.;
 		for (i = 0;i < n;++i) {
 			/* Notice that:
 				(-s[i] < 0)  <==>  (g[i] < -param->orthantwise_c)
