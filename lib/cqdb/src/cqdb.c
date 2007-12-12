@@ -178,7 +178,7 @@ static int cqdb_writer_delete(cqdb_writer_t* dbw)
 int cqdb_writer_put(cqdb_writer_t* dbw, const char *str, int id)
 {
 	int ret = 0;
-	const void *key = str, *value = &id;
+	const void *key = str;
 	uint32_t ksize = (uint32_t)(strlen(str) + 1);
 
 	/* Compute the hash value and choose a hash table. */
@@ -262,7 +262,7 @@ int cqdb_writer_close(cqdb_writer_t* dbw)
 	}
 
 	/* Initialize the file header. */
-	strncpy(header.chunkid, CHUNKID, 4);
+	strncpy((char*)header.chunkid, CHUNKID, 4);
 	header.byteorder = BYTEORDER_CHECK;
 	header.bwd_offset = 0;
 	header.bwd_size = dbw->bwd_num;
@@ -423,7 +423,7 @@ cqdb_t* cqdb_reader(void *buffer, size_t size)
 
 		/* Read the database header. */
 		p = db->buffer;
-		strncpy(db->header.chunkid, p, 4);
+		strncpy((char*)db->header.chunkid, (const char*)p, 4);
 		p += sizeof(uint32_t);
 		db->header.size = read_uint32(p);
 		p += sizeof(uint32_t);
@@ -497,7 +497,7 @@ int cqdb_to_id(cqdb_t* db, const char *str)
 			if (p->hash == hv) {
 				uint8_t *begin = db->buffer + p->offset;
 				uint32_t *q = (uint32_t*)begin;
-				int value = *q++;
+				int value = (int)*q++;
 				uint32_t ksize = *q++;
 				if (strcmp(str, (const char *)q) == 0) {
 					return value;
