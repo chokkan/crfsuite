@@ -126,6 +126,11 @@ static int evaluate_callback(void *instance, crf_tagger_t* tagger)
 	crf_data_t* data = cd->data;
 	crf_dictionary_t* labels = cd->labels;
 
+	/* Do nothing if no test data was given. */
+	if (data->num_instances == 0) {
+		return 0;
+	}
+
 	/* Clear the evaluation table. */
 	crf_evaluation_clear(cd->eval);
 
