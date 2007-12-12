@@ -84,6 +84,8 @@ typedef struct {
 	 */
 	floatval_t *backward_score;
 
+	floatval_t *scale_factor;
+
 	/**
 	 * State score matrix.
 	 *	This is a [T][L] matrix whose element [t][l] presents the total
@@ -131,6 +133,7 @@ void crf1mc_backward_score(crf1m_context_t* ctx);
 floatval_t crf1mc_logprob(crf1m_context_t* ctx);
 floatval_t crf1mc_viterbi(crf1m_context_t* ctx);
 void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp);
+void crf1mc_test_context(FILE *fp);
 
 
 /* crf1m_train.c */

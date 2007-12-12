@@ -86,6 +86,7 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
 	if (ctx->max_items < T) {
 		free(ctx->backward_edge);
 		free(ctx->state_score);
+		free(ctx->scale_factor);
 		free(ctx->backward_score);
 		free(ctx->forward_score);
 		free(ctx->labels);
@@ -94,6 +95,8 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
 		if (ctx->labels == NULL) return CRFERR_OUTOFMEMORY;
 		ctx->forward_score = (floatval_t*)calloc((T+1) * L, sizeof(floatval_t));
 		if (ctx->forward_score == NULL) return CRFERR_OUTOFMEMORY;
+		ctx->scale_factor = (floatval_t*)calloc((T+1), sizeof(floatval_t));
+		if (ctx->scale_factor == NULL) return CRFERR_OUTOFMEMORY;
 		ctx->backward_score = (floatval_t*)calloc((T+1) * L, sizeof(floatval_t));
 		if (ctx->backward_score == NULL) return CRFERR_OUTOFMEMORY;
 		ctx->state_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
@@ -112,6 +115,7 @@ void crf1mc_delete(crf1m_context_t* ctx)
 	if (ctx != NULL) {
 		free(ctx->backward_edge);
 		free(ctx->state_score);
+		free(ctx->scale_factor);
 		free(ctx->backward_score);
 		free(ctx->forward_score);
 		free(ctx->labels);
@@ -123,30 +127,26 @@ void crf1mc_delete(crf1m_context_t* ctx)
 void crf1mc_forward_score(crf1m_context_t* ctx)
 {
 	int i, j, t;
-	floatval_t score, *cur = NULL;
+	floatval_t score, sum, *cur = NULL;
 	const floatval_t *prev = NULL, *trans = NULL, *state = NULL;
 	const int T = ctx->num_items;
 	const int L = ctx->num_labels;
 
-	/* Initialize the scores to stay on BOS as zero as these values
-	   are not updated in this function. */
-	cur = FORWARD_SCORE_AT(ctx, T);
-	for (i = 0;i < L;++i) {
-		cur[i] = 0;
-	}
-
 	/* Compute the score to stay on labels at position #0. */
+	sum = 0.;
 	cur = FORWARD_SCORE_AT(ctx, 0);
 	state = STATE_SCORE_AT(ctx, 0);
 	trans = TRANS_SCORE_FROM(ctx, L);
 	for (j = 0;j < L;++j) {
 		/* Transit from BOS to #j. */
-		/* exp(cur[j]) = exp(trans[j]) * exp(state[j]) */
-		cur[j] = trans[j] + state[j];
+		sum += cur[j] = trans[j] * state[j];
 	}
+	ctx->scale_factor[0] = 1. / sum;
+	for (j = 0;j < L;++j) cur[j] *= ctx->scale_factor[0];
 
 	/* Compute the scores at position #t. */
 	for (t = 1;t < T;++t) {
+		sum = 0.;
 		prev = FORWARD_SCORE_AT(ctx, t-1);
 		cur = FORWARD_SCORE_AT(ctx, t);
 		state = STATE_SCORE_AT(ctx, t);
@@ -157,45 +157,50 @@ void crf1mc_forward_score(crf1m_context_t* ctx)
 			for (i = 0;i < L;++i) {
 				/* Transit from #i at #(t-1) to #j at #t. */
 				trans = TRANS_SCORE_FROM(ctx, i);
-				score = logsumexp(score, prev[i] + trans[j], i == 0);
+				score += prev[i] * trans[j];
 			}
 			/* Add the state score on label #j at #t. */
-			cur[j] = score + state[j];
+			sum += cur[j] = score * state[j];
 		}
+
+		/* Compute the scale factor. */
+		ctx->scale_factor[t] = 1. / sum;
+		/* Apply the scaling factor. */
+		for (j = 0;j < L;++j) cur[j] *= ctx->scale_factor[t];
 	}
 
 	/* Compute the logarithm of the normalization factor here. */
-	score = 0;
+	sum = 0.;
 	cur = FORWARD_SCORE_AT(ctx, T-1);
 	for (i = 0;i < L;++i) {
 		trans = TRANS_SCORE_FROM(ctx, i);
-		score = logsumexp(score, cur[i] + trans[L], i == 0);
+		sum += cur[i] * trans[L];
 	}
-	ctx->log_norm = score;
+	ctx->scale_factor[T] = 1. / sum;
+
+	/* */
+	ctx->log_norm = 0.;
+	for (t = 0;t <= T;++t) {
+		ctx->log_norm -= log(ctx->scale_factor[t]);
+	}
 }
 
 void crf1mc_backward_score(crf1m_context_t* ctx)
 {
 	int i, j, t;
-	floatval_t score, *cur = NULL;
+	floatval_t score, scale, *cur = NULL;
 	const floatval_t *next = NULL, *state = NULL, *trans = NULL;
 	const int T = ctx->num_items;
 	const int L = ctx->num_labels;
 
-	/* Initialize the scores to stay on BOS as zero as these values
-	   are not updated in this function. */
-	cur = BACKWARD_SCORE_AT(ctx, T);
-	for (i = 0;i < L;++i) {
-		cur[i] = 0;
-	}
-
 	/* Compute the score to reach EOS from the label #i at position #T-1. */
 	cur = BACKWARD_SCORE_AT(ctx, T-1);
+	scale = ctx->scale_factor[T-1];
 	for (i = 0;i < L;++i) {
 		/* Transit from label #i at position #(T-1) to EOS. */
 		/* exp(cur[i]) = exp(trans[L]) */
 		trans = TRANS_SCORE_FROM(ctx, i);
-		cur[i] = trans[L];
+		cur[i] = trans[L] * scale;
 	}
 
 	/* Compute the scores from position #t. */
@@ -203,17 +208,17 @@ void crf1mc_backward_score(crf1m_context_t* ctx)
 		cur = BACKWARD_SCORE_AT(ctx, t);
 		next = BACKWARD_SCORE_AT(ctx, t+1);
 		state = STATE_SCORE_AT(ctx, t+1);
+		scale = ctx->scale_factor[t];
 
 		/* Compute the score to reach EOS from label #i at position #t. */
 		for (i = 0;i < L;++i) {
-			score = 0;
+			score = 0.;
 			trans = TRANS_SCORE_FROM(ctx, i);
 			for (j = 0;j < L;++j) {
 				/* Transit from labels #i to #j at position #(t+1). */
-				/* exp(score) += exp(trans[j]) * exp(state[j]) * exp(next[j]) */
-				score = logsumexp(score, trans[j] + state[j] + next[j], j == 0);
+				score += trans[j] * state[j] * next[j];
 			}
-			cur[i] = score;
+			cur[i] = score * scale;
 		}
 	}
 }
@@ -230,7 +235,8 @@ floatval_t crf1mc_logprob(crf1m_context_t* ctx)
 	/* Transit from BOS to (0, labels[0]). */
 	i = labels[0];
 	cur = FORWARD_SCORE_AT(ctx, 0);
-	ret = cur[i];
+	ret  = log(cur[i]);
+	ret -= log(ctx->scale_factor[0]);
 
 	/* Loop over the rest of items. */
 	for (t = 1;t < T;++t) {
@@ -239,14 +245,15 @@ floatval_t crf1mc_logprob(crf1m_context_t* ctx)
 		state = STATE_SCORE_AT(ctx, t);
 
 		/* Transit from (t-1, i) to (t, j). */
-		ret += trans[j];
-		ret += state[j];
+		ret += log(trans[j]);
+		ret += log(state[j]);
 		i = j;
 	}
 
 	/* Transit from (T-1, i) to EOS. */
 	cur = BACKWARD_SCORE_AT(ctx, T-1);
-	ret += cur[i];
+	ret += log(cur[i]);
+	ret -= log(ctx->scale_factor[T-1]);
 
 	/* Subtract the logarithm of the normalization factor. */
 	ret -= ctx->log_norm;
@@ -270,7 +277,7 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
 	for (j = 0;j < L;++j) {
 		/* Transit from BOS to #j. */
 		/* exp(cur[j]) = exp(trans[j]) * exp(state[j]) */
-		cur[j] = trans[j] + state[j];
+		cur[j] = trans[j] * state[j];
 	}
 
 	/* Compute the scores at position #t. */
@@ -326,6 +333,7 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
 void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp)
 {
 	int i, j, t;
+	floatval_t scale;
 	const floatval_t *fwd = NULL, *bwd = NULL;
 	const floatval_t *state = NULL, *trans = NULL;
 	const int T = ctx->num_items;
@@ -345,7 +353,7 @@ void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp)
 
 		/* Print the forward/backward scores at the current position. */
 		for (i = 0;i < L;++i) {
-			printf("\t%1.3e", exp(state[i]));
+			printf("\t%1.3e", state[i]);
 		}
 
 		printf("\n");
@@ -366,7 +374,7 @@ void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp)
 
 		/* Print the forward/backward scores at the current position. */
 		for (j = 0;j <= L;++j) {
-			printf("\t%1.3e", exp(trans[j]));
+			printf("\t%1.3e", trans[j]);
 		}
 
 		printf("\n");
@@ -374,25 +382,73 @@ void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp)
 	fprintf(fp, "\n");
 
 	/* Output forward score. */
-	fprintf(fp, "# ===== Forward/Backward matrix =====\n");
-	for (t = 0;t <= T;++t) {
+	scale = 1.;
+	fprintf(fp, "# ===== Forward matrix =====\n");
+	for (t = 0;t < T;++t) {
 		fwd = FORWARD_SCORE_AT(ctx, t);
-		bwd = BACKWARD_SCORE_AT(ctx, t);
+		scale *= ctx->scale_factor[t];
 
 		/* Print the item position. */
-		if (t == T) {
-			fprintf(fp, "BOS/EOS");
-		} else {
-			fprintf(fp, "%d", t);
-		}
+		fprintf(fp, "%d", t);
 
 		/* Print the forward/backward scores at the current position. */
 		for (i = 0;i < L;++i) {
-			printf("\t%1.3e/%1.3e", exp(fwd[i]), exp(bwd[i]));
+			printf("\t%1.3e", fwd[i] / scale);
 		}
 
 		printf("\n");
 	}
 	fprintf(fp, "\n");
 
+	/* Output forward score. */
+	scale = 1.;
+	fprintf(fp, "# ===== Backward matrix =====\n");
+	for (t = T-1;0 <= t;--t) {
+		bwd = BACKWARD_SCORE_AT(ctx, t);
+		scale *= ctx->scale_factor[t];
+
+		/* Print the item position. */
+		fprintf(fp, "%d", t);
+
+		/* Print the forward/backward scores at the current position. */
+		for (i = 0;i < L;++i) {
+			printf("\t%1.3e", bwd[i] / scale);
+		}
+
+		printf("\n");
+	}
+	fprintf(fp, "\n");
+
+	fprintf(fp, "# ===== Information =====\n");
+	fprintf(fp, "NORM\t%f\n", exp(ctx->log_norm));
+}
+
+void crf1mc_test_context(FILE *fp)
+{
+	crf1m_context_t *ctx = crf1mc_new(3, 3);
+	floatval_t *trans = NULL, *state = NULL;
+	
+	state = STATE_SCORE_AT(ctx, 0);
+	state[0] = .4;	state[1] = .5;	state[2] = .1;
+	state = STATE_SCORE_AT(ctx, 1);
+	state[0] = .4;	state[1] = .1;	state[2] = .5;
+	state = STATE_SCORE_AT(ctx, 2);
+	state[0] = .4;	state[1] = .1;	state[2] = .5;
+
+	trans = TRANS_SCORE_FROM(ctx, 0);
+	trans[0] = .3;	trans[1] = .1;	trans[2] = .4;	trans[3] = .2;
+	trans = TRANS_SCORE_FROM(ctx, 1);
+	trans[0] = .6;	trans[1] = .2;	trans[2] = .1;	trans[3] = .1;
+	trans = TRANS_SCORE_FROM(ctx, 2);
+	trans[0] = .5;	trans[1] = .2;	trans[2] = .1;	trans[3] = .2;
+	trans = TRANS_SCORE_FROM(ctx, 3);
+	trans[0] = .5;	trans[1] = .3;	trans[2] = .2;	trans[3] = .0;
+
+	ctx->num_items = ctx->max_items;
+	crf1mc_forward_score(ctx);
+	crf1mc_backward_score(ctx);
+	crf1mc_debug_context(ctx, fp);
+
+	ctx->labels[0] = 0;	ctx->labels[1] = 2;	ctx->labels[2] = 0;
+	printf("PROB\t%f\n", crf1mc_logprob(ctx));
 }
