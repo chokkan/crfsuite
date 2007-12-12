@@ -159,19 +159,16 @@ void crf1mt_delete(crf1mt_t* crf1mt)
 int crf1mt_tag(crf1mt_t* crf1mt, crf_instance_t *inst, crf_output_t* output)
 {
 	int i;
-	floatval_t logprob = 0;
+	floatval_t score = 0;
 	crf1m_context_t* ctx = crf1mt->ctx;
 
 	crf1mc_set_num_items(ctx, inst->num_items);
 
 	state_score(crf1mt, inst);
-	crf1mc_forward_score(ctx);
-	crf1mc_backward_score(ctx);
-	logprob = crf1mc_viterbi(ctx);
-	logprob -= ctx->log_norm;
+	score = crf1mc_viterbi(ctx);
 
 	crf_output_init_n(output, inst->num_items);
-	output->probability = exp(logprob);
+	output->probability = score;
 	for (i = 0;i < inst->num_items;++i) {
 		output->labels[i] = ctx->labels[i];
 	}

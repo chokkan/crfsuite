@@ -49,6 +49,7 @@ static void learn_option_init(learn_option_t* opt)
 {
 	memset(opt, 0, sizeof(*opt));
 	opt->num_params = 0;
+	opt->model = strdup("crfsuite.model");
 }
 
 static void learn_option_finish(learn_option_t* opt)

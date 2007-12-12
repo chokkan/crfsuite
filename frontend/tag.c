@@ -53,6 +53,7 @@ static void tagger_option_init(tagger_option_t* opt)
 	opt->fpi = stdin;
 	opt->fpo = stdout;
 	opt->fpe = stderr;
+	opt->model = strdup("crfsuite.model");
 }
 
 static void tagger_option_finish(tagger_option_t* opt)

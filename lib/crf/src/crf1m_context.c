@@ -124,6 +124,35 @@ void crf1mc_delete(crf1m_context_t* ctx)
 	free(ctx);
 }
 
+void crf1mc_exp_state(crf1m_context_t* ctx)
+{
+	int i, t;
+	floatval_t *state = NULL;
+	const int T = ctx->num_items;
+	const int L = ctx->num_labels;
+
+	for (t = 0;t < T;++t) {
+		state = STATE_SCORE_AT(ctx, t);
+		for (i = 0;i < L;++i) {
+			state[i] = exp(state[i]);
+		}
+	}
+}
+
+void crf1mc_exp_transition(crf1m_context_t* ctx)
+{
+	int i, j;
+	floatval_t *trans = NULL;
+	const int L = ctx->num_labels;
+
+	for (i = 0;i <= L;++i) {
+		trans = TRANS_SCORE_FROM(ctx, i);
+		for (j = 0;j <= L;++j) {
+			trans[j] = exp(trans[j]);
+		}
+	}
+}
+
 void crf1mc_forward_score(crf1m_context_t* ctx)
 {
 	int i, j, t;
@@ -169,7 +198,7 @@ void crf1mc_forward_score(crf1m_context_t* ctx)
 		for (j = 0;j < L;++j) cur[j] *= ctx->scale_factor[t];
 	}
 
-	/* Compute the logarithm of the normalization factor here. */
+	/* Compute the scores to reach EOS. */
 	sum = 0.;
 	cur = FORWARD_SCORE_AT(ctx, T-1);
 	for (i = 0;i < L;++i) {
@@ -178,7 +207,10 @@ void crf1mc_forward_score(crf1m_context_t* ctx)
 	}
 	ctx->scale_factor[T] = 1. / sum;
 
-	/* */
+	/* Compute the logarithm of the normalization factor here.
+		norm = sum / (C[0] * C[1] ... * C[T-1]) = 1 / (C[0] * ... * C[T])
+		log(norm) = - \sum_{t = 0}^{T} log(C[t]).
+	 */
 	ctx->log_norm = 0.;
 	for (t = 0;t <= T;++t) {
 		ctx->log_norm -= log(ctx->scale_factor[t]);
@@ -198,7 +230,6 @@ void crf1mc_backward_score(crf1m_context_t* ctx)
 	scale = ctx->scale_factor[T-1];
 	for (i = 0;i < L;++i) {
 		/* Transit from label #i at position #(T-1) to EOS. */
-		/* exp(cur[i]) = exp(trans[L]) */
 		trans = TRANS_SCORE_FROM(ctx, i);
 		cur[i] = trans[L] * scale;
 	}
@@ -235,8 +266,7 @@ floatval_t crf1mc_logprob(crf1m_context_t* ctx)
 	/* Transit from BOS to (0, labels[0]). */
 	i = labels[0];
 	cur = FORWARD_SCORE_AT(ctx, 0);
-	ret  = log(cur[i]);
-	ret -= log(ctx->scale_factor[0]);
+	ret = log(cur[i]) - log(ctx->scale_factor[0]);
 
 	/* Loop over the rest of items. */
 	for (t = 1;t < T;++t) {
@@ -252,8 +282,7 @@ floatval_t crf1mc_logprob(crf1m_context_t* ctx)
 
 	/* Transit from (T-1, i) to EOS. */
 	cur = BACKWARD_SCORE_AT(ctx, T-1);
-	ret += log(cur[i]);
-	ret -= log(ctx->scale_factor[T-1]);
+	ret += log(cur[i]) - log(ctx->scale_factor[T-1]);
 
 	/* Subtract the logarithm of the normalization factor. */
 	ret -= ctx->log_norm;
@@ -270,6 +299,10 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
 	const int T = ctx->num_items;
 	const int L = ctx->num_labels;
 
+	/*
+		This function assumes state and trans scores to be in the logarithm domain.
+	 */
+
 	/* Compute the score to stay on labels at position #0. */
 	cur = FORWARD_SCORE_AT(ctx, 0);
 	state = STATE_SCORE_AT(ctx, 0);
@@ -277,7 +310,7 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
 	for (j = 0;j < L;++j) {
 		/* Transit from BOS to #j. */
 		/* exp(cur[j]) = exp(trans[j]) * exp(state[j]) */
-		cur[j] = trans[j] * state[j];
+		cur[j] = trans[j] + state[j];
 	}
 
 	/* Compute the scores at position #t. */

@@ -128,6 +128,8 @@ typedef struct {
 crf1m_context_t* crf1mc_new(int L, int T);
 int crf1mc_set_num_items(crf1m_context_t* ctx, int T);
 void crf1mc_delete(crf1m_context_t* ctx);
+void crf1mc_exp_state(crf1m_context_t* ctx);
+void crf1mc_exp_transition(crf1m_context_t* ctx);
 void crf1mc_forward_score(crf1m_context_t* ctx);
 void crf1mc_backward_score(crf1m_context_t* ctx);
 floatval_t crf1mc_logprob(crf1m_context_t* ctx);

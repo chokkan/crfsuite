@@ -217,47 +217,15 @@ static void transition_score(crf1ml_t* trainer)
 	}	
 }
 
-static void state_exponential(crf1ml_t* trainer, const crf_instance_t* seq)
-{
-	int i, t;
-	floatval_t *state = NULL;
-	crf1m_context_t* ctx = trainer->ctx;
-	const int T = seq->num_items;
-	const int L = trainer->num_labels;
-
-	/* Loop over the items in the sequence. */
-	for (t = 0;t < T;++t) {
-		state = STATE_SCORE_AT(ctx, t);
-		for (i = 0;i < L;++i) {
-			state[i] = exp(state[i]);
-		}
-	}
-}
-
-static void transition_exponential(crf1ml_t* trainer)
-{
-	int i, j;
-	floatval_t *trans = NULL;
-	crf1m_context_t* ctx = trainer->ctx;
-	const int L = trainer->num_labels;
-
-	for (i = 0;i <= L;++i) {
-		trans = TRANS_SCORE_FROM(ctx, i);
-		for (j = 0;j <= L;++j) {
-			trans[j] = exp(trans[j]);
-		}
-	}
-}
-
 
 
 static void accumulate_expectation(crf1ml_t* trainer, const crf_instance_t* seq)
 {
 	int a, c, i, j, t, r;
-	floatval_t denom, scale, *prob = trainer->prob;
+	floatval_t coeff, scale, *prob = trainer->prob;
 	crf1m_context_t* ctx = trainer->ctx;
 	const floatval_t lognorm = ctx->log_norm;
-	const floatval_t *fwd = NULL, *bwd = NULL, *state = NULL, *tr = NULL;
+	const floatval_t *fwd = NULL, *bwd = NULL, *state = NULL, *edge = NULL;
 	crf1ml_feature_t* f = NULL;
 	const feature_refs_t *attr = NULL, *trans = NULL;
 	const crf_item_t* item = NULL;
@@ -274,20 +242,24 @@ static void accumulate_expectation(crf1ml_t* trainer, const crf_instance_t* seq)
 		(ii)  state features at position #T-1 and EOS transition features
 		(iii) state features at position #t (0 < t < T-1)
 		(iv)  transition features.
+
+		Notice that the partition factor (norm) is computed as:
+			norm = 1 / (C[0] * ... * C[T]).
 	 */
 
 	/*
 		(i) Calculate the probabilities at (0, i):
-			p(0,i) = exp(fwd[0][i]) * exp(bwd[0][i]) / exp(lognorm)
+			p(0,i) = fwd[0][i] * bwd[0][i] / norm
+			       = (fwd'[0][i] / C[0]) * (bwd'[0][i] / (C[0] * ... C[T-1])) * (C[0] * ... * C[T])
+				   = (C[T] / C[0]) * fwd'[0][i] * bwd'[0][i]
 		to compute expectations of transition features from BOS
 		and state features at position #0.
 	 */
 	fwd = FORWARD_SCORE_AT(ctx, 0);
 	bwd = BACKWARD_SCORE_AT(ctx, 0);
-	denom = ctx->scale_factor[T] / ctx->scale_factor[0];
+	coeff = ctx->scale_factor[T] / ctx->scale_factor[0];
 	for (i = 0;i < L;++i) {
-		prob[i] = fwd[i] * bwd[i] * denom;
-	//	printf("prob[%d] = %f\n", i, prob[i]);
+		prob[i] = fwd[i] * bwd[i] * coeff;
 	}
 
 	/* Compute expectations for transition features from BOS. */
@@ -315,15 +287,16 @@ static void accumulate_expectation(crf1ml_t* trainer, const crf_instance_t* seq)
 
 	/*
 		(ii) Calculate the probabilities at (T-1, i):
-			p(T-1,i) = exp(fwd[T-1][i]) * exp(bwd[T-1][i]) / exp(lognorm)
+			p(T-1,i) = fwd[T-1][i] bwd[T-1][i] / norm
+                     = (C[T] / C[T-1]) * fwd'[T-1][i] * bwd'[T-1][i]
 		to compute expectations of transition features to EOS
 		and state features at position #(T-1).
 	 */
 	fwd = FORWARD_SCORE_AT(ctx, T-1);
 	bwd = BACKWARD_SCORE_AT(ctx, T-1);
-	denom = ctx->scale_factor[T] / ctx->scale_factor[T-1];
+	coeff = ctx->scale_factor[T] / ctx->scale_factor[T-1];
 	for (i = 0;i < L;++i) {
-		prob[i] = fwd[i] * bwd[i] * denom;
+		prob[i] = fwd[i] * bwd[i] * coeff;
 	}
 
 	/* Compute expectations for transition features to EOS. */
@@ -351,13 +324,14 @@ static void accumulate_expectation(crf1ml_t* trainer, const crf_instance_t* seq)
 
 	/*
 		(iii) For 0 < t < T-1, calculate the probabilities at (t, i):
-			p(t,i) = exp(fwd[t][i]) * exp(bwd[t][i]) / exp(lognorm)
+			p(t,i) = fwd[t][i] * bwd[t][i] / norm
+                   = (C[T] / C[t]) * fwd'[t][i] * bwd'[t][i]
 		to compute expectations of state features at position #t.
 	 */
 	for (t = 1;t < T-1;++t) {
 		fwd = FORWARD_SCORE_AT(ctx, t);
 		bwd = BACKWARD_SCORE_AT(ctx, t);
-		denom = ctx->scale_factor[T] / ctx->scale_factor[t];
+		coeff = ctx->scale_factor[T] / ctx->scale_factor[t];
 
 		/* Initialize the probabilities as -1, which means 'unfilled'.  */
 		for (i = 0;i < L;++i) prob[i] = -1;
@@ -378,7 +352,7 @@ static void accumulate_expectation(crf1ml_t* trainer, const crf_instance_t* seq)
 				/* Reuse the probability prob[i] if it has been calculated. */
 				if (prob[i] == -1) {
 					/* Unfilled: calculate the probability. */
-					prob[i] = fwd[i] * bwd[i] * denom;
+					prob[i] = fwd[i] * bwd[i] * coeff;
 				}
 				f->mexp += (prob[i] * scale);
 			}
@@ -388,26 +362,25 @@ static void accumulate_expectation(crf1ml_t* trainer, const crf_instance_t* seq)
 	/*
 		(iv) Calculate the probabilities of the path (t, i) -> (t+1, j)
 			p(t+1,j|t,i)
-				= exp(fwd[t][i]) * exp(lambda) * exp(state[t+1][j] * exp(bwd[t+1][j])
-				/ exp(lognorm)
+				= fwd[t][i] * edge[i][j] * state[t+1][j] * bwd[t+1][j] / norm
+				= (fwd'[t][i] / (C[0] ... C[t])) * edge[i][j] * state[t+1][j] * (bwd'[t+1][j] / (C[t+1] ... C[T-1])) * (C[0] * ... * C[T])
+				= fwd'[t][i] * edge[i][j] * state[t+1][j] * bwd'[t+1][j] * C[T]
 		to compute expectations of transition features.
 	 */
 	for (t = 0;t < T-1;++t) {
 		fwd = FORWARD_SCORE_AT(ctx, t);
 		state = STATE_SCORE_AT(ctx, t+1);
 		bwd = BACKWARD_SCORE_AT(ctx, t+1);
-		denom = ctx->scale_factor[T];
+		coeff = ctx->scale_factor[T];
 
 		/* Loop over the labels (t, i) */
 		for (i = 0;i < L;++i) {
-			tr = TRANS_SCORE_FROM(ctx, i);
+			edge = TRANS_SCORE_FROM(ctx, i);
 			trans = TRANSITION_FROM(trainer, i);
 			for (r = 0;r < trans->num_features;++r) {
-				floatval_t pr;
 				f = FEATURE(trainer, trans->fids[r]);
 				j = f->dst;
-				pr = fwd[i] * tr[j] * state[j] * bwd[j] * denom;
-				f->mexp += pr;
+				f->mexp += fwd[i] * edge[j] * state[j] * bwd[j] * coeff;
 			}
 		}
 	}
@@ -648,7 +621,7 @@ void crf1ml_delete(crf1ml_t* trainer)
 int crf_train_tag(crf_tagger_t* tagger, crf_instance_t *inst, crf_output_t* output)
 {
 	int i;
-	floatval_t logprob = 0;
+	floatval_t logscore = 0;
 	crf1ml_t *crf1mt = (crf1ml_t*)tagger->internal;
 	crf1m_context_t* ctx = crf1mt->ctx;
 
@@ -657,13 +630,10 @@ int crf_train_tag(crf_tagger_t* tagger, crf_instance_t *inst, crf_output_t* outp
 	transition_score(crf1mt);
 	set_labels(crf1mt, inst);
 	state_score(crf1mt, inst);
-	crf1mc_forward_score(crf1mt->ctx);
-	crf1mc_backward_score(crf1mt->ctx);
-	logprob = crf1mc_viterbi(crf1mt->ctx);
-	logprob -= crf1mt->ctx->log_norm;
+	logscore = crf1mc_viterbi(crf1mt->ctx);
 
 	crf_output_init_n(output, inst->num_items);
-	output->probability = exp(logprob);
+	output->probability = logscore;
 	for (i = 0;i < inst->num_items;++i) {
 		output->labels[i] = crf1mt->ctx->labels[i];
 	}
@@ -696,7 +666,7 @@ static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, 
 		these are independent of input label sequences.
 	 */
 	transition_score(crf1mt);
-	transition_exponential(crf1mt);
+	crf1mc_exp_transition(crf1mt->ctx);
 
 	/*
 		Compute model expectations.
@@ -705,7 +675,7 @@ static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, 
 		/* Set label sequences and state scores. */
 		set_labels(crf1mt, &data->instances[i]);
 		state_score(crf1mt, &data->instances[i]);
-		state_exponential(crf1mt, &data->instances[i]);
+		crf1mc_exp_state(crf1mt->ctx);
 
 		/* Compute forward/backward scores. */
 		crf1mc_forward_score(crf1mt->ctx);
@@ -729,7 +699,6 @@ static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, 
 	for (i = 0;i < crf1mt->num_features;++i) {
 		const crf1ml_feature_t* f = &crf1mt->features[i];
 		g[i] = -(f->oexp - f->mexp);
-		//fprintf(stdout, "Feature #%d (%d: %d -> %d): %f vs %f\n", i, f->type, f->src, f->dst, f->oexp, f->mexp);
 	}
 
 	/*
@@ -743,7 +712,6 @@ static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, 
 		}
 		logl -= (crf1mt->sigma2inv * norm * 0.5);
 	}
-	//fprintf(stdout, "LL = %f\n\n", logl);
 
 	return -logl;
 }
