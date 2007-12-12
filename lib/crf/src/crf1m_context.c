@@ -134,7 +134,7 @@ void crf1mc_exp_state(crf1m_context_t* ctx)
 	for (t = 0;t < T;++t) {
 		state = STATE_SCORE_AT(ctx, t);
 		for (i = 0;i < L;++i) {
-			state[i] = exp(state[i]);
+			state[i] = (state[i] == 0. ? 1. : exp(state[i]));
 		}
 	}
 }
@@ -148,7 +148,7 @@ void crf1mc_exp_transition(crf1m_context_t* ctx)
 	for (i = 0;i <= L;++i) {
 		trans = TRANS_SCORE_FROM(ctx, i);
 		for (j = 0;j <= L;++j) {
-			trans[j] = exp(trans[j]);
+			trans[j] = (trans[j] == 0. ? 1. : exp(trans[j]));
 		}
 	}
 }
