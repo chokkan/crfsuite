@@ -428,18 +428,20 @@ This library is used by the
 
 @section download Download
 
-- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.1.tar.gz">Source code</a>
+- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.2.tar.gz">Source code</a>
 
 libLBFGS is distributed under the term of the
 <a href="http://opensource.org/licenses/mit-license.php">MIT license</a>.
 
 @section changelog History
+- Version 1.2 (2007-12-13):
+	- Fixed a serious bug in orthant-wise L-BFGS.
+	  An important variable was used without initialization.
 - Version 1.1 (2007-12-01):
 	- Implemented orthant-wise L-BFGS.
 	- Implemented lbfgs_parameter_init() function.
 	- Fixed several bugs.
 	- API documentation.
-
 - Version 1.0 (2007-09-20):
 	- Initial release.
 
