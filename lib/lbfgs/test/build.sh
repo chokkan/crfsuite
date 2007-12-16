@@ -1,4 +1,4 @@
 #!/bin/sh
 # $Id$
 
-gcc -o lbfgs -I../include main.c ../src/lbfgs.c
+gcc -o lbfgs -I../include -lm main.c ../src/lbfgs.c
