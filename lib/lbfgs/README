@@ -1,0 +1,42 @@
+
+           libLBFGS: C library of limited-memory BFGS (L-BFGS)
+
+                                       Copyright (c) 1990, Jorge Nocedal 
+                                       Copyright (c) 2007, Naoaki Okazaki
+
+=========================================================================
+1. Introduction
+=========================================================================
+libLBFGS is a C port of the implementation of Limited-memory
+Broyden-Fletcher-Goldfarb-Shanno (L-BFGS) method written by Jorge Nocedal.
+The original FORTRAN source code is available at:
+http://www.ece.northwestern.edu/~nocedal/lbfgs.html
+
+The L-BFGS method solves the unconstrainted minimization problem:
+    minimize F(x), x = (x1, x2, ..., xN),
+only if the objective function F(x) and its gradient G(x) are computable.
+
+Refer to the libLBFGS web site for more information.
+http://www.chokkan.org/software/liblbfgs/
+
+
+
+=========================================================================
+2. How to build the sample program
+=========================================================================
+[Microsoft Visual Studio 2005]
+Open the solution file "test/lbfgs.sln" and build it.
+
+[GCC]
+$ cd test
+$ ./build.sh
+
+
+
+=========================================================================
+3. License
+=========================================================================
+libLBFGS is distributed under the term of the MIT license.
+Please refer to COPYING file in the distribution.
+
+$Id$
