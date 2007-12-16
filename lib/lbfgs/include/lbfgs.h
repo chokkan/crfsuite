@@ -1,5 +1,5 @@
 /*
- *      C port of Limited memory BFGS (L-BFGS).
+ *      C library of Limited memory BFGS (L-BFGS).
  *
  * Copyright (c) 1990, Jorge Nocedal
  * Copyright (c) 2007, Naoaki Okazaki
@@ -317,9 +317,9 @@ In this formula, ||.|| denotes the Euclidean norm.
  *						default values for the optimization and receive the
  *						optimization result through this array.
  *	@param	ptr_fx		The pointer to the variable that receives the final
- *						value of the objective function for the variables
- *						\ref x. This argument can be set to \c NULL if the
- *						final value of the objective function is unnecessary.
+ *						value of the objective function for the variables.
+ *						This argument can be set to \c NULL if the final
+ *						value of the objective function is unnecessary.
  *	@param	proc_evaluate	The callback function to provide function and
  *							gradient evaluations given a current values of
  *							variables. A client program must implement a
@@ -433,17 +433,19 @@ This library is used by the
 
 @section download Download
 
-- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.2.tar.gz">Source code</a>
+- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.3.tar.gz">Source code</a>
 
 libLBFGS is distributed under the term of the
 <a href="http://opensource.org/licenses/mit-license.php">MIT license</a>.
 
 @section changelog History
 - Version 1.3 (2007-12-16):
-	- API change. An argument was added to lbfgs() function to receive the
+	- An API change. An argument was added to lbfgs() function to receive the
 	  final value of the objective function. This argument can be set to
 	  \c NULL if the final value is unnecessary.
-	- Fixed a null-pointer bug in the sample code (reported by Takashi Imamichi)
+	- Fixed a null-pointer bug in the sample code (reported by Takashi Imamichi).
+	- Added build scripts for Microsoft Visual Studio 2005 and GCC.
+	- Added README file.
 - Version 1.2 (2007-12-13):
 	- Fixed a serious bug in orthant-wise L-BFGS.
 	  An important variable was used without initialization.
