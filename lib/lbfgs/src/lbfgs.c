@@ -162,6 +162,7 @@ void lbfgs_parameter_init(lbfgs_parameter_t *param)
 int lbfgs(
 	const int n,
 	lbfgsfloatval_t *x,
+	lbfgsfloatval_t *ptr_fx,
 	lbfgs_evaluate_t proc_evaluate,
 	lbfgs_progress_t proc_progress,
 	void *instance,
@@ -180,7 +181,7 @@ int lbfgs(
 	iteration_data_t *lm = NULL, *it = NULL;
 	lbfgsfloatval_t ys, yy;
 	lbfgsfloatval_t norm, xnorm, gnorm, beta;
-	lbfgsfloatval_t fx;
+	lbfgsfloatval_t fx = 0.;
 
 	/* Check the input parameters for errors. */
 	if (n <= 0) {
@@ -430,6 +431,11 @@ int lbfgs(
 	}
 
 lbfgs_exit:
+	/* Return the final value of the objective function. */
+	if (ptr_fx != NULL) {
+		*ptr_fx = fx;
+	}
+
 	/* Free memory blocks used by this function. */
 	if (lm != NULL) {
 		for (i = 0;i < m;++i) {
@@ -505,7 +511,7 @@ static int line_search_backtracking(
 		return LBFGSERR_INCREASEGRADIENT;
 	}
 
-	/* The initial value of the object function. */
+	/* The initial value of the objective function. */
 	finit = *f;
 	dgtest = param->ftol * dginit;
 

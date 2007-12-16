@@ -47,7 +47,7 @@ static int progress(
 int main(int argc, char *argv)
 {
 	int i, ret = 0;
-	lbfgsfloatval_t x[N];
+	lbfgsfloatval_t x[N], fx;
 
 	/* Initialize the variables. */
 	for (i = 0;i < N;i += 2) {
@@ -59,12 +59,11 @@ int main(int argc, char *argv)
 		Start the L-BFGS optimization; this will invoke the callback functions
 		evaluate() and progress() when necessary.
 	 */
-	ret = lbfgs(N, x, evaluate, progress, NULL, NULL);
+	ret = lbfgs(N, x, &fx, evaluate, progress, NULL, NULL);
 
 	/* Report the result. */
 	printf("L-BFGS optimization terminated with status code = %d\n", ret);
-	printf("  fx = %f, x[0] = %f, x[1] = %f\n",
-		evaluate(NULL, x, NULL, N, 0), x[0], x[1]);
+	printf("  fx = %f, x[0] = %f, x[1] = %f\n", fx, x[0], x[1]);
 
 	return 0;
 }

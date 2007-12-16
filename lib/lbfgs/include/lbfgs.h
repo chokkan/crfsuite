@@ -122,7 +122,7 @@ enum {
 	LBFGSERR_WIDTHTOOSMALL,
 	/** A logic error (negative line-search step) occurred. */
 	LBFGSERR_INVALIDPARAMETERS,
-	/** The current search direction increases the object function value. */
+	/** The current search direction increases the objective function value. */
 	LBFGSERR_INCREASEGRADIENT,
 };
 
@@ -219,7 +219,7 @@ typedef struct {
 	 * Coeefficient for the L1 norm of variables.
 	 *	This parameter should be set to zero for standard minimization
 	 *	problems. Setting this parameter to a positive value minimizes the
-	 *	object function F(x) combined with the L1 norm |x| of the variables,
+	 *	objective function F(x) combined with the L1 norm |x| of the variables,
 	 *	{F(x) + C |x|}. This parameter is the coeefficient for the |x|, i.e.,
 	 *	C. As the L1 norm |x| is not differentiable at zero, the library
 	 *	modify function and gradient evaluations from a client program
@@ -231,11 +231,11 @@ typedef struct {
 
 
 /**
- * Callback interface to provide object function and gradient evaluations.
+ * Callback interface to provide objective function and gradient evaluations.
  *
- *	The lbfgs() function call this function to obtain the values of object
+ *	The lbfgs() function call this function to obtain the values of objective
  *	function and its gradients when needed. A client program must implement
- *	this function to evaluate the values of the object function and its
+ *	this function to evaluate the values of the objective function and its
  *	gradients, given current values of variables.
  *	
  *	@param	instance	The user data sent for lbfgs() function by the client.
@@ -244,7 +244,7 @@ typedef struct {
  *						the gradient values for the current variables.
  *	@param	n			The number of variables.
  *	@param	step		The current step of the line search routine.
- *	@retval	lbfgsfloatval_t	The value of the object function for the current
+ *	@retval	lbfgsfloatval_t	The value of the objective function for the current
  *							variables.
  */
 typedef lbfgsfloatval_t (*lbfgs_evaluate_t)(
@@ -265,7 +265,7 @@ typedef lbfgsfloatval_t (*lbfgs_evaluate_t)(
  *	@param	instance	The user data sent for lbfgs() function by the client.
  *	@param	x			The current values of variables.
  *	@param	g			The current gradient values of variables.
- *	@param	fx			The current value of the object function.
+ *	@param	fx			The current value of the objective function.
  *	@param	xnorm		The Euclidean norm of the variables.
  *	@param	gnorm		The Euclidean norm of the gradients.
  *	@param	step		The line-search step used for this iteration.
@@ -316,6 +316,10 @@ In this formula, ||.|| denotes the Euclidean norm.
  *	@param	x			The array of variables. A client program can set
  *						default values for the optimization and receive the
  *						optimization result through this array.
+ *	@param	ptr_fx		The pointer to the variable that receives the final
+ *						value of the objective function for the variables
+ *						\ref x. This argument can be set to \c NULL if the
+ *						final value of the objective function is unnecessary.
  *	@param	proc_evaluate	The callback function to provide function and
  *							gradient evaluations given a current values of
  *							variables. A client program must implement a
@@ -324,9 +328,9 @@ In this formula, ||.|| denotes the Euclidean norm.
  *							callback function.
  *	@param	proc_progress	The callback function to receive the progress
  *							(the number of iterations, the current value of
- *							the object function) of the minimization process.
- *							This argument can be set to \c NULL if a progress
- *							report is unnecessary.
+ *							the objective function) of the minimization
+ *							process. This argument can be set to \c NULL if
+ *							a progress report is unnecessary.
  *	@param	instance	A user data for the client program. The callback
  *						functions will receive the value of this argument.
  *	@param	param		The pointer to a structure representing parameters for
@@ -341,6 +345,7 @@ In this formula, ||.|| denotes the Euclidean norm.
 int lbfgs(
 	const int n,
 	lbfgsfloatval_t *x,
+	lbfgsfloatval_t *ptr_fx,
 	lbfgs_evaluate_t proc_evaluate,
 	lbfgs_progress_t proc_progress,
 	void *instance,
@@ -381,15 +386,15 @@ The L-BFGS method solves the unconstrainted minimization problem,
     minimize F(x), x = (x1, x2, ..., xN),
 </pre>
 
-only if the object function F(x) and its gradient G(x) are computable. The
+only if the objective function F(x) and its gradient G(x) are computable. The
 Newton's method, which is a well-known algorithm for the optimization,
 requires computation or approximation of the inverse of the hessian matrix of
-the object function in order to find the point where the gradient G(X) = 0.
+the objective function in order to find the point where the gradient G(X) = 0.
 The computational cost for the inverse hessian matrix is expensive especially
-when the object function takes a large number of variables. The L-BFGS method
-approximates the inverse hessian matrix efficiently by using information from
-last m iterations. This innovation saves the memory storage and computational
-time a lot for large-scaled problems.
+when the objective function takes a large number of variables. The L-BFGS
+method approximates the inverse hessian matrix efficiently by using information
+from last m iterations. This innovation saves the memory storage and
+computational time a lot for large-scaled problems.
 
 Among the various ports of L-BFGS, this library provides several features:
 - <b>Optimization with L1-norm (orthant-wise L-BFGS)</b>:
@@ -434,6 +439,11 @@ libLBFGS is distributed under the term of the
 <a href="http://opensource.org/licenses/mit-license.php">MIT license</a>.
 
 @section changelog History
+- Version 1.3 (2007-12-16):
+	- API change. An argument was added to lbfgs() function to receive the
+	  final value of the objective function. This argument can be set to
+	  \c NULL if the final value is unnecessary.
+	- Fixed a null-pointer bug in the sample code (reported by Takashi Imamichi)
 - Version 1.2 (2007-12-13):
 	- Fixed a serious bug in orthant-wise L-BFGS.
 	  An important variable was used without initialization.
