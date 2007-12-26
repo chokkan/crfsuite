@@ -862,6 +862,7 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	ret = lbfgs(
 		crf1mt->num_features,
 		crf1mt->lambda,
+		NULL,
 		lbfgs_evaluate,
 		lbfgs_progress,
 		crf1mt,
