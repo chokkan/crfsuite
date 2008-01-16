@@ -703,11 +703,12 @@ static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, 
 
 	/*
 		L2 regularization.
+		Note that we *add* the (lambda * sigma) to g[i].
 	 */
 	if (crf1mt->l2_regularization) {
 		for (i = 0;i < crf1mt->num_features;++i) {
 			const crf1ml_feature_t* f = &crf1mt->features[i];
-			g[i] -= (crf1mt->sigma2inv * f->lambda);
+			g[i] += (crf1mt->sigma2inv * f->lambda);
 			norm += f->lambda * f->lambda;
 		}
 		logl -= (crf1mt->sigma2inv * norm * 0.5);
