@@ -38,21 +38,6 @@
 
 #include "crf1m.h"
 
-inline static floatval_t logsumexp(floatval_t x, floatval_t y, int flag)
-{
-	double vmin, vmax;
-
-	if (flag) return y;
-	if (x == y) return x + 0.69314718055;	/* log(2) */
-	if (x < y) {
-		vmin = x; vmax = y;
-	} else {
-		vmin = y; vmax = x;
-	}
-	return (vmin + 50 < vmax) ?
-		vmax : vmax + log(exp(vmin - vmax) + 1.0);
-}
-
 crf1m_context_t* crf1mc_new(int L, int T)
 {
 	int ret = 0;
