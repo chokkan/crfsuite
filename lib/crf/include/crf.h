@@ -50,6 +50,7 @@ typedef struct {
 	int				num_contents;	/**< Number of contents associated with the item. */
 	int				max_contents;	/**< Maximum number of contents. */
 	crf_content_t*	contents;		/**< Array of the contents. */
+	int				label;			/**< Output label. */
 } crf_item_t;
 
 /**
@@ -59,7 +60,6 @@ typedef struct {
 	int			num_items;	/**< Number of items in the instance. */
 	int			max_items;	/**< Maximum number of items (internal use). */
 	crf_item_t*	items;		/**< Array of the items. */
-	int*		labels;		/**< Array of output labels. */
 } crf_instance_t;
 
 /**

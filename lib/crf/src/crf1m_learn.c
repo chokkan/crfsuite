@@ -125,7 +125,7 @@ static void set_labels(crf1ml_t* trainer, const crf_instance_t* seq)
 	ctx->num_items = T;
 	for (t = 0;t < T;++t) {
 		item = &seq->items[t];
-		ctx->labels[t] = seq->labels[t];
+		ctx->labels[t] = item->label;
 	}
 }
 
