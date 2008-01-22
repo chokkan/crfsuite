@@ -115,7 +115,7 @@ struct tag_crf1ml {
 #define	TRANSITION_EOS(trainer) \
 	(&(trainer)->eos_trans)
 
-static void set_labels(crf1ml_t* trainer, const crf_instance_t* seq)
+static void set_labels(crf1ml_t* trainer, const crf_sequence_t* seq)
 {
 	int t;
 	crf1m_context_t* ctx = trainer->ctx;
@@ -129,7 +129,7 @@ static void set_labels(crf1ml_t* trainer, const crf_instance_t* seq)
 	}
 }
 
-static void state_score(crf1ml_t* trainer, const crf_instance_t* seq)
+static void state_score(crf1ml_t* trainer, const crf_sequence_t* seq)
 {
 	int a, i, l, t, r;
 	floatval_t scale, *state = NULL;
@@ -219,7 +219,7 @@ static void transition_score(crf1ml_t* trainer)
 
 
 
-static void accumulate_expectation(crf1ml_t* trainer, const crf_instance_t* seq)
+static void accumulate_expectation(crf1ml_t* trainer, const crf_sequence_t* seq)
 {
 	int a, c, i, j, t, r;
 	floatval_t coeff, scale, *prob = trainer->prob;
@@ -618,7 +618,7 @@ void crf1ml_delete(crf1ml_t* trainer)
 	}
 }
 
-int crf_train_tag(crf_tagger_t* tagger, crf_instance_t *inst, crf_output_t* output)
+int crf_train_tag(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* output)
 {
 	int i;
 	floatval_t logscore = 0;

@@ -47,7 +47,7 @@ struct tag_crf1mt {
 };
 
 
-static void state_score(crf1mt_t* tagger, const crf_instance_t* seq)
+static void state_score(crf1mt_t* tagger, const crf_sequence_t* seq)
 {
 	int a, i, l, t, r;
 	crf1mm_feature_t f;
@@ -156,7 +156,7 @@ void crf1mt_delete(crf1mt_t* crf1mt)
 	free(crf1mt);
 }
 
-int crf1mt_tag(crf1mt_t* crf1mt, crf_instance_t *inst, crf_output_t* output)
+int crf1mt_tag(crf1mt_t* crf1mt, crf_sequence_t *inst, crf_output_t* output)
 {
 	int i;
 	floatval_t score = 0;

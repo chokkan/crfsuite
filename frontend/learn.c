@@ -137,7 +137,7 @@ static int evaluate_callback(void *instance, crf_tagger_t* tagger)
 	/* Tag the evaluation instances and accumulate the performance. */
 	for (i = 0;i < data->num_instances;++i) {
 		/* An instance to be tagged. */
-		crf_instance_t* instance = &data->instances[i];
+		crf_sequence_t* instance = &data->instances[i];
 
 		crf_output_init(&output);
 

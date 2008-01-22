@@ -47,7 +47,7 @@ static int progress(FILE *fpo, int prev, int current)
 void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, crf_dictionary_t* labels)
 {
 	int lid = -1;
-	crf_instance_t inst;
+	crf_sequence_t inst;
 	crf_item_t item;
 	crf_content_t cont;
 	iwa_t* iwa = NULL;
@@ -56,7 +56,7 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
 	int prev = 0, current = 0;
 
 	/* Initialize the instance.*/
-	crf_instance_init(&inst);
+	crf_sequence_init(&inst);
 
 	/* Obtain the file size. */
 	begin = ftell(fpi);
@@ -84,7 +84,7 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
 			break;
 		case IWA_EOI:
 			/* Append the item to the instance. */
-			crf_instance_append(&inst, &item, lid);
+			crf_sequence_append(&inst, &item, lid);
 			crf_item_finish(&item);
 			break;
 		case IWA_ITEM:
@@ -100,7 +100,7 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
 		case IWA_EOF:
 			/* Put the training instance. */
 			crf_data_append(data, &inst);
-			crf_instance_finish(&inst);
+			crf_sequence_finish(&inst);
 			break;
 		case IWA_COMMENT:
 			break;

@@ -277,7 +277,7 @@ typedef struct tag_crf1mt crf1mt_t;
 
 crf1mt_t *crf1mt_new(crf1mm_t* crf1mm);
 void crf1mt_delete(crf1mt_t* crf1mt);
-int crf1mt_tag(crf1mt_t* crf1mt, crf_instance_t *inst, crf_output_t* output);
+int crf1mt_tag(crf1mt_t* crf1mt, crf_sequence_t *inst, crf_output_t* output);
 
 
 #endif/*__CRF1M_H__*/

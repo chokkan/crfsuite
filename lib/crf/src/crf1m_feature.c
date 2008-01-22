@@ -166,7 +166,7 @@ crf1ml_features_t* crf1ml_generate_features(
 	for (s = 0;s < data->num_instances;++s) {
 		int prev = L, cur = 0;
 		const crf_item_t* item = NULL;
-		const crf_instance_t* seq = &data->instances[s];
+		const crf_sequence_t* seq = &data->instances[s];
 		const int T = seq->num_items;
 
 		/* Loop over the items in the sequence. */

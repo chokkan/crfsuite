@@ -29,7 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #ifdef	HAVE_CONFIG_H
 #include <config.h>
@@ -171,7 +171,7 @@ static int tagger_release(crf_tagger_t* tagger)
 	return crf_interlocked_decrement(&tagger->nref);
 }
 
-static int tagger_tag(crf_tagger_t* tagger, crf_instance_t *inst, crf_output_t* output)
+static int tagger_tag(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* output)
 {
 	crf1mt_t* crf1mt = (crf1mt_t*)tagger->internal;
 	crf1mt_tag(crf1mt, inst, output);

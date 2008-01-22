@@ -122,20 +122,20 @@ int  crf_item_empty(crf_item_t* item)
 
 
 
-void crf_instance_init(crf_instance_t* inst)
+void crf_sequence_init(crf_sequence_t* inst)
 {
 	memset(inst, 0, sizeof(*inst));
 }
 
-void crf_instance_init_n(crf_instance_t* inst, int num_items)
+void crf_sequence_init_n(crf_sequence_t* inst, int num_items)
 {
-	crf_instance_init(inst);
+	crf_sequence_init(inst);
 	inst->num_items = num_items;
 	inst->max_items = num_items;
 	inst->items = (crf_item_t*)calloc(num_items, sizeof(crf_item_t));
 }
 
-void crf_instance_finish(crf_instance_t* inst)
+void crf_sequence_finish(crf_sequence_t* inst)
 {
 	int i;
 
@@ -143,10 +143,10 @@ void crf_instance_finish(crf_instance_t* inst)
 		crf_item_finish(&inst->items[i]);
 	}
 	free(inst->items);
-	crf_instance_init(inst);
+	crf_sequence_init(inst);
 }
 
-void crf_instance_copy(crf_instance_t* dst, const crf_instance_t* src)
+void crf_sequence_copy(crf_sequence_t* dst, const crf_sequence_t* src)
 {
 	int i;
 
@@ -158,9 +158,9 @@ void crf_instance_copy(crf_instance_t* dst, const crf_instance_t* src)
 	}
 }
 
-void crf_instance_swap(crf_instance_t* x, crf_instance_t* y)
+void crf_sequence_swap(crf_sequence_t* x, crf_sequence_t* y)
 {
-	crf_instance_t tmp = *x;
+	crf_sequence_t tmp = *x;
 	x->num_items = y->num_items;
 	x->max_items = y->max_items;
 	x->items = y->items;
@@ -169,7 +169,7 @@ void crf_instance_swap(crf_instance_t* x, crf_instance_t* y)
 	y->items = tmp.items;
 }
 
-int crf_instance_append(crf_instance_t* inst, const crf_item_t* item, int label)
+int crf_sequence_append(crf_sequence_t* inst, const crf_item_t* item, int label)
 {
 	if (0 < item->num_contents) {
 		if (inst->max_items <= inst->num_items) {
@@ -183,7 +183,7 @@ int crf_instance_append(crf_instance_t* inst, const crf_item_t* item, int label)
 	return 0;
 }
 
-int  crf_instance_empty(crf_instance_t* inst)
+int  crf_sequence_empty(crf_sequence_t* inst)
 {
 	return (inst->num_items == 0);
 }
@@ -201,7 +201,7 @@ void crf_data_init_n(crf_data_t* data, int n)
 	crf_data_init(data);
 	data->num_instances = n;
 	data->max_instances = n;
-	data->instances = (crf_instance_t*)calloc(n, sizeof(crf_instance_t));
+	data->instances = (crf_sequence_t*)calloc(n, sizeof(crf_sequence_t));
 }
 
 void crf_data_finish(crf_data_t* data)
@@ -209,7 +209,7 @@ void crf_data_finish(crf_data_t* data)
 	int i;
 
 	for (i = 0;i < data->num_instances;++i) {
-		crf_instance_finish(&data->instances[i]);
+		crf_sequence_finish(&data->instances[i]);
 	}
 	free(data->instances);
 	crf_data_init(data);
@@ -221,9 +221,9 @@ void crf_data_copy(crf_data_t* dst, const crf_data_t* src)
 
 	dst->num_instances = src->num_instances;
 	dst->max_instances = src->max_instances;
-	dst->instances = (crf_instance_t*)calloc(dst->num_instances, sizeof(crf_instance_t));
+	dst->instances = (crf_sequence_t*)calloc(dst->num_instances, sizeof(crf_sequence_t));
 	for (i = 0;i < dst->num_instances;++i) {
-		crf_instance_copy(&dst->instances[i], &src->instances[i]);
+		crf_sequence_copy(&dst->instances[i], &src->instances[i]);
 	}
 }
 
@@ -238,15 +238,15 @@ void crf_data_swap(crf_data_t* x, crf_data_t* y)
 	y->instances = tmp.instances;
 }
 
-int  crf_data_append(crf_data_t* data, const crf_instance_t* inst)
+int  crf_data_append(crf_data_t* data, const crf_sequence_t* inst)
 {
 	if (0 < inst->num_items) {
 		if (data->max_instances <= data->num_instances) {
 			data->max_instances = (data->max_instances + 1) * 2;
-			data->instances = (crf_instance_t*)realloc(
-				data->instances, sizeof(crf_instance_t) * data->max_instances);
+			data->instances = (crf_sequence_t*)realloc(
+				data->instances, sizeof(crf_sequence_t) * data->max_instances);
 		}
-		crf_instance_copy(&data->instances[data->num_instances++], inst);
+		crf_sequence_copy(&data->instances[data->num_instances++], inst);
 	}
 	return 0;
 }
@@ -335,7 +335,7 @@ void crf_evaluation_finish(crf_evaluation_t* eval)
 	memset(eval, 0, sizeof(*eval));
 }
 
-int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_instance_t* reference, const crf_output_t* target)
+int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_sequence_t* reference, const crf_output_t* target)
 {
 	int t, nc = 0;
 
