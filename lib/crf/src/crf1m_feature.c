@@ -135,7 +135,10 @@ static void featureset_generate(crf1ml_features_t* features, featureset_t* set, 
 }
 
 crf1ml_features_t* crf1ml_generate_features(
-	const crf_data_t *data,
+	const crf_sequence_t *seqs,
+	int num_sequences,
+	int num_labels,
+	int num_attributes,
 	int connect_all_attrs,
 	int connect_all_edges,
 	floatval_t minfreq,
@@ -147,7 +150,8 @@ crf1ml_features_t* crf1ml_generate_features(
 	crf1ml_feature_t f;
 	featureset_t* set = NULL;
 	crf1ml_features_t *features = NULL;
-	const int L = data->num_labels;
+	const int N = num_sequences;
+	const int L = num_labels;
 	logging_t lg;
 
 	lg.func = func;
@@ -163,10 +167,10 @@ crf1ml_features_t* crf1ml_generate_features(
 	/* Loop over the sequences in the training data. */
 	logging_progress_start(&lg);
 
-	for (s = 0;s < data->num_instances;++s) {
+	for (s = 0;s < N;++s) {
 		int prev = L, cur = 0;
 		const crf_item_t* item = NULL;
-		const crf_sequence_t* seq = &data->instances[s];
+		const crf_sequence_t* seq = &seqs[s];
 		const int T = seq->num_items;
 
 		/* Loop over the items in the sequence. */
@@ -223,7 +227,7 @@ crf1ml_features_t* crf1ml_generate_features(
 		f.lambda = 0;
 		featureset_add(set, &f);
 
-		logging_progress(&lg, s * 100 / data->num_instances);
+		logging_progress(&lg, s * 100 / N);
 	}
 	logging_progress_end(&lg);
 

@@ -172,7 +172,8 @@ struct tag_crf_trainer {
 
 	void (*set_message_callback)(crf_trainer_t* trainer, void *instance, crf_logging_callback cbm);
 	void (*set_evaluate_callback)(crf_trainer_t* trainer, void *instance, crf_evaluate_callback cbe);
-	int (*trainer)(crf_trainer_t* trainer, crf_data_t* data);
+
+	int (*train)(crf_trainer_t* trainer, void* instances, int num_instances, int num_labels, int num_attributes);
 	int (*save)(crf_trainer_t* trainer, const char *filename, crf_dictionary_t* attrs, crf_dictionary_t* labels);
 };
 
@@ -289,13 +290,13 @@ void crf_item_swap(crf_item_t* x, crf_item_t* y);
 int  crf_item_append_content(crf_item_t* item, const crf_content_t* cont);
 int  crf_item_empty(crf_item_t* item);
 
-void crf_sequence_init(crf_sequence_t* inst);
-void crf_sequence_init_n(crf_sequence_t* inst, int num_items);
-void crf_sequence_finish(crf_sequence_t* inst);
+void crf_sequence_init(crf_sequence_t* seq);
+void crf_sequence_init_n(crf_sequence_t* seq, int num_items);
+void crf_sequence_finish(crf_sequence_t* seq);
 void crf_sequence_copy(crf_sequence_t* dst, const crf_sequence_t* src);
 void crf_sequence_swap(crf_sequence_t* x, crf_sequence_t* y);
-int  crf_sequence_append(crf_sequence_t* inst, const crf_item_t* item, int label);
-int  crf_sequence_empty(crf_sequence_t* inst);
+int  crf_sequence_append(crf_sequence_t* seq, const crf_item_t* item, int label);
+int  crf_sequence_empty(crf_sequence_t* seq);
 
 void crf_data_init(crf_data_t* data);
 void crf_data_init_n(crf_data_t* data, int n);

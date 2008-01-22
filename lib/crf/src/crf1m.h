@@ -217,7 +217,10 @@ typedef struct {
 } feature_refs_t;
 
 crf1ml_features_t* crf1ml_generate_features(
-	const crf_data_t *data,
+	const crf_sequence_t *seqs,
+	int num_sequences,
+	int num_labels,
+	int num_attributes,
 	int connect_all_attrs,
 	int connect_all_edges,
 	floatval_t minfreq,

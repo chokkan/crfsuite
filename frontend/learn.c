@@ -292,7 +292,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
 
 	/* Fill the supplementary information for the data. */
 	data_train.num_labels = labels->num(labels);
-	data_train.num_attrs = labels->num(attrs);
+	data_train.num_attrs = attrs->num(attrs);
 	data_train.max_item_length = crf_data_maxlength(&data_train);
 
 	/* Initialize an evaluation object. */
@@ -311,7 +311,13 @@ int main_learn(int argc, char *argv[], const char *argv0)
 	trainer->set_evaluate_callback(trainer, &cd, evaluate_callback);
 
 	/* Start training. */
-	if (ret = trainer->trainer(trainer, &data_train)) {
+	if (ret = trainer->train(
+		trainer,
+		data_train.instances,
+		data_train.num_instances,
+		labels->num(labels),
+		attrs->num(attrs)
+		)) {
 		goto force_exit;
 	}
 

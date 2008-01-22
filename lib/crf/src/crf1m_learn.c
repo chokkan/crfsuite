@@ -68,7 +68,9 @@ struct tag_crf1ml {
 
 	int max_items;
 
-	crf_data_t* data;
+	int num_sequences;
+	crf_sequence_t* seqs;
+
 	crf1m_context_t *ctx;	/**< CRF context. */
 
 	logging_t* lg;
@@ -520,14 +522,16 @@ error_exit:
 
 int crf1ml_prepare(
 	crf1ml_t* trainer,
-	crf_data_t* data,
+	int num_labels,
+	int num_attributes,
+	int max_item_length,
 	crf1ml_features_t* features
 	)
 {
 	int ret = 0;
-	const int L = data->num_labels;
-	const int A = data->num_attrs;
-	const int T = data->max_item_length;
+	const int L = num_labels;
+	const int A = num_attributes;
+	const int T = max_item_length;
 
 	/* Set basic parameters. */
 	trainer->num_labels = L;
@@ -649,7 +653,8 @@ static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, 
 	int i;
 	floatval_t logp = 0, logl = 0, norm = 0;
 	crf1ml_t* crf1mt = (crf1ml_t*)instance;
-	crf_data_t* data = crf1mt->data;
+	crf_sequence_t* seqs = crf1mt->seqs;
+	const int N = crf1mt->num_sequences;
 
 	/*
 		Set feature weights from the L-BFGS solver. Initialize model
@@ -671,10 +676,10 @@ static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, 
 	/*
 		Compute model expectations.
 	 */
-	for (i = 0;i < data->num_instances;++i) {
+	for (i = 0;i < N;++i) {
 		/* Set label sequences and state scores. */
-		set_labels(crf1mt, &data->instances[i]);
-		state_score(crf1mt, &data->instances[i]);
+		set_labels(crf1mt, &seqs[i]);
+		state_score(crf1mt, &seqs[i]);
 		crf1mc_exp_state(crf1mt->ctx);
 
 		/* Compute forward/backward scores. */
@@ -690,7 +695,7 @@ static lbfgsfloatval_t lbfgs_evaluate(void *instance, const lbfgsfloatval_t *x, 
 		logl += logp;
 
 		/* Update the model expectations of features. */
-		accumulate_expectation(crf1mt, &data->instances[i]);
+		accumulate_expectation(crf1mt, &seqs[i]);
 	}
 
 	/*
@@ -788,16 +793,31 @@ void crf_train_set_evaluate_callback(crf_trainer_t* trainer, void *instance, crf
 	crf1mt->cbe_proc = cbe;
 }
 
-static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
+static int crf_train_train(
+	crf_trainer_t* trainer,
+	void* instances,
+	int num_instances,
+	int num_labels,
+	int num_attributes
+	)
 {
-	int i;
+	int i, max_item_length;
 	int ret = 0;
 	floatval_t sigma = 10, *best_lambda = NULL;
+	crf_sequence_t* seqs = (crf_sequence_t*)instances;
 	crf1ml_features_t* features = NULL;
 	crf1ml_t *crf1mt = (crf1ml_t*)trainer->internal;
 	crf_params_t *params = crf1mt->params;
 	crf1ml_option_t *opt = &crf1mt->opt;
 	lbfgs_parameter_t lbfgsopt;
+
+	/* Obtain the maximum number of items. */
+	max_item_length = 0;
+	for (i = 0;i < num_instances;++i) {
+		if (max_item_length < seqs[i].num_items) {
+			max_item_length = seqs[i].num_items;
+		}
+	}
 
 	/* Initialize the L-BFGS parameters with default values. */
 	lbfgs_parameter_init(&lbfgsopt);
@@ -816,16 +836,19 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	logging(crf1mt->lg, "lbfgs.num_memories: %d\n", opt->lbfgs_memory);
 	logging(crf1mt->lg, "lbfgs.max_iterations: %d\n", opt->lbfgs_max_iterations);
 	logging(crf1mt->lg, "lbfgs.epsilon: %f\n", opt->lbfgs_epsilon);
-	logging(crf1mt->lg, "Number of instances: %d\n", data->num_instances);
-	logging(crf1mt->lg, "Number of distinct attributes: %d\n", data->num_attrs);
-	logging(crf1mt->lg, "Number of distinct labels: %d\n", data->num_labels);
+	logging(crf1mt->lg, "Number of instances: %d\n", num_instances);
+	logging(crf1mt->lg, "Number of distinct attributes: %d\n", num_attributes);
+	logging(crf1mt->lg, "Number of distinct labels: %d\n", num_labels);
 	logging(crf1mt->lg, "\n");
 
 	/* Generate features. */
 	logging(crf1mt->lg, "Feature generation\n");
 	crf1mt->clk_begin = clock();
 	features = crf1ml_generate_features(
-		data,
+		seqs,
+		num_instances,
+		num_labels,
+		num_attributes,
 		opt->feature_possible_states ? 1 : 0,
 		opt->feature_possible_transitions ? 1 : 0,
 		opt->feature_minfreq,
@@ -837,8 +860,11 @@ static int crf_train_train(crf_trainer_t* trainer, crf_data_t* data)
 	logging(crf1mt->lg, "\n");
 
 	/* Preparation for training. */
-	crf1ml_prepare(crf1mt, data, features);
-	crf1mt->data = data;
+	crf1ml_prepare(crf1mt, num_labels, num_attributes, max_item_length, features);
+	crf1mt->num_attributes = num_attributes;
+	crf1mt->num_labels = num_labels;
+	crf1mt->num_sequences = num_instances;
+	crf1mt->seqs = seqs;
 
 	/* Set parameters for L-BFGS. */
 	lbfgsopt.m = opt->lbfgs_memory;
@@ -1124,7 +1150,7 @@ int crf1ml_create_instance(const char *interface, void **ptr)
 	
 		trainer->set_message_callback = crf_train_set_message_callback;
 		trainer->set_evaluate_callback = crf_train_set_evaluate_callback;
-		trainer->trainer = crf_train_train;
+		trainer->train = crf_train_train;
 		trainer->save = crf_train_save;
 		trainer->internal = crf1ml_new();
 
