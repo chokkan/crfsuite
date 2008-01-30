@@ -156,23 +156,25 @@ void crf1mt_delete(crf1mt_t* crf1mt)
 	free(crf1mt);
 }
 
-int crf1mt_tag(crf1mt_t* crf1mt, crf_sequence_t *inst, crf_output_t* output)
+int crf1mt_tag(crf1mt_t* crf1mt, void *inst, crf_output_t* output)
 {
 	int i;
 	floatval_t score = 0;
 	crf1m_context_t* ctx = crf1mt->ctx;
+	crf_sequence_t* seq = (crf_sequence_t*)inst;
 
-	crf1mc_set_num_items(ctx, inst->num_items);
+	crf1mc_set_num_items(ctx, seq->num_items);
 
-	state_score(crf1mt, inst);
+	state_score(crf1mt, seq);
 	score = crf1mc_viterbi(ctx);
 
-	crf_output_init_n(output, inst->num_items);
+	crf_output_init_n(output, seq->num_items);
 	output->probability = score;
-	for (i = 0;i < inst->num_items;++i) {
+	for (i = 0;i < seq->num_items;++i) {
 		output->labels[i] = ctx->labels[i];
 	}
-	output->num_labels = inst->num_items;
+	output->num_labels = seq->num_items;
 
 	return 0;
 }
+

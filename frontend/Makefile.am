@@ -9,8 +9,8 @@ crfsuite_SOURCES = \
 	iwa.c \
 	option.h \
 	option.c \
-	readdata.h \
-	reader.c \
+	reader.h \
+	reader_sequence.c \
 	learn.c \
 	tag.c \
 	dump.c \

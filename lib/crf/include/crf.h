@@ -201,7 +201,7 @@ struct tag_crf_tagger {
 	/**
 	 * Tag an input sequence.
 	 */
-	int (*tag)(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* output);
+	int (*tag)(crf_tagger_t* tagger, void *inst, crf_output_t* output);
 
 };
 

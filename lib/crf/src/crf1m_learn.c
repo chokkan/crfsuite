@@ -577,7 +577,7 @@ error_exit:
 	free(trainer->backward_trans);
 	free(trainer->prob);
 	free(trainer->ctx);
-	return 0;
+	return ret;
 }
 
 static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
@@ -622,26 +622,27 @@ void crf1ml_delete(crf1ml_t* trainer)
 	}
 }
 
-int crf_train_tag(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* output)
+int crf_train_tag(crf_tagger_t* tagger, void *inst, crf_output_t* output)
 {
 	int i;
 	floatval_t logscore = 0;
+	crf_sequence_t* seq = (crf_sequence_t*)inst;
 	crf1ml_t *crf1mt = (crf1ml_t*)tagger->internal;
 	crf1m_context_t* ctx = crf1mt->ctx;
 
-	crf1mc_set_num_items(ctx, inst->num_items);
+	crf1mc_set_num_items(ctx, seq->num_items);
 
 	transition_score(crf1mt);
-	set_labels(crf1mt, inst);
-	state_score(crf1mt, inst);
+	set_labels(crf1mt, seq);
+	state_score(crf1mt, seq);
 	logscore = crf1mc_viterbi(crf1mt->ctx);
 
-	crf_output_init_n(output, inst->num_items);
+	crf_output_init_n(output, seq->num_items);
 	output->probability = logscore;
-	for (i = 0;i < inst->num_items;++i) {
+	for (i = 0;i < seq->num_items;++i) {
 		output->labels[i] = crf1mt->ctx->labels[i];
 	}
-	output->num_labels = inst->num_items;
+	output->num_labels = seq->num_items;
 
 	return 0;
 }
