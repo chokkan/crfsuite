@@ -58,12 +58,11 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
 	/* Initialize the instance.*/
 	crf_sequence_init(&inst);
 
-	/* Try to obtain the file size. */
+	/* Obtain the file size. */
 	begin = ftell(fpi);
-	if (fseek(fpi, 0, SEEK_END) == 0) {
-		filesize = ftell(fpi) - begin;
-		fseek(fpi, begin, SEEK_SET);
-	}
+	fseek(fpi, 0, SEEK_END);
+	filesize = ftell(fpi) - begin;
+	fseek(fpi, begin, SEEK_SET);
 
 	/* */
 	fprintf(fpo, "0");

@@ -30,8 +30,6 @@
 
 #define	SAFE_RELEASE(obj)	if ((obj) != NULL) { (obj)->release(obj); (obj) = NULL; }
 
-
-
 typedef struct {
 	int help;
 } dump_option_t;
@@ -61,16 +59,13 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
 	fprintf(fp, "    -h, --help      Show the usage of this command and exit\n");
 }
 
-
-
 int main_dump(int argc, char *argv[], const char *argv0)
 {
-	int ret = 0;
-	int arg_used = 0;
+	int ret = 0, arg_used = 0;
 	dump_option_t opt;
-	crf_model_t *model = NULL;
 	const char *command = argv[0];
 	FILE *fp = NULL, *fpi = stdin, *fpo = stdout, *fpe = stderr;
+	crf_model_t *model = NULL;
 
 	/* Parse the command-line option. */
 	dump_option_init(&opt);
