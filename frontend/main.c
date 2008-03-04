@@ -27,8 +27,8 @@
 #include "option.h"
 
 #define	APPLICATION_S	"CRFsuite"
-#define	VERSION_S		"0.3"
-#define	COPYRIGHT_S		"Copyright (c) 2007 Naoaki Okazaki"
+#define	VERSION_S		"0.4"
+#define	COPYRIGHT_S		"Copyright (c) 2007,2008 Naoaki Okazaki"
 
 
 

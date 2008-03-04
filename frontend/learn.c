@@ -95,6 +95,7 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
 	fprintf(fp, "OPTIONS:\n");
 	fprintf(fp, "    -m, --model=MODEL   Store the obtained model in a file (MODEL)\n");
 	fprintf(fp, "    -t, --test=TEST     Report the performance of the model on a data (TEST)\n");
+    fprintf(fp, "    -p, --param=NAME=VALUE  Set the parameter NAME to VALUE\n");
 	fprintf(fp, "    -h, --help          Show the usage of this command and exit\n");
 }
 

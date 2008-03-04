@@ -879,7 +879,10 @@ static int crf_train_train(
 		crf1mt->l2_regularization = 1;
 		crf1mt->sigma2inv = 1.0 / (opt->regularization_sigma * opt->regularization_sigma);
 		lbfgsopt.orthantwise_c = 0.;
-	}
+    } else {
+        crf1mt->l2_regularization = 0;
+        lbfgsopt.orthantwise_c = 0.;
+    }
 
 	/* Call the L-BFGS solver. */
 	logging(crf1mt->lg, "L-BFGS optimization\n");

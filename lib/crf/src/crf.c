@@ -375,6 +375,11 @@ void crf_evaluation_compute(crf_evaluation_t* eval)
 	for (i = 0;i <= eval->num_labels;++i) {
 		crf_label_evaluation_t* lev = &eval->tbl[i];
 
+        /* Do not evaluate labels that does not in the test data. */
+        if (lev->num_observation == 0) {
+            continue;
+        }
+
 		/* Sum the number of correct labels for accuracy calculation. */
 		eval->item_total_correct += lev->num_correct;
 		eval->item_total_model += lev->num_model;
@@ -434,10 +439,17 @@ void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FIL
 
 		labels->to_string(labels, i, &lstr);
 		if (lstr == NULL) lstr = "[UNKNOWN]";
-		fprintf(fpo, "    %s: (%d, %d, %d) (%1.4f, %1.4f, %1.4f)\n",
-			lstr, lev->num_correct, lev->num_model, lev->num_observation,
-			lev->precision, lev->recall, lev->fmeasure
-			);
+
+        if (lev->num_observation == 0) {
+		    fprintf(fpo, "    %s: (%d, %d, %d) (******, ******, ******)\n",
+			    lstr, lev->num_correct, lev->num_model, lev->num_observation
+			    );
+        } else {
+		    fprintf(fpo, "    %s: (%d, %d, %d) (%1.4f, %1.4f, %1.4f)\n",
+			    lstr, lev->num_correct, lev->num_model, lev->num_observation,
+			    lev->precision, lev->recall, lev->fmeasure
+			    );
+        }
 		labels->free(labels, lstr);
 	}
 	fprintf(fpo, "Macro-average precision, recall, F1: (%f, %f, %f)\n",
