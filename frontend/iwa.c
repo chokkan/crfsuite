@@ -160,26 +160,21 @@ static int read_comment(iwa_t* iwa, iwa_string_t* str)
 
 static void read_field_quoted(iwa_t* iwa, iwa_string_t* str)
 {
-	/* Discard the first quotation character. */
-	if (get_char(iwa) != '"') {
-		return;
-	}
-
-	/* Read until a double-quotation character. */
+	/* Read until a tab or br character. */
 	for (;;) {
 		int c = get_char(iwa);
 
-		if (c == EOF) {
+		if (c == EOF || c == '\t' || c == '\n') {
 			break;
 		}
-		if (c == '"') {
-			/* Two consecutive double-quotations present a double quotation. */
-			c = peek_char(iwa);
-			if (c != '"') {
-				break;
+
+		if (c == '\\') {
+			int e = peek_char(iwa);
+            if (e == '\\' || e == ':') {
+    			c = get_char(iwa);
 			}
-			get_char(iwa);
 		}
+
 		string_append(str, c);
 	}
 }
@@ -188,7 +183,7 @@ static void read_field_unquoted(iwa_t* iwa, iwa_string_t* str)
 {
 	int c;
 	/* Read until a colon, space, tab, or break-line character. */
-	while (c = peek_char(iwa), c != ':' && c != ' ' && c != '\t' && c != '\n' && c != EOF) {
+	while (c = peek_char(iwa), c != ':' && c != '\t' && c != '\n' && c != EOF) {
 		get_char(iwa);
 		string_append(str, c);
 	}
@@ -199,13 +194,7 @@ static int read_item(iwa_t* iwa)
 {
 	int c;
 	
-	/* Determine whether the attribute is quoted or not. */
-	c = peek_char(iwa);
-	if (c == '"') {
-		read_field_quoted(iwa, &iwa->attr);
-	} else {
-		read_field_unquoted(iwa, &iwa->attr);
-	}
+	read_field_quoted(iwa, &iwa->attr);
 
 	/* Check the character just after the attribute field is terminated. */
 	c = peek_char(iwa);
@@ -213,13 +202,7 @@ static int read_item(iwa_t* iwa)
 		/* Discard the colon. */
 		get_char(iwa);
 
-		/* Determine whether the value is quoted or not. */
-		c = peek_char(iwa);
-		if (c == '"') {
-			read_field_quoted(iwa, &iwa->value);
-		} else {
-			read_field_unquoted(iwa, &iwa->value);
-		}
+		read_field_quoted(iwa, &iwa->value);
 
 		c = peek_char(iwa);
 		if (c == ':') {
@@ -279,7 +262,7 @@ const iwa_token_t* iwa_read(iwa_t* iwa)
 		for (;;) {
 			int c = peek_char(iwa);
 
-			if (c == ' ' || c == '\t') {
+			if (c == '\t') {
 				/* Skip white spaces. */
 				get_char(iwa);
 			} else if (c == '#') {

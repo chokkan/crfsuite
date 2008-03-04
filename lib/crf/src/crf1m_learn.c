@@ -588,7 +588,7 @@ static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, i
 		DDX_PARAM_INT("feature.possible_transitions", opt->feature_possible_transitions, 0)
 		DDX_PARAM_INT("feature.bos_eos", opt->feature_bos_eos, 1)
 		DDX_PARAM_STRING("regularization", opt->regularization, "L2")
-		DDX_PARAM_FLOAT("regularization.sigma", opt->regularization_sigma, 100.0)
+		DDX_PARAM_FLOAT("regularization.sigma", opt->regularization_sigma, 10.0)
 		DDX_PARAM_INT("lbfgs.max_iterations", opt->lbfgs_max_iterations, INT_MAX)
 		DDX_PARAM_FLOAT("lbfgs.epsilon", opt->lbfgs_epsilon, 1e-5)
 		DDX_PARAM_INT("lbfgs.num_memories", opt->lbfgs_memory, 6)
