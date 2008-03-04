@@ -162,11 +162,13 @@ static void read_field_quoted(iwa_t* iwa, iwa_string_t* str)
 {
 	/* Read until a tab or br character. */
 	for (;;) {
-		int c = get_char(iwa);
+		int c = peek_char(iwa);
 
 		if (c == EOF || c == '\t' || c == '\n') {
 			break;
 		}
+
+        get_char(iwa);
 
 		if (c == '\\') {
 			int e = peek_char(iwa);
