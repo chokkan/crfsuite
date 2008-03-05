@@ -2,6 +2,9 @@
 
 lib_LTLIBRARIES = libcrf.la
 
+EXTRA_DIST = \
+	crf.vcproj 
+
 libcrf_la_SOURCES = \
 	src/dictionary.c \
 	src/logging.c \

@@ -2,6 +2,10 @@
 
 lib_LTLIBRARIES = libcqdb.la
 
+EXTRA_DIST = \
+	cqdb.vcproj \
+	COPYING
+
 libcqdb_la_SOURCES = \
 	src/lookup3.c \
 	include/cqdb.h \

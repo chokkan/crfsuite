@@ -2,6 +2,10 @@
 
 lib_LTLIBRARIES = liblbfgs.la
 
+EXTRA_DIST = \
+	lbfgs.vcproj \
+	COPYING
+
 liblbfgs_la_SOURCES = \
 	src/arithmetic_ansi.h \
 	src/arithmetic_sse_double.h \
