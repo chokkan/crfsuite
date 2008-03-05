@@ -1,8 +1,8 @@
 # $Id:$
 
 bin_PROGRAMS = crfsuite
-man_MANS = crfsuite.1
-EXTRA_DIST = ${man_MANS}
+#man_MANS = crfsuite.1
+#EXTRA_DIST = ${man_MANS}
 
 crfsuite_SOURCES = \
 	iwa.h \

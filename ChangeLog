@@ -1,5 +1,29 @@
-CRFsuite 0.1
-- Internal release.
+2008-03-05  Naoaki Okazaki  <okazaki at chokkan org>
 
-CRFsuite 0.2
-- Orthant-wise L1 regularization
+	* CRFsuite 0.4 (the first public release):
+	- Website and documentation for CRFsuite.
+	- Tutorial on the CoNLL 2000 chunking shared task.
+	- Performance comparison on the CoNLL 2000 chunking shared task.
+	- Bug fix in L2 regularization.
+	- A number of small improvements for the public release.
+
+
+2007-12-12  Naoaki Okazaki  <okazaki at chokkan org>
+
+	* CRFsuite 0.3 (internal release):
+	- Implemented scaling method for forward/backward algorithm.
+	- Removed the code for computing the forward/backward algorithm in logarithm domain.
+	
+
+2007-11-30  Naoaki Okazaki  <okazaki at chokkan org>
+
+	* CRFsuite 0.2 (internal release):
+	- Orthant-Wise Limited-memory Quasi-Newton (OW-LQN) method for L1 regularization.
+	- Configurable L-BFGS parameters (number of limited memories, epsilon).
+	
+	
+2007-10-29  Naoaki Okazaki  <okazaki at chokkan org>
+
+	* CRFsuite 0.1 (internal release):
+	- Initial release.
+
