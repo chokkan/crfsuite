@@ -2,7 +2,7 @@
  *      C library of Limited memory BFGS (L-BFGS).
  *
  * Copyright (c) 1990, Jorge Nocedal
- * Copyright (c) 2007, Naoaki Okazaki
+ * Copyright (c) 2007,2008, Naoaki Okazaki
  * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -87,6 +87,8 @@ enum {
 	LBFGSERR_INVALID_N,
 	/** Invalid number of variables (for SSE) specified. */
 	LBFGSERR_INVALID_N_SSE,
+    /** Invalid parameter lbfgs_parameter_t::linesearch specified. */
+    LBFGSERR_INVALID_LINESEARCH,
 	/** Invalid parameter lbfgs_parameter_t::max_step specified. */
 	LBFGSERR_INVALID_MINSTEP,
 	/** Invalid parameter lbfgs_parameter_t::max_step specified. */
@@ -127,6 +129,18 @@ enum {
 };
 
 /**
+ * Line search algorithms.
+ */
+enum {
+    /** The default algorithm (MoreThuente method). */
+    LBFGS_LINESEARCH_DEFAULT = 0,
+    /** MoreThuente method proposd by More and Thuente. */
+    LBFGS_LINESEARCH_MORETHUENTE = 0,
+    /** Backtracking method. */
+    LBFGS_LINESEARCH_BACKTRACKING,
+};
+
+/**
  * L-BFGS optimization parameters.
  *	Call lbfgs_parameter_init() function to initialize parameters to the
  *	default values.
@@ -161,6 +175,11 @@ typedef struct {
 	 *	is \c 0.
 	 */
 	int				max_iterations;
+
+    /**
+     * The line search algorithm.
+     */
+    int             linesearch;
 
 	/**
 	 * The maximum number of trials for the line search.

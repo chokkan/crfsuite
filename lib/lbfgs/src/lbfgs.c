@@ -103,13 +103,26 @@ struct tag_iteration_data {
 typedef struct tag_iteration_data iteration_data_t;
 
 static const lbfgs_parameter_t _defparam = {
-	6, 1e-5, 0, 20,
+	6, 1e-5, 0, LBFGS_LINESEARCH_DEFAULT, 20,
 	1e-20, 1e20, 1e-4, 0.9, 1.0e-16,
 	0.0,
 };
 
 /* Forward function declarations. */
 
+typedef int (*line_search_proc)(
+	int n,
+	lbfgsfloatval_t *x,
+	lbfgsfloatval_t *f,
+	lbfgsfloatval_t *g,
+	lbfgsfloatval_t *s,
+	lbfgsfloatval_t *stp,
+	lbfgsfloatval_t *wa,
+	lbfgs_evaluate_t proc_evaluate,
+	void *instance,
+	const lbfgs_parameter_t *param
+	);
+    
 static int line_search_backtracking(
 	int n,
 	lbfgsfloatval_t *x,
@@ -123,7 +136,7 @@ static int line_search_backtracking(
 	const lbfgs_parameter_t *param
 	);
 
-static int line_search(
+static int line_search_morethuente(
 	int n,
 	lbfgsfloatval_t *x,
 	lbfgsfloatval_t *f,
@@ -182,6 +195,7 @@ int lbfgs(
 	lbfgsfloatval_t ys, yy;
 	lbfgsfloatval_t norm, xnorm, gnorm, beta;
 	lbfgsfloatval_t fx = 0.;
+    line_search_proc linesearch = line_search_morethuente;
 
 	/* Check the input parameters for errors. */
 	if (n <= 0) {
@@ -213,6 +227,16 @@ int lbfgs(
 	if (param->orthantwise_c < 0.) {
 		return LBFGSERR_INVALID_ORTHANTWISE;
 	}
+    switch (param->linesearch) {
+    case LBFGS_LINESEARCH_MORETHUENTE:
+        linesearch = line_search_morethuente;
+        break;
+    case LBFGS_LINESEARCH_BACKTRACKING:
+        linesearch = line_search_backtracking;
+        break;
+    default:
+        return LBFGSERR_INVALID_LINESEARCH;
+    }
 
 	/* Allocate working space. */
 	xp = (lbfgsfloatval_t*)vecalloc(n * sizeof(lbfgsfloatval_t));
@@ -295,7 +319,7 @@ int lbfgs(
 		veccpy(gp, g, n);
 
 		/* Search for an optimal step. */
-		ls = line_search(
+		ls = linesearch(
 			n, x, &fx, g, d, &step, w, proc_evaluate, instance, param);
 		if (ls < 0) {
 			ret = ls;
@@ -570,7 +594,7 @@ static int line_search_backtracking(
 
 
 
-static int line_search(
+static int line_search_morethuente(
 	int n,
 	lbfgsfloatval_t *x,
 	lbfgsfloatval_t *f,
