@@ -20,14 +20,18 @@ public:
 
     std::string mode;
     std::string model;
+    std::string algorithm;
     std::string regularizer;
     int         maxiter;
     double      sigma;
+    double      gamma;
+    double      kappa;
     int         holdout;
     bool        cross_validation;
 
     option() :
-        maxiter(1000), sigma(1),
+        maxiter(1000), sigma(1), gamma(0.5), kappa(5),
+        algorithm("log-likelihood"),
         holdout(-1), cross_validation(false)
     {
     }
@@ -38,6 +42,9 @@ public:
 
         ON_OPTION(SHORTOPT('t') || LONGOPT("tag"))
             mode = "tag";
+
+        ON_OPTION_WITH_ARG(SHORTOPT('a') || LONGOPT("algorithm"))
+            algorithm = arg;
 
         ON_OPTION_WITH_ARG(SHORTOPT('m') || LONGOPT("model"))
             model = arg;
@@ -50,6 +57,12 @@ public:
 
         ON_OPTION_WITH_ARG(SHORTOPT('s') || LONGOPT("sigma"))
             sigma = atof(arg);
+
+        ON_OPTION_WITH_ARG(SHORTOPT('g') || LONGOPT("gamma"))
+            gamma = atof(arg);
+
+        ON_OPTION_WITH_ARG(SHORTOPT('k') || LONGOPT("kappa"))
+            kappa = atof(arg);
 
         ON_OPTION_WITH_ARG(SHORTOPT('e') || LONGOPT("holdout"))
             holdout = atoi(arg);
@@ -81,6 +94,8 @@ struct training
     instances& data;
     std::ostream& ls;
 
+    double gamma;
+    double kappa;
     double sigma2inv;
     int holdout;
 
@@ -176,6 +191,69 @@ static lbfgsfloatval_t evaluate(
 
     // Minimize the negative of the log-likelihood.
     return -ll;
+}
+
+static lbfgsfloatval_t evaluate_roc(
+    void *instance,
+    const lbfgsfloatval_t *x,
+    lbfgsfloatval_t *g,
+    const int n,
+    const lbfgsfloatval_t step
+    )
+{
+    int i;
+    training& tr = *reinterpret_cast<training*>(instance);
+    double r = tr.gamma;
+    double k = tr.kappa;
+    double u = 0.0;
+
+    // Initialize the gradient of every weight as zero.
+    for (i = 0;i < n;++i) {
+        g[i] = 0.;
+    }
+
+    // Loop over the instances.
+    instances::const_iterator it;
+    for (it = tr.data.begin();it != tr.data.end();++it) {
+        double d = 0., z = 0., s = 0., p = 0.;
+
+        // Exclude instances for holdout evaluation.
+        if (it->group == tr.holdout) {
+            continue;
+        }
+
+        // Compute the instance score.
+        content::const_iterator itc;
+        for (itc = it->cont.begin();itc != it->cont.end();++itc) {
+            z += x[*itc];
+        }
+
+        s = k * z;
+
+        if (s < -30.) {
+            p = 0.;
+        } else if (30. < s) {
+            p = 1.;
+        } else {
+            p = 1.0 / (1.0 + std::exp(-s));
+        }
+
+        if (it->label) {
+            u += r * p;
+            d = r * k * p * (1-p);
+        } else {
+            u += (1-r) * (1-p);
+            d = -(1-r) * k * p * (1-p);
+        }
+
+        // Update the gradients for the weights.
+        for (itc = it->cont.begin();itc != it->cont.end();++itc) {
+            // Take the negatives of the gradients.
+            g[*itc] -= d;
+        }
+    }
+
+    return -u;
 }
 
 static int progress(
@@ -326,6 +404,9 @@ int learn(instances& data, quark& features, int holdout, option& opt)
         tr.sigma2inv = 1.0 / (opt.sigma * opt.sigma);
     }
 
+    tr.gamma = opt.gamma;
+    tr.kappa = opt.kappa;
+
     // L-BFGS optimization parameters.
     param.max_iterations = opt.maxiter;
     param.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
@@ -347,15 +428,27 @@ int learn(instances& data, quark& features, int holdout, option& opt)
     os << std::endl;
 
     // Call the L-BFGS solver.
-    status = lbfgs(
-        features.size(),
-        w,
-        NULL,
-        evaluate,
-        progress,
-        &tr,
-        &param
-        );
+    if (opt.algorithm == "log-likelihood") {
+        status = lbfgs(
+            features.size(),
+            w,
+            NULL,
+            evaluate,
+            progress,
+            &tr,
+            &param
+            );
+    } else if (opt.algorithm == "roc") {
+        status = lbfgs(
+            features.size(),
+            w,
+            NULL,
+            evaluate_roc,
+            progress,
+            &tr,
+            &param
+            );
+    }
     if (status == 0) {
         os << "L-BFGS resulted in convergence" << std::endl;
     } else {
