@@ -1,3 +1,4 @@
+#include <float.h>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
@@ -173,6 +174,93 @@ static lbfgsfloatval_t evaluate(
         for (itc = it->cont.begin();itc != it->cont.end();++itc) {
             // Take the negatives of the gradients.
             g[*itc] -= d;
+        }
+    }
+
+	/*
+		L2 regularization.
+		Note that we *add* the (weight * sigma) to g[i].
+	 */
+	if (tr.sigma2inv != 0.) {
+        double norm = 0.;
+		for (i = 0;i < n;++i) {
+            g[i] += tr.sigma2inv * x[i];
+            norm += x[i] * x[i];
+		}
+		ll -= (tr.sigma2inv * norm * 0.5);
+	}
+
+    // Minimize the negative of the log-likelihood.
+    return -ll;
+}
+
+static lbfgsfloatval_t evaluate_max(
+    void *instance,
+    const lbfgsfloatval_t *x,
+    lbfgsfloatval_t *g,
+    const int n,
+    const lbfgsfloatval_t step
+    )
+{
+    int i;
+    lbfgsfloatval_t ll = 0.;
+    training& tr = *reinterpret_cast<training*>(instance);
+
+    // Initialize the gradient of every weight as zero.
+    for (i = 0;i < n;++i) {
+        g[i] = 0.;
+    }
+
+    // Loop over the instances.
+    instances::const_iterator it;
+    for (it = tr.data.begin();it != tr.data.end();++it) {
+        double z = -DBL_MAX;
+        double d = 0.;
+
+        // Exclude instances for holdout evaluation.
+        if (it->group == tr.holdout) {
+            continue;
+        }
+
+        // Compute the instance score.
+        content::const_iterator itc;
+        for (itc = it->cont.begin();itc != it->cont.end();++itc) {
+            if (z < x[*itc]) {
+                z = x[*itc];
+            }
+        }
+
+        if (z < -30.) {
+            if (it->label) {
+                d = 1.;
+                ll += z;
+            } else {
+                d = 0.;
+            }
+        } else if (30. < z) {
+            if (it->label) {
+                d = 0.;
+            } else {
+                d = -1.;
+                ll += (-z);
+            }
+        } else {
+            double p = 1.0 / (1.0 + std::exp(-z));
+            if (it->label) {
+                d = 1.0 - p;
+                ll += std::log(p);
+            } else {
+                d = -p;
+                ll += std::log(1-p);                
+            }
+        }
+
+        // Update the gradients for the weights.
+        for (itc = it->cont.begin();itc != it->cont.end();++itc) {
+            if (z == x[*itc]) {
+                // Take the negatives of the gradients.
+                g[*itc] -= d;            
+            }
         }
     }
 
@@ -434,6 +522,16 @@ int learn(instances& data, quark& features, int holdout, option& opt)
             w,
             NULL,
             evaluate,
+            progress,
+            &tr,
+            &param
+            );
+    } else if (opt.algorithm == "max") {
+        status = lbfgs(
+            features.size(),
+            w,
+            NULL,
+            evaluate_max,
             progress,
             &tr,
             &param
