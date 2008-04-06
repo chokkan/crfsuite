@@ -31,7 +31,7 @@ public:
     bool        cross_validation;
 
     option() :
-        maxiter(1000), sigma(1), gamma(0.5), kappa(5),
+        maxiter(1000), sigma(1), gamma(0.), kappa(5),
         algorithm("log-likelihood"),
         holdout(-1), cross_validation(false)
     {
@@ -205,6 +205,7 @@ static lbfgsfloatval_t evaluate_max(
     int i;
     lbfgsfloatval_t ll = 0.;
     training& tr = *reinterpret_cast<training*>(instance);
+    const double r = tr.gamma;
 
     // Initialize the gradient of every weight as zero.
     for (i = 0;i < n;++i) {
@@ -215,6 +216,7 @@ static lbfgsfloatval_t evaluate_max(
     instances::const_iterator it;
     for (it = tr.data.begin();it != tr.data.end();++it) {
         double z = -DBL_MAX;
+        double s = 0.;
         double d = 0.;
 
         // Exclude instances for holdout evaluation.
@@ -229,23 +231,24 @@ static lbfgsfloatval_t evaluate_max(
                 z = x[*itc];
             }
         }
+        s = z + r;
 
-        if (z < -30.) {
+        if (s < -30.) {
             if (it->label) {
                 d = 1.;
-                ll += z;
+                ll += s;
             } else {
                 d = 0.;
             }
-        } else if (30. < z) {
+        } else if (30. < s) {
             if (it->label) {
                 d = 0.;
             } else {
                 d = -1.;
-                ll += (-z);
+                ll += (-s);
             }
         } else {
-            double p = 1.0 / (1.0 + std::exp(-z));
+            double p = 1.0 / (1.0 + std::exp(-s));
             if (it->label) {
                 d = 1.0 - p;
                 ll += std::log(p);
