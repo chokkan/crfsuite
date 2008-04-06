@@ -501,6 +501,7 @@ int learn(instances& data, quark& features, int holdout, option& opt)
     // L-BFGS optimization parameters.
     param.max_iterations = opt.maxiter;
     param.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
+    param.max_linesearch = 100;
 
     // Allocate an array for feature weights.
     double *w = new double[features.size()];
