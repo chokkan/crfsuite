@@ -468,6 +468,8 @@ void read_data(std::istream& is, quark& features, instances& data, int group = 0
             inst.cont.push_back(fid);
         }
 
+        //
+
         // Append the instance to the data set.
         data.push_back(inst);
     }
