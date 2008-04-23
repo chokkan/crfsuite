@@ -177,9 +177,9 @@ public:
      * Get the number of string-to-id associations.
      *  @return                     The number of association.
      */
-    size_t size() const
+    qid_t size() const
     {
-        return m_id_to_string.size();
+        return (qid_t)m_id_to_string.size();
     }
 };
 

@@ -1,7 +1,7 @@
 /*
  *      An event-driven parser for command-line arguments.
  *  
- *      Copyright (c) 2004-2005 by N.Okazaki
+ *      Copyright (c) 2004-2008 by Naoaki Okazaki
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages

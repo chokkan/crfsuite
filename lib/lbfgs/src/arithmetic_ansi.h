@@ -1,7 +1,7 @@
 /*
  *      ANSI C implementation of vector operations.
  *
- * Copyright (c) 2007, Naoaki Okazaki
+ * Copyright (c) 2007,2008, Naoaki Okazaki
  * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy

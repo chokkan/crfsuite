@@ -1,3 +1,30 @@
+/*
+ *      Logistic regression utility (LogRess).
+ *  
+ *      Copyright (c) 2008 by Naoaki Okazaki
+ *
+ * This software is provided 'as-is', without any express or implied
+ * warranty.  In no event will the authors be held liable for any damages
+ * arising from the use of this software.
+ *
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it
+ * freely, subject to the following restrictions (known as zlib license):
+ *
+ * 1. The origin of this software must not be misrepresented; you must not
+ *    claim that you wrote the original software. If you use this software
+ *    in a product, an acknowledgment in the product documentation would be
+ *    appreciated but is not required.
+ * 2. Altered source versions must be plainly marked as such, and must not be
+ *    misrepresented as being the original software.
+ * 3. This notice may not be removed or altered from any source distribution.
+ *
+ * Naoaki Okazaki <okazaki at chokkan dot org>
+ *
+ */
+
+/* $Id$ */
+
 #include <float.h>
 #include <cmath>
 #include <cstdio>
@@ -12,6 +39,14 @@
 #include "optparse.h"
 #include "tokenize.h"
 
+#define	APPLICATION_S	"Logistic Regression Toolkit (LogRess)"
+#define	VERSION_S		"0.1"
+#define	COPYRIGHT_S		"Copyright (c) 2008 Naoaki Okazaki"
+
+
+/**
+ * Option class.
+ */
 class option : public optparse
 {
 public:
@@ -21,20 +56,17 @@ public:
 
     std::string mode;
     std::string model;
-    std::string algorithm;
     std::string regularizer;
-    int         maxiter;
     double      sigma;
-    double      gamma;
-    double      kappa;
     int         holdout;
     bool        cross_validation;
 
+    lbfgs_parameter_t lbfgs;
+
     option() :
-        maxiter(1000), sigma(1), gamma(0.), kappa(5),
-        algorithm("log-likelihood"),
-        holdout(-1), cross_validation(false)
+        sigma(1.), holdout(-1), cross_validation(false)
     {
+        lbfgs_parameter_init(&lbfgs);
     }
 
     BEGIN_OPTION_MAP_INLINE()
@@ -44,26 +76,8 @@ public:
         ON_OPTION(SHORTOPT('t') || LONGOPT("tag"))
             mode = "tag";
 
-        ON_OPTION_WITH_ARG(SHORTOPT('a') || LONGOPT("algorithm"))
-            algorithm = arg;
-
         ON_OPTION_WITH_ARG(SHORTOPT('m') || LONGOPT("model"))
             model = arg;
-
-        ON_OPTION_WITH_ARG(SHORTOPT('r') || LONGOPT("regularization"))
-            regularizer = arg;
-
-        ON_OPTION_WITH_ARG(SHORTOPT('i') || LONGOPT("maxiter"))
-            maxiter = atoi(arg);
-
-        ON_OPTION_WITH_ARG(SHORTOPT('s') || LONGOPT("sigma"))
-            sigma = atof(arg);
-
-        ON_OPTION_WITH_ARG(SHORTOPT('g') || LONGOPT("gamma"))
-            gamma = atof(arg);
-
-        ON_OPTION_WITH_ARG(SHORTOPT('k') || LONGOPT("kappa"))
-            kappa = atof(arg);
 
         ON_OPTION_WITH_ARG(SHORTOPT('e') || LONGOPT("holdout"))
             holdout = atoi(arg);
@@ -71,11 +85,53 @@ public:
         ON_OPTION(SHORTOPT('x') || LONGOPT("cross-validation"))
             cross_validation = true;
 
+        ON_OPTION_WITH_ARG(SHORTOPT('s') || LONGOPT("sigma"))
+            sigma = atof(arg);
+
+        ON_OPTION_WITH_ARG(SHORTOPT('r') || LONGOPT("regularization"))
+            regularizer = arg;
+
+        ON_OPTION_WITH_ARG(LONGOPT("lbfgs-maxiter"))
+            lbfgs.max_iterations = atoi(arg);
+
+        ON_OPTION_WITH_ARG(LONGOPT("lbfgs-nummemories"))
+            lbfgs.m = atoi(arg);
+
+        ON_OPTION_WITH_ARG(LONGOPT("lbfgs-linesearch"))
+            if (strcmp(arg, "backtracking") == 0) {
+                lbfgs.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
+            } else if (strcmp(arg, "morethuente") == 0) {
+                lbfgs.linesearch = LBFGS_LINESEARCH_MORETHUENTE;
+            }
+
+        ON_OPTION_WITH_ARG(LONGOPT("lbfgs-linesearch-maxiter"))
+            lbfgs.max_linesearch = atoi(arg);
+
+        ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
+            mode = "help";
+
     END_OPTION_MAP()
+
+    void usage(std::ostream& os, const char *argv0)
+    {
+        os << "USAGE: " << argv0 << " [OPTIONS] [DATA1] [DATA2] ..." << std::endl;
+        os << std::endl;
+        os << "OPTIONS:" << std::endl;
+        os << "    -l, --learn             train a model from the training set" << std::endl;
+        os << "    -t, --tag               tag a data with the model specified by -m option" << std::endl;
+        os << "    -e, --holdout=N         use the N-th data for holdout evaluation and" << std::endl;
+        os << "                            the rest of the data set for training" << std::endl;
+        os << "    -x, --cross-validation  cross validation" << std::endl;
+        os << "    -m, --model=NAME        store/load a model from the file, NAME" << std::endl;
+        os << "    -i, --maxiter=VALUE     specify the maximum number of iterations" << std::endl;
+        os << "    -s, --sigma=VALUE       specify the sigma parameter for regularization" << std::endl;
+        os << "    -h, --help              show this help message and exit" << std::endl;
+        os << std::endl;
+    }
 };
 
-
-typedef std::vector<int> content;
+typedef std::pair<int, double> feature;
+typedef std::vector<feature> content;
 
 struct instance
 {
@@ -95,8 +151,6 @@ struct training
     instances& data;
     std::ostream& ls;
 
-    double gamma;
-    double kappa;
     double sigma2inv;
     int holdout;
 
@@ -120,7 +174,7 @@ static lbfgsfloatval_t evaluate(
     )
 {
     int i;
-    lbfgsfloatval_t ll = 0.;
+    lbfgsfloatval_t loss = 0.;
     training& tr = *reinterpret_cast<training*>(instance);
 
     // Initialize the gradient of every weight as zero.
@@ -142,13 +196,13 @@ static lbfgsfloatval_t evaluate(
         // Compute the instance score.
         content::const_iterator itc;
         for (itc = it->cont.begin();itc != it->cont.end();++itc) {
-            z += x[*itc];
+            z += x[itc->first] * itc->second;
         }
 
         if (z < -30.) {
             if (it->label) {
                 d = 1.;
-                ll += z;
+                loss -= z;
             } else {
                 d = 0.;
             }
@@ -157,195 +211,37 @@ static lbfgsfloatval_t evaluate(
                 d = 0.;
             } else {
                 d = -1.;
-                ll += (-z);
+                loss += z;
             }
         } else {
             double p = 1.0 / (1.0 + std::exp(-z));
             if (it->label) {
                 d = 1.0 - p;
-                ll += std::log(p);
+                loss -= std::log(p);
             } else {
                 d = -p;
-                ll += std::log(1-p);                
+                loss -= std::log(1-p);                
             }
         }
 
         // Update the gradients for the weights.
         for (itc = it->cont.begin();itc != it->cont.end();++itc) {
             // Take the negatives of the gradients.
-            g[*itc] -= d;
+            g[itc->first] -= (d * itc->second);
         }
     }
 
-	/*
-		L2 regularization.
-		Note that we *add* the (weight * sigma) to g[i].
-	 */
+	// L2 regularization.
 	if (tr.sigma2inv != 0.) {
         double norm = 0.;
 		for (i = 0;i < n;++i) {
             g[i] += tr.sigma2inv * x[i];
             norm += x[i] * x[i];
 		}
-		ll -= (tr.sigma2inv * norm * 0.5);
+		loss += (tr.sigma2inv * norm * 0.5);
 	}
 
-    // Minimize the negative of the log-likelihood.
-    return -ll;
-}
-
-static lbfgsfloatval_t evaluate_max(
-    void *instance,
-    const lbfgsfloatval_t *x,
-    lbfgsfloatval_t *g,
-    const int n,
-    const lbfgsfloatval_t step
-    )
-{
-    int i;
-    lbfgsfloatval_t ll = 0.;
-    training& tr = *reinterpret_cast<training*>(instance);
-    const double r = tr.gamma;
-
-    // Initialize the gradient of every weight as zero.
-    for (i = 0;i < n;++i) {
-        g[i] = 0.;
-    }
-
-    // Loop over the instances.
-    instances::const_iterator it;
-    for (it = tr.data.begin();it != tr.data.end();++it) {
-        double z = -DBL_MAX;
-        double s = 0.;
-        double d = 0.;
-
-        // Exclude instances for holdout evaluation.
-        if (it->group == tr.holdout) {
-            continue;
-        }
-
-        // Compute the instance score.
-        content::const_iterator itc;
-        for (itc = it->cont.begin();itc != it->cont.end();++itc) {
-            if (z < x[*itc]) {
-                z = x[*itc];
-            }
-        }
-        s = z + r;
-
-        if (s < -30.) {
-            if (it->label) {
-                d = 1.;
-                ll += s;
-            } else {
-                d = 0.;
-            }
-        } else if (30. < s) {
-            if (it->label) {
-                d = 0.;
-            } else {
-                d = -1.;
-                ll += (-s);
-            }
-        } else {
-            double p = 1.0 / (1.0 + std::exp(-s));
-            if (it->label) {
-                d = 1.0 - p;
-                ll += std::log(p);
-            } else {
-                d = -p;
-                ll += std::log(1-p);                
-            }
-        }
-
-        // Update the gradients for the weights.
-        for (itc = it->cont.begin();itc != it->cont.end();++itc) {
-            if (z == x[*itc]) {
-                // Take the negatives of the gradients.
-                g[*itc] -= d;
-                break;
-            }
-        }
-    }
-
-	/*
-		L2 regularization.
-		Note that we *add* the (weight * sigma) to g[i].
-	 */
-	if (tr.sigma2inv != 0.) {
-        double norm = 0.;
-		for (i = 0;i < n;++i) {
-            g[i] += tr.sigma2inv * x[i];
-            norm += x[i] * x[i];
-		}
-		ll -= (tr.sigma2inv * norm * 0.5);
-	}
-
-    // Minimize the negative of the log-likelihood.
-    return -ll;
-}
-
-static lbfgsfloatval_t evaluate_roc(
-    void *instance,
-    const lbfgsfloatval_t *x,
-    lbfgsfloatval_t *g,
-    const int n,
-    const lbfgsfloatval_t step
-    )
-{
-    int i;
-    training& tr = *reinterpret_cast<training*>(instance);
-    double r = tr.gamma;
-    double k = tr.kappa;
-    double u = 0.0;
-
-    // Initialize the gradient of every weight as zero.
-    for (i = 0;i < n;++i) {
-        g[i] = 0.;
-    }
-
-    // Loop over the instances.
-    instances::const_iterator it;
-    for (it = tr.data.begin();it != tr.data.end();++it) {
-        double d = 0., z = 0., s = 0., p = 0.;
-
-        // Exclude instances for holdout evaluation.
-        if (it->group == tr.holdout) {
-            continue;
-        }
-
-        // Compute the instance score.
-        content::const_iterator itc;
-        for (itc = it->cont.begin();itc != it->cont.end();++itc) {
-            z += x[*itc];
-        }
-
-        s = k * z;
-
-        if (s < -30.) {
-            p = 0.;
-        } else if (30. < s) {
-            p = 1.;
-        } else {
-            p = 1.0 / (1.0 + std::exp(-s));
-        }
-
-        if (it->label) {
-            u += r * p;
-            d = r * k * p * (1-p);
-        } else {
-            u += (1-r) * (1-p);
-            d = -(1-r) * k * p * (1-p);
-        }
-
-        // Update the gradients for the weights.
-        for (itc = it->cont.begin();itc != it->cont.end();++itc) {
-            // Take the negatives of the gradients.
-            g[*itc] -= d;
-        }
-    }
-
-    return -u;
+    return loss;
 }
 
 static int progress(
@@ -388,7 +284,7 @@ static int progress(
                 double z = 0.;
                 content::const_iterator itc;
                 for (itc = it->cont.begin();itc != it->cont.end();++itc) {
-                    z += x[*itc];
+                    z += x[itc->first] * itc->second;
                 }
 
                 // Tag the instance and update the confusion matrix.
@@ -466,10 +362,9 @@ void read_data(std::istream& is, quark& features, instances& data, int group = 0
         // Read the features in the line.
         while (token.next()) {
             int fid = features[*token];
-            inst.cont.push_back(fid);
+            feature f(fid, 1.0);
+            inst.cont.push_back(f);
         }
-
-        //
 
         // Append the instance to the data set.
         data.push_back(inst);
@@ -486,10 +381,9 @@ int learn(instances& data, quark& features, int holdout, option& opt)
     tr.holdout = holdout;
 
     // L-BFGS parameter object.
-    lbfgs_parameter_t param;
-    lbfgs_parameter_init(&param);
+    lbfgs_parameter_t& param = opt.lbfgs;
 
-    // Regularization parameters.
+    // Set regularization parameters.
     if (opt.regularizer == "l1") {
         param.orthantwise_c = 1.0 / opt.sigma;
         tr.sigma2inv = 0;
@@ -498,20 +392,13 @@ int learn(instances& data, quark& features, int holdout, option& opt)
         tr.sigma2inv = 1.0 / (opt.sigma * opt.sigma);
     }
 
-    tr.gamma = opt.gamma;
-    tr.kappa = opt.kappa;
-
-    // L-BFGS optimization parameters.
-    param.max_iterations = opt.maxiter;
-    param.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
-
     // Allocate an array for feature weights.
     double *w = new double[features.size()];
     for (i = 0;i < features.size();++i) {
         w[i] = 0;
     }
 
-    // 
+    // Show the training information.
     os << "Number of instances: " << data.size() << std::endl;
     os << "Number of features: " << features.size() << std::endl;
     os << "regularization: " << opt.regularizer << std::endl;
@@ -522,37 +409,15 @@ int learn(instances& data, quark& features, int holdout, option& opt)
     os << std::endl;
 
     // Call the L-BFGS solver.
-    if (opt.algorithm == "log-likelihood") {
-        status = lbfgs(
-            features.size(),
-            w,
-            NULL,
-            evaluate,
-            progress,
-            &tr,
-            &param
-            );
-    } else if (opt.algorithm == "max") {
-        status = lbfgs(
-            features.size(),
-            w,
-            NULL,
-            evaluate_max,
-            progress,
-            &tr,
-            &param
-            );
-    } else if (opt.algorithm == "roc") {
-        status = lbfgs(
-            features.size(),
-            w,
-            NULL,
-            evaluate_roc,
-            progress,
-            &tr,
-            &param
-            );
-    }
+    status = lbfgs(
+        features.size(),
+        w,
+        NULL,
+        evaluate,
+        progress,
+        &tr,
+        &param
+        );
     if (status == 0) {
         os << "L-BFGS resulted in convergence" << std::endl;
     } else {
@@ -589,7 +454,7 @@ error_exit:
 
 int learn_main(option& opt)
 {
-    int i, ret;
+    int i;
     int num_groups = 0;
     quark features;
     instances data;
@@ -633,10 +498,6 @@ int learn_main(option& opt)
 
 
 
-#define	APPLICATION_S	"Logistic Regression (LogRess)"
-#define	VERSION_S		"0.1"
-#define	COPYRIGHT_S		"Copyright (c) 2008 Naoaki Okazaki"
-
 int main(int argc, char *argv[])
 {
     option opt;
@@ -667,8 +528,9 @@ int main(int argc, char *argv[])
         ret = learn_main(opt);
     } else if (opt.mode == "tag") {
 
-    } else {
-
+    } else if (opt.mode == "help") {
+        opt.usage(os, argv[0]);
+        ret = 0;
     }
 
     return ret;

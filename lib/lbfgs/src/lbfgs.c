@@ -2,7 +2,7 @@
  *      Limited memory BFGS (L-BFGS).
  *
  * Copyright (c) 1990, Jorge Nocedal
- * Copyright (c) 2007, Naoaki Okazaki
+ * Copyright (c) 2007,2008, Naoaki Okazaki
  * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
