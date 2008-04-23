@@ -149,7 +149,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\src\lbfgs.c"
+				RelativePath=".\lib\lbfgs.c"
 				>
 			</File>
 		</Filter>
@@ -159,15 +159,15 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\src\arithmetic_ansi.h"
+				RelativePath=".\lib\arithmetic_ansi.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\arithmetic_sse_double.h"
+				RelativePath=".\lib\arithmetic_sse_double.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\arithmetic_sse_float.h"
+				RelativePath=".\lib\arithmetic_sse_float.h"
 				>
 			</File>
 			<File
