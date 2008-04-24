@@ -494,7 +494,7 @@ static int line_search_backtracking(
 {
 	int i, ret = 0, count = 0;
 	lbfgsfloatval_t width = 0.5, norm = 0.;
-	lbfgsfloatval_t finit, dginit = 0., dg, dgtest;
+	lbfgsfloatval_t finit, dginit = 0., dgtest;
 
 	/* Check the input parameters for errors. */
 	if (*stp <= 0.) {
@@ -566,7 +566,6 @@ static int line_search_backtracking(
 			*f += norm * param->orthantwise_c;
 		}
 
-		vecdot(&dg, g, s, n);
 		++count;
 
 		if (*f <= finit + *stp * dgtest) {
@@ -724,19 +723,40 @@ static int line_search_morethuente(
 
 		/* Evaluate the function and gradient values. */
 		*f = proc_evaluate(instance, x, g, n, *stp);
-		if (0. < param->orthantwise_c) {
-			/* Compute L1-regularization factor and add it to the object value. */
-			norm = 0.;
-			for (i = 0;i < n;++i) {
-				norm += fabs(x[i]);
-			}
-			*f += norm * param->orthantwise_c;
-		}
+        if (0. < param->orthantwise_c) {
+            /* Compute L1-regularization factor and add it to the object value. */
+            norm = 0.;
+            for (i = 0;i < n;++i) {
+                norm += fabs(x[i]);
+            }
+            *f += norm * param->orthantwise_c;
 
-		++count;
-
-		vecdot(&dg, g, s, n);
-		ftest1 = finit + *stp * dgtest;
+            /* Use psuedo-gradients for orthant-wise updates. */
+            dg = 0.;
+            for (i = 0;i < n;++i) {
+                if (x[i] < 0.) {
+                    /* Differentiable. */
+                    dg += s[i] * (g[i] - param->orthantwise_c);
+                } else if (0. < x[i]) {
+                    /* Differentiable. */
+                    dg += s[i] * (g[i] + param->orthantwise_c);
+                } else {
+                    if (g[i] < -param->orthantwise_c) {
+                        /* Take the right partial derivative. */
+                        dg += s[i] * (g[i] + param->orthantwise_c);
+                    } else if (param->orthantwise_c < g[i]) {
+                        /* Take the left partial derivative. */
+                        dg += s[i] * (g[i] - param->orthantwise_c);
+                    } else {
+                        /* dg += 0.; */
+                    }
+                }
+            }
+        } else {
+            vecdot(&dg, g, s, n);
+        }
+        ftest1 = finit + *stp * dgtest;
+        ++count;
 
 		/* Test for errors and convergence. */
 		if (brackt && ((*stp <= stmin || stmax <= *stp) || uinfo != 0)) {
