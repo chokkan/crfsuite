@@ -110,6 +110,13 @@ AC_CHECK_FUNCS(strdup strerror strtol strtoul)
 dnl Check for math library
 AC_CHECK_LIB(m, rand)
 
+AC_ARG_WITH(
+	liblbfgs,
+	[AS_HELP_STRING([--with-liblbfgs=DIR],[liblbfgs directory])],
+	[INCLUDES="-I${withval}/include ${INCLUDES}"; LDFLAGS="-L${withval}/lib ${LDFLAGS}"]
+)
+AC_CHECK_LIB(lbfgs, lbfgs)
+
 dnl ------------------------------------------------------------------
 dnl Export variables
 dnl ------------------------------------------------------------------
@@ -120,5 +127,5 @@ AC_SUBST(INCLUDES)
 dnl ------------------------------------------------------------------
 dnl Output the configure results.
 dnl ------------------------------------------------------------------
-AC_CONFIG_FILES(Makefile lib/cqdb/Makefile lib/lbfgs/Makefile lib/crf/Makefile frontend/Makefile)
+AC_CONFIG_FILES(Makefile lib/cqdb/Makefile lib/crf/Makefile frontend/Makefile)
 AC_OUTPUT

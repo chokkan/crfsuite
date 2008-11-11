@@ -1,6 +1,6 @@
 # $Id$
 
-SUBDIRS = lib/cqdb lib/lbfgs lib/crf frontend
+SUBDIRS = lib/cqdb lib/crf frontend
 
 docdir = $(prefix)/share/doc/@PACKAGE@
 doc_DATA = README INSTALL COPYING AUTHORS ChangeLog
