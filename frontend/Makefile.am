@@ -4,6 +4,9 @@ bin_PROGRAMS = crfsuite
 #man_MANS = crfsuite.1
 #EXTRA_DIST = ${man_MANS}
 
+EXTRA_DIST = \
+	frontend.vcproj
+
 crfsuite_SOURCES = \
 	iwa.h \
 	iwa.c \
