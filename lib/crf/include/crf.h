@@ -131,6 +131,7 @@ typedef struct {
 	crf_label_evaluation_t* tbl;
 
 	int		item_total_correct;
+    int     item_total_num;
 	int		item_total_model;
 	int		item_total_observation;
 	floatval_t	item_accuracy;

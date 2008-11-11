@@ -349,6 +349,7 @@ void crf_evaluation_clear(crf_evaluation_t* eval)
 	}
 
 	eval->item_total_correct = 0;
+    eval->item_total_num = 0;
 	eval->item_total_model = 0;
 	eval->item_total_observation = 0;
 	eval->item_accuracy = 0;
@@ -391,6 +392,7 @@ int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_sequence_t* refer
 			++eval->tbl[lr].num_correct;
 			++nc;
 		}
+        ++eval->item_total_num;
 	}
 
 	if (nc == target->num_labels) {
@@ -449,8 +451,8 @@ void crf_evaluation_compute(crf_evaluation_t* eval)
 
 	/* Compute the item accuracy. */
 	eval->item_accuracy = 0;
-	if (0 < eval->item_total_model) {
-		eval->item_accuracy = eval->item_total_correct / (double)eval->item_total_model;
+	if (0 < eval->item_total_num) {
+		eval->item_accuracy = eval->item_total_correct / (double)eval->item_total_num;
 	}
 
 	/* Compute the instance accuracy. */
@@ -489,7 +491,7 @@ void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FIL
 		eval->macro_precision, eval->macro_recall, eval->macro_fmeasure
 		);
 	fprintf(fpo, "Item accuracy: %d / %d (%1.4f)\n",
-		eval->item_total_correct, eval->item_total_observation, eval->item_accuracy
+		eval->item_total_correct, eval->item_total_num, eval->item_accuracy
 		);
 	fprintf(fpo, "Instance accuracy: %d / %d (%1.4f)\n",
 		eval->inst_total_correct, eval->inst_total_num, eval->inst_accuracy

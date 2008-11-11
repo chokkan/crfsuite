@@ -178,6 +178,8 @@ typedef struct {
 
     /**
      * The line search algorithm.
+     *  This parameter specifies a line search algorithm to be used by the
+     *  L-BFGS routine.
      */
     int             linesearch;
 
@@ -390,7 +392,7 @@ void lbfgs_parameter_init(lbfgs_parameter_t *param);
 
 
 /**
-@mainpage C port of Limited-memory Broyden-Fletcher-Goldfarb-Shanno (L-BFGS)
+@mainpage A library of Limited-memory Broyden-Fletcher-Goldfarb-Shanno (L-BFGS)
 
 @section intro Introduction
 
@@ -406,21 +408,21 @@ The L-BFGS method solves the unconstrainted minimization problem,
 </pre>
 
 only if the objective function F(x) and its gradient G(x) are computable. The
-Newton's method, which is a well-known algorithm for the optimization,
-requires computation or approximation of the inverse of the hessian matrix of
-the objective function in order to find the point where the gradient G(X) = 0.
-The computational cost for the inverse hessian matrix is expensive especially
-when the objective function takes a large number of variables. The L-BFGS
-method approximates the inverse hessian matrix efficiently by using information
-from last m iterations. This innovation saves the memory storage and
-computational time a lot for large-scaled problems.
+well-known Newton's method requires computation of the inverse of the hessian
+matrix of the objective function. However, the computational cost for the
+inverse hessian matrix is expensive especially when the objective function
+takes a large number of variables. The L-BFGS method iteratively find a
+minimizer by approximating the inverse hessian matrix by information from last
+m iterations. This innovation saves the memory storage and computational time
+drastically for large-scaled problems.
 
 Among the various ports of L-BFGS, this library provides several features:
 - <b>Optimization with L1-norm (orthant-wise L-BFGS)</b>:
   In addition to standard minimization problems, the library can minimize
   a function F(x) combined with L1-norm |x| of the variables,
   {F(x) + C |x|}, where C is a constant scalar parameter. This feature is
-  useful for estimating parameters of log-linear models with L1-regularization.
+  useful for estimating parameters of log-linear models (e.g., logistic
+  regression and maximum entropy) with L1-regularization.
 - <b>Clean C code</b>:
   Unlike C codes generated automatically by f2c (Fortran 77 into C converter),
   this port includes changes based on my interpretations, improvements,
@@ -447,8 +449,9 @@ Among the various ports of L-BFGS, this library provides several features:
   routine is disabled by default; compile the library with __SSE__ symbol
   defined to activate the optimization routine.
 
-This library is used by the 
-<a href="http://www.chokkan.org/software/crfsuite/">CRFsuite</a> project.
+This library is used by:
+- <a href="http://www.chokkan.org/software/crfsuite/">CRFsuite: A fast implementation of Conditional Random Fields (CRFs)</a>
+- <a href="http://www.public.iastate.edu/~gdancik/mlegp/">mlegp: an R package for maximum likelihood estimates for Gaussian processes</a>
 
 @section download Download
 
@@ -458,6 +461,15 @@ libLBFGS is distributed under the term of the
 <a href="http://opensource.org/licenses/mit-license.php">MIT license</a>.
 
 @section changelog History
+- Version 1.4 (2008-04-25):
+    - Configurable line search algorithms. A member variable
+      ::lbfgs_parameter_t::linesearch was added to choose either MoreThuente
+      method (::LBFGS_LINESEARCH_MORETHUENTE) or backtracking algorithm
+      (::LBFGS_LINESEARCH_BACKTRACKING).
+    - Fixed a serious bug: the previous version did not compute
+      psuedo-gradients properly in the line search routine. This bug might
+      quit an iteration process too early when the orthant-wise L-BFGS routine
+      was activated (0 < ::lbfgs_parameter_t::orthantwise_c).
 - Version 1.3 (2007-12-16):
 	- An API change. An argument was added to lbfgs() function to receive the
 	  final value of the objective function. This argument can be set to

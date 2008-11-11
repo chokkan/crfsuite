@@ -253,12 +253,9 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 			comment = NULL;
 			break;
 		case IWA_EOI:
-			/* Skip an item with no content. */
-			if (!crf_item_empty(&item)) {
-				/* Append the item to the instance. */
-				crf_sequence_append(&inst, &item, lid);
-				comments_append(&comments, comment);
-			}
+			/* Append the item to the instance. */
+			crf_sequence_append(&inst, &item, lid);
+			comments_append(&comments, comment);
 			crf_item_finish(&item);
 			break;
 		case IWA_ITEM:

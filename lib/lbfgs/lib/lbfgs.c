@@ -76,11 +76,11 @@ licence.
 typedef unsigned int uint32_t;
 #endif/*_MSC_VER*/
 
-#if	defined(USE_SSE) && defined(__SSE__) && LBFGS_FLOAT == 32
+#if	defined(USE_SSE) && LBFGS_FLOAT == 32
 /* Use SSE optimization for 32bit float precision. */
 #include "arithmetic_sse_float.h"
 
-#elif	defined(USE_SSE) && defined(__SSE__) && LBFGS_FLOAT == 64
+#elif	defined(USE_SSE) && LBFGS_FLOAT == 64
 /* Use SSE2 optimization for 64bit double precision. */
 #include "arithmetic_sse_double.h"
 
