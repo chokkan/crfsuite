@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(SolutionDir)include;$(SolutionDir)win32;$(SolutionDir)lib\crf\include;$(SolutionDir)lib\lbfgs\include;$(SolutionDir)lib\cqdb\include"
+				AdditionalIncludeDirectories="$(SolutionDir)include;$(SolutionDir)win32;$(SolutionDir)lib\crf\include;$(SolutionDir)win32\liblbfgs;$(SolutionDir)lib\cqdb\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -62,6 +62,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="lbfgs_debug.lib"
+				AdditionalLibraryDirectories="$(SolutionDir)win32\liblbfgs"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -104,7 +106,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="$(SolutionDir)include;$(SolutionDir)win32;$(SolutionDir)lib\crf\include;$(SolutionDir)lib\lbfgs\include;$(SolutionDir)lib\cqdb\include"
+				AdditionalIncludeDirectories="$(SolutionDir)include;$(SolutionDir)win32;$(SolutionDir)lib\crf\include;$(SolutionDir)win32\liblbfgs;$(SolutionDir)lib\cqdb\include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -123,6 +125,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="lbfgs.lib"
+				AdditionalLibraryDirectories="$(SolutionDir)win32\liblbfgs"
 			/>
 			<Tool
 				Name="VCALinkTool"

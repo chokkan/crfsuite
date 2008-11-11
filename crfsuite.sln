@@ -3,11 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "crf", "lib\crf\crf.vcproj", "{D6B16F2E-DA86-4591-8B50-348AB7E3432E}"
 	ProjectSection(ProjectDependencies) = postProject
-		{E39DAE46-2BC9-476E-B5B0-EEC4F67A900C} = {E39DAE46-2BC9-476E-B5B0-EEC4F67A900C}
 		{46A23DE6-7E34-4429-8F15-FCC3C083FC5B} = {46A23DE6-7E34-4429-8F15-FCC3C083FC5B}
 	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lbfgs", "lib\lbfgs\lbfgs.vcproj", "{E39DAE46-2BC9-476E-B5B0-EEC4F67A900C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "frontend", "frontend\frontend.vcproj", "{CEC83336-7B18-408B-9F3C-D11225609540}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -26,10 +23,6 @@ Global
 		{D6B16F2E-DA86-4591-8B50-348AB7E3432E}.Debug|Win32.Build.0 = Debug|Win32
 		{D6B16F2E-DA86-4591-8B50-348AB7E3432E}.Release|Win32.ActiveCfg = Release|Win32
 		{D6B16F2E-DA86-4591-8B50-348AB7E3432E}.Release|Win32.Build.0 = Release|Win32
-		{E39DAE46-2BC9-476E-B5B0-EEC4F67A900C}.Debug|Win32.ActiveCfg = Debug|Win32
-		{E39DAE46-2BC9-476E-B5B0-EEC4F67A900C}.Debug|Win32.Build.0 = Debug|Win32
-		{E39DAE46-2BC9-476E-B5B0-EEC4F67A900C}.Release|Win32.ActiveCfg = Release|Win32
-		{E39DAE46-2BC9-476E-B5B0-EEC4F67A900C}.Release|Win32.Build.0 = Release|Win32
 		{CEC83336-7B18-408B-9F3C-D11225609540}.Debug|Win32.ActiveCfg = Debug|Win32
 		{CEC83336-7B18-408B-9F3C-D11225609540}.Debug|Win32.Build.0 = Debug|Win32
 		{CEC83336-7B18-408B-9F3C-D11225609540}.Release|Win32.ActiveCfg = Release|Win32
