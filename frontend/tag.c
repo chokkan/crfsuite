@@ -269,7 +269,11 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 				/* Ignore attributes 'unknown' to the model. */
 				if (0 <= aid) {
 					/* Associate the attribute with the current item. */
-					crf_content_set(&cont, aid, 1.0);
+                    if (token->value && *token->value) {
+					    crf_content_set(&cont, aid, atof(token->value));
+                    } else {
+					    crf_content_set(&cont, aid, 1.0);
+                    }
 					crf_item_append_content(&item, &cont);
 				}
 			}

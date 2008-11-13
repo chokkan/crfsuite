@@ -204,15 +204,13 @@ void crf_sequence_swap(crf_sequence_t* x, crf_sequence_t* y)
 
 int crf_sequence_append(crf_sequence_t* inst, const crf_item_t* item, int label)
 {
-	if (0 < item->num_contents) {
-		if (inst->max_items <= inst->num_items) {
-			inst->max_items = (inst->max_items + 1) * 2;
-			inst->items = (crf_item_t*)realloc(inst->items, sizeof(crf_item_t) * inst->max_items);
-		}
-		crf_item_copy(&inst->items[inst->num_items], item);
-		inst->items[inst->num_items].label = label;
-		++inst->num_items;
+	if (inst->max_items <= inst->num_items) {
+		inst->max_items = (inst->max_items + 1) * 2;
+		inst->items = (crf_item_t*)realloc(inst->items, sizeof(crf_item_t) * inst->max_items);
 	}
+	crf_item_copy(&inst->items[inst->num_items], item);
+	inst->items[inst->num_items].label = label;
+	++inst->num_items;
 	return 0;
 }
 

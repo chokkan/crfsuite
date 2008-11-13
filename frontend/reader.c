@@ -105,6 +105,11 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
 			} else {
 				crf_content_init(&cont);
 				cont.aid = attrs->get(attrs, token->attr);
+                if (token->value && *token->value) {
+                    cont.scale = atof(token->value);
+                } else {
+                    cont.scale = 1.0;
+                }
 				crf_item_append_content(&item, &cont);
 			}
 			break;
