@@ -186,6 +186,36 @@ output_result(
 	fprintf(fpo, "\n");
 }
 
+static void
+output_instance(
+	FILE *fpo,
+	const crf_sequence_t *inst,
+	crf_dictionary_t *labels,
+    crf_dictionary_t *attrs
+    )
+{
+	int i, j;
+
+	for (i = 0;i < inst->num_items;++i) {
+		char *label = NULL;
+		labels->to_string(labels, inst->items[i].label, &label);
+		fprintf(fpo, "%s", label);
+		labels->free(labels, label);
+
+        for (j = 0;j < inst->items[i].num_contents;++j) {
+            char *attr = NULL;
+            attrs->to_string(attrs, inst->items[i].contents[j].aid, &attr);
+            fprintf(fpo, "\t%s:%f", attr, inst->items[i].contents[j].scale);
+            attrs->free(attrs, attr);
+        }
+
+        fprintf(fpo, "\n");
+    }
+    fprintf(fpo, "\n");
+}
+    
+
+
 static int tag(tagger_option_t* opt, crf_model_t* model)
 {
 	int N = 0, L = 0, ret = 0, lid = -1;
