@@ -62,6 +62,8 @@ typedef struct {
 	floatval_t	regularization_sigma;
 	int			lbfgs_memory;
 	floatval_t	lbfgs_epsilon;
+    int         lbfgs_stop;
+    floatval_t  lbfgs_delta;
 } crf1ml_option_t;
 
 /**
@@ -599,6 +601,8 @@ static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, i
 		DDX_PARAM_FLOAT("regularization.sigma", opt->regularization_sigma, 10.0)
 		DDX_PARAM_INT("lbfgs.max_iterations", opt->lbfgs_max_iterations, INT_MAX)
 		DDX_PARAM_FLOAT("lbfgs.epsilon", opt->lbfgs_epsilon, 1e-5)
+		DDX_PARAM_INT("lbfgs.stop", opt->lbfgs_stop, 10)
+		DDX_PARAM_FLOAT("lbfgs.delta", opt->lbfgs_delta, 1e-5)
 		DDX_PARAM_INT("lbfgs.num_memories", opt->lbfgs_memory, 6)
 	END_PARAM_MAP()
 
@@ -844,6 +848,8 @@ static int crf_train_train(
 	logging(crf1mt->lg, "lbfgs.num_memories: %d\n", opt->lbfgs_memory);
 	logging(crf1mt->lg, "lbfgs.max_iterations: %d\n", opt->lbfgs_max_iterations);
 	logging(crf1mt->lg, "lbfgs.epsilon: %f\n", opt->lbfgs_epsilon);
+	logging(crf1mt->lg, "lbfgs.stop: %d\n", opt->lbfgs_stop);
+	logging(crf1mt->lg, "lbfgs.delta: %f\n", opt->lbfgs_delta);
 	logging(crf1mt->lg, "Number of instances: %d\n", num_instances);
 	logging(crf1mt->lg, "Number of distinct attributes: %d\n", num_attributes);
 	logging(crf1mt->lg, "Number of distinct labels: %d\n", num_labels);
@@ -877,6 +883,8 @@ static int crf_train_train(
 	/* Set parameters for L-BFGS. */
 	lbfgsopt.m = opt->lbfgs_memory;
 	lbfgsopt.epsilon = opt->lbfgs_epsilon;
+    lbfgsopt.past = opt->lbfgs_stop;
+    lbfgsopt.delta = opt->lbfgs_delta;
 	lbfgsopt.max_iterations = opt->lbfgs_max_iterations;
 
 	/* Set regularization parameters. */
@@ -906,8 +914,10 @@ static int crf_train_train(
 		crf1mt,
 		&lbfgsopt
 		);
-	if (ret == 0) {
+    if (ret == LBFGS_CONVERGENCE) {
 		logging(crf1mt->lg, "L-BFGS resulted in convergence\n");
+    } else if (ret == LBFGS_STOP) {
+		logging(crf1mt->lg, "L-BFGS terminated with the stopping criteria\n");
 	} else if (ret == LBFGSERR_MAXIMUMITERATION) {
 		logging(crf1mt->lg, "L-BFGS terminated with the maximum number of iterations\n");
 	} else {

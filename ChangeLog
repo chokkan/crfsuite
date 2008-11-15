@@ -1,3 +1,12 @@
+2008-11-16  Naoaki Okazaki  <okazaki at chokkan org>
+	* CRFsuite 0.5
+	- Updated the L-BFGS routine to liblbfgs 1.6.
+	- New parameters lbfgs.stop and lbfgs.delta were added.
+	- Fixed a bug in which the frontend tools could not parse "item:value" format correctly.
+	- Fixed a bug in computing the accuracy.
+	- Fixed a bug when the tagger receives an item with no feature.
+
+
 2008-03-05  Naoaki Okazaki  <okazaki at chokkan org>
 
 	* CRFsuite 0.4 (the first public release):
