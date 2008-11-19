@@ -64,6 +64,7 @@ typedef struct {
 	floatval_t	lbfgs_epsilon;
     int         lbfgs_stop;
     floatval_t  lbfgs_delta;
+    char*       lbfgs_linesearch;
 } crf1ml_option_t;
 
 /**
@@ -600,10 +601,11 @@ static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, i
 		DDX_PARAM_STRING("regularization", opt->regularization, "L2")
 		DDX_PARAM_FLOAT("regularization.sigma", opt->regularization_sigma, 10.0)
 		DDX_PARAM_INT("lbfgs.max_iterations", opt->lbfgs_max_iterations, INT_MAX)
+		DDX_PARAM_INT("lbfgs.num_memories", opt->lbfgs_memory, 6)
 		DDX_PARAM_FLOAT("lbfgs.epsilon", opt->lbfgs_epsilon, 1e-5)
 		DDX_PARAM_INT("lbfgs.stop", opt->lbfgs_stop, 10)
 		DDX_PARAM_FLOAT("lbfgs.delta", opt->lbfgs_delta, 1e-5)
-		DDX_PARAM_INT("lbfgs.num_memories", opt->lbfgs_memory, 6)
+		DDX_PARAM_STRING("lbfgs.linesearch", opt->lbfgs_linesearch, "MoreThuente")
 	END_PARAM_MAP()
 
 	return 0;
@@ -850,6 +852,7 @@ static int crf_train_train(
 	logging(crf1mt->lg, "lbfgs.epsilon: %f\n", opt->lbfgs_epsilon);
 	logging(crf1mt->lg, "lbfgs.stop: %d\n", opt->lbfgs_stop);
 	logging(crf1mt->lg, "lbfgs.delta: %f\n", opt->lbfgs_delta);
+	logging(crf1mt->lg, "lbfgs.linesearch: %s\n", opt->lbfgs_linesearch);
 	logging(crf1mt->lg, "Number of instances: %d\n", num_instances);
 	logging(crf1mt->lg, "Number of distinct attributes: %d\n", num_attributes);
 	logging(crf1mt->lg, "Number of distinct labels: %d\n", num_labels);
@@ -886,6 +889,11 @@ static int crf_train_train(
     lbfgsopt.past = opt->lbfgs_stop;
     lbfgsopt.delta = opt->lbfgs_delta;
 	lbfgsopt.max_iterations = opt->lbfgs_max_iterations;
+    if (strcmp(opt->lbfgs_linesearch, "Backtracking") == 0) {
+        lbfgsopt.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
+    } else {
+        lbfgsopt.linesearch = LBFGS_LINESEARCH_MORETHUENTE;
+    }
 
 	/* Set regularization parameters. */
 	if (strcmp(opt->regularization, "L1") == 0) {
