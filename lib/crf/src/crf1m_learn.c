@@ -891,6 +891,8 @@ static int crf_train_train(
 	lbfgsopt.max_iterations = opt->lbfgs_max_iterations;
     if (strcmp(opt->lbfgs_linesearch, "Backtracking") == 0) {
         lbfgsopt.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
+    } else if (strcmp(opt->lbfgs_linesearch, "LooseBacktracking") == 0) {
+        lbfgsopt.linesearch = LBFGS_LINESEARCH_BACKTRACKING_LOOSE;
     } else {
         lbfgsopt.linesearch = LBFGS_LINESEARCH_MORETHUENTE;
     }
