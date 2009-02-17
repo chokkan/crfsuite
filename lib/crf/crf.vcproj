@@ -184,6 +184,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\crf1m_learn_lbfgs.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\crf1m_model.c"
 				>
 			</File>

@@ -34,6 +34,9 @@
 #ifndef	__CRF1M_H__
 #define	__CRF1M_H__
 
+#include <time.h>
+#include "logging.h"
+
 /**
  * CRF context. 
  */
@@ -137,13 +140,6 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx);
 void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp);
 void crf1mc_test_context(FILE *fp);
 
-
-/* crf1m_train.c */
-struct tag_crf1ml;
-typedef struct tag_crf1ml crf1ml_t;
-
-crf1ml_t* crf1ml_new();
-void crf1ml_delete(crf1ml_t* trainer);
 
 /**
  * Feature type.
@@ -273,6 +269,82 @@ int crf1mm_get_labelref(crf1mm_t* model, int lid, feature_refs_t* ref);
 int crf1mm_get_attrref(crf1mm_t* model, int aid, feature_refs_t* ref);
 int crf1mm_get_feature(crf1mm_t* model, int fid, crf1mm_feature_t* f);
 void crf1mm_dump(crf1mm_t* model, FILE *fp);
+
+
+typedef struct {
+	floatval_t	feature_minfreq;
+	int			feature_possible_states;
+	int			feature_possible_transitions;
+	int			feature_bos_eos;
+	int			lbfgs_max_iterations;
+	char*		regularization;
+	floatval_t	regularization_sigma;
+	int			lbfgs_memory;
+	floatval_t	lbfgs_epsilon;
+    int         lbfgs_stop;
+    floatval_t  lbfgs_delta;
+    char*       lbfgs_linesearch;
+    int         lbfgs_linesearch_max_iterations;
+} crf1ml_option_t;
+
+/**
+ * First-order Markov CRF trainer.
+ */
+struct tag_crf1ml {
+	int num_labels;			/**< Number of distinct output labels (L). */
+	int num_attributes;		/**< Number of distinct attributes (A). */
+
+	int l2_regularization;
+	floatval_t sigma2inv;
+
+	int max_items;
+
+	int num_sequences;
+	crf_sequence_t* seqs;
+    crf_tagger_t tagger;
+
+	crf1m_context_t *ctx;	/**< CRF context. */
+
+	logging_t* lg;
+
+	void *cbe_instance;
+	crf_evaluate_callback cbe_proc;
+
+	feature_refs_t* attributes;
+	feature_refs_t* forward_trans;
+	feature_refs_t* backward_trans;
+	feature_refs_t	bos_trans;
+	feature_refs_t	eos_trans;
+
+	int num_features;			/**< Number of distinct features (K). */
+
+	/**
+	 * Feature array.
+	 *	Elements must be sorted by type, src, and dst in this order.
+	 */
+	crf1ml_feature_t *features;
+
+	floatval_t *lambda;			/**< Array of lambda (feature weights) */
+	floatval_t *best_lambda;
+	int best;
+	floatval_t *prob;
+
+	crf_params_t* params;
+	crf1ml_option_t opt;
+
+	clock_t clk_begin;
+	clock_t clk_prev;
+};
+typedef struct tag_crf1ml crf1ml_t;
+
+void crf1ml_set_labels(crf1ml_t* trainer, const crf_sequence_t* seq);
+void crf1ml_state_score(crf1ml_t* trainer, const crf_sequence_t* seq);
+void crf1ml_transition_score(crf1ml_t* trainer);
+void crf1ml_accumulate_expectation(crf1ml_t* trainer, const crf_sequence_t* seq);
+
+/* crf1m_learn_lbfgs.c */
+int crf1ml_lbfgs(crf1ml_t* crf1mt, crf1ml_option_t *opt);
+
 
 /* crf1m_tag.c */
 struct tag_crf1mt;
