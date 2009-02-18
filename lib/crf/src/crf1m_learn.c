@@ -166,7 +166,7 @@ void crf1ml_transition_score(crf1ml_t* trainer)
 	}	
 }
 
-
+#define OEXP    1
 
 void crf1ml_accumulate_expectation(crf1ml_t* trainer, const crf_sequence_t* seq)
 {
@@ -216,10 +216,12 @@ void crf1ml_accumulate_expectation(crf1ml_t* trainer, const crf_sequence_t* seq)
 	for (r = 0;r < trans->num_features;++r) {
 		f = FEATURE(trainer, trans->fids[r]);
 		f->mexp += prob[f->dst];
+#ifdef OEXP
         if (f->dst == seq->items[0].label) {
             ++f->oexp;
         }
-	}
+#endif/*OEXP*/
+    }
 
 	/* Compute expectations for state features at position #0. */
 	item = &seq->items[0];
@@ -234,9 +236,11 @@ void crf1ml_accumulate_expectation(crf1ml_t* trainer, const crf_sequence_t* seq)
 			/* Reuse the probability prob[f->dst]. */
 			f = FEATURE(trainer, attr->fids[r]);
 			f->mexp += (prob[f->dst] * scale);
-            if (f->dst == seq->items[0].label) {
-                ++f->oexp;
+#ifdef OEXP
+            if (f->dst == item->label) {
+                f->oexp += scale;
             }
+#endif/*OEXP*/
 		}
 	}
 
@@ -259,9 +263,11 @@ void crf1ml_accumulate_expectation(crf1ml_t* trainer, const crf_sequence_t* seq)
 	for (r = 0;r < trans->num_features;++r) {
 		f = FEATURE(trainer, trans->fids[r]);
 		f->mexp += prob[f->src];
+#ifdef OEXP
         if (f->src == seq->items[T-1].label) {
             ++f->oexp;
         }
+#endif/*OEXP*/
 	}
 
 	/* Compute expectations for state features at position #(T-1). */
@@ -277,9 +283,11 @@ void crf1ml_accumulate_expectation(crf1ml_t* trainer, const crf_sequence_t* seq)
 			/* Reuse the probability prob[f->dst]. */
 			f = FEATURE(trainer, attr->fids[r]);
 			f->mexp += (prob[f->dst] * scale);
-            if (f->dst == seq->items[T-1].label) {
-                ++f->oexp;
+#ifdef OEXP
+            if (f->dst == item->label) {
+                f->oexp += scale;
             }
+#endif/*OEXP*/
 		}
 	}
 
@@ -316,9 +324,11 @@ void crf1ml_accumulate_expectation(crf1ml_t* trainer, const crf_sequence_t* seq)
 					prob[i] = fwd[i] * bwd[i] * coeff;
 				}
 				f->mexp += (prob[i] * scale);
+#ifdef OEXP
                 if (i == item->label) {
-                    ++f->oexp;
+                    f->oexp += scale;
                 }
+#endif/*OEXP*/
 			}
 		}
 	}
@@ -345,9 +355,11 @@ void crf1ml_accumulate_expectation(crf1ml_t* trainer, const crf_sequence_t* seq)
 				f = FEATURE(trainer, trans->fids[r]);
 				j = f->dst;
 				f->mexp += fwd[i] * edge[j] * state[j] * bwd[j] * coeff;
-                if (j == seq->items[t+1].label) {
+#ifdef OEXP
+                if (i == seq->items[t].label && j == seq->items[t+1].label) {
                     ++f->oexp;
                 }
+#endif/*OEXP*/
 			}
 		}
 	}
