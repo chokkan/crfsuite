@@ -29,7 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #ifdef	HAVE_CONFIG_H
 #include <config.h>
@@ -70,6 +70,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
 		crf1ml_feature_t* f = &crf1mt->features[i];
 		f->lambda = x[i];
 		f->mexp = 0;
+        f->oexp = 0;
 	}
 
 	/*
