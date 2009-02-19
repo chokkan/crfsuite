@@ -714,7 +714,8 @@ static int crf_train_train(
     crf1mt->tagger.internal = crf1mt;
     crf1mt->tagger.tag = crf_train_tag;
 
-    ret = crf1ml_lbfgs(crf1mt, opt);
+    //ret = crf1ml_lbfgs(crf1mt, opt);
+    ret = crf1ml_lbfgs_sgd(crf1mt, opt);
 
 	/* Store the feature weights. */
 	best_lambda = ret == 0 ? crf1mt->lambda : crf1mt->best_lambda;

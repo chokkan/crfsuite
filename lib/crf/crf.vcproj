@@ -188,6 +188,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\crf1m_learn_sgd.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\crf1m_model.c"
 				>
 			</File>
@@ -209,6 +213,14 @@
 			</File>
 			<File
 				RelativePath=".\src\logging.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\mt19937ar.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\mt19937ar.h"
 				>
 			</File>
 			<File
