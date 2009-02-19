@@ -48,6 +48,17 @@
 #include "crf1m.h"
 #include <lbfgs.h>
 
+inline static void update_model_expectations(
+    crf1ml_feature_t* f,
+    floatval_t prob,
+    floatval_t scale,
+    const crf_sequence_t* seq,
+    int t
+    )
+{
+    f->mexp += prob * scale;
+}
+
 static lbfgsfloatval_t lbfgs_evaluate(
     void *instance,
     const lbfgsfloatval_t *x,
@@ -70,7 +81,6 @@ static lbfgsfloatval_t lbfgs_evaluate(
 		crf1ml_feature_t* f = &crf1mt->features[i];
 		f->w = x[i];
 		f->mexp = 0;
-        f->oexp = 0;
 	}
 
 	/*
@@ -102,7 +112,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
 		logl += logp;
 
 		/* Update the model expectations of features. */
-		crf1ml_accumulate_expectation(crf1mt, &seqs[i]);
+		crf1ml_enum_features(crf1mt, &seqs[i], update_model_expectations);
 	}
 
 	/*

@@ -337,10 +337,18 @@ struct tag_crf1ml {
 };
 typedef struct tag_crf1ml crf1ml_t;
 
+typedef void (*update_feature_t)(
+    crf1ml_feature_t* f,
+    floatval_t prob,
+    floatval_t scale,
+    const crf_sequence_t* seq,
+    int t
+    );
+
 void crf1ml_set_labels(crf1ml_t* trainer, const crf_sequence_t* seq);
 void crf1ml_state_score(crf1ml_t* trainer, const crf_sequence_t* seq);
 void crf1ml_transition_score(crf1ml_t* trainer);
-void crf1ml_accumulate_expectation(crf1ml_t* trainer, const crf_sequence_t* seq);
+void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_feature_t func);
 void crf1ml_shuffle(int *perm, int N, int init);
 
 /* crf1m_learn_lbfgs.c */
