@@ -68,7 +68,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
 	 */
 	for (i = 0;i < crf1mt->num_features;++i) {
 		crf1ml_feature_t* f = &crf1mt->features[i];
-		f->lambda = x[i];
+		f->w = x[i];
 		f->mexp = 0;
         f->oexp = 0;
 	}
@@ -115,13 +115,13 @@ static lbfgsfloatval_t lbfgs_evaluate(
 
 	/*
 		L2 regularization.
-		Note that we *add* the (lambda * sigma) to g[i].
+		Note that we *add* the (w * sigma) to g[i].
 	 */
 	if (crf1mt->l2_regularization) {
 		for (i = 0;i < crf1mt->num_features;++i) {
 			const crf1ml_feature_t* f = &crf1mt->features[i];
-			g[i] += (crf1mt->sigma2inv * f->lambda);
-			norm += f->lambda * f->lambda;
+			g[i] += (crf1mt->sigma2inv * f->w);
+			norm += f->w * f->w;
 		}
 		logl -= (crf1mt->sigma2inv * norm * 0.5);
 	}
@@ -152,8 +152,8 @@ static int lbfgs_progress(
 	/* Set feature weights from the L-BFGS solver. */
 	for (i = 0;i < crf1mt->num_features;++i) {
 		crf1ml_feature_t* f = &crf1mt->features[i];
-		f->lambda = x[i];
-		crf1mt->best_lambda[i] = x[i];
+		f->w = x[i];
+		crf1mt->best_w[i] = x[i];
 		if (x[i] != 0.) ++num_active_features;
 	}
 
@@ -232,7 +232,7 @@ int crf1ml_lbfgs(
 	crf1mt->clk_prev = crf1mt->clk_begin;
 	ret = lbfgs(
 		crf1mt->num_features,
-		crf1mt->lambda,
+		crf1mt->w,
 		NULL,
 		lbfgs_evaluate,
 		lbfgs_progress,

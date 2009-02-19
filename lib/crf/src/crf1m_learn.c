@@ -47,6 +47,7 @@
 
 #include <crf.h>
 #include "params.h"
+#include "mt19937ar.h"
 
 #include "logging.h"
 #include "crf1m.h"
@@ -113,7 +114,7 @@ void crf1ml_state_score(crf1ml_t* trainer, const crf_sequence_t* seq)
 				   the attribute #a, outputs the label #(f->dst). */
 				f = FEATURE(trainer, attr->fids[r]);
 				l = f->dst;
-				state[l] += f->lambda * scale;
+				state[l] += f->w * scale;
 			}
 		}
 	}
@@ -142,7 +143,7 @@ void crf1ml_transition_score(crf1ml_t* trainer)
 	for (r = 0;r < edge->num_features;++r) {
 		/* Transition feature from BOS to #(f->dst). */
 		f = FEATURE(trainer, edge->fids[r]);
-		trans[f->dst] = f->lambda;
+		trans[f->dst] = f->w;
 	}
 
 	/* Compute transition scores between two labels. */
@@ -152,7 +153,7 @@ void crf1ml_transition_score(crf1ml_t* trainer)
 		for (r = 0;r < edge->num_features;++r) {
 			/* Transition feature from #i to #(f->dst). */
 			f = FEATURE(trainer, edge->fids[r]);
-			trans[f->dst] = f->lambda;
+			trans[f->dst] = f->w;
 		}		
 	}
 
@@ -162,7 +163,7 @@ void crf1ml_transition_score(crf1ml_t* trainer)
 		/* Transition feature from #(f->src) to EOS. */
 		f = FEATURE(trainer, edge->fids[r]);
 		trans = TRANS_SCORE_FROM(ctx, f->src);
-		trans[L] = f->lambda;
+		trans[L] = f->w;
 	}	
 }
 
@@ -524,13 +525,13 @@ int crf1ml_prepare(
 	/* Initialization for features and their weights. */
 	trainer->features = features->features;
 	trainer->num_features = features->num_features;
-	trainer->lambda = (floatval_t*)calloc(trainer->num_features, sizeof(floatval_t));
-	if (trainer->lambda == NULL) {
+	trainer->w = (floatval_t*)calloc(trainer->num_features, sizeof(floatval_t));
+	if (trainer->w == NULL) {
 		ret = CRFERR_OUTOFMEMORY;
 		goto error_exit;
 	}
-	trainer->best_lambda = (floatval_t*)calloc(trainer->num_features, sizeof(floatval_t));
-	if (trainer->best_lambda == NULL) {
+	trainer->best_w = (floatval_t*)calloc(trainer->num_features, sizeof(floatval_t));
+	if (trainer->best_w == NULL) {
 		ret = CRFERR_OUTOFMEMORY;
 		goto error_exit;
 	}
@@ -576,6 +577,25 @@ static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, i
 	END_PARAM_MAP()
 
 	return 0;
+}
+
+void crf1ml_shuffle(int *perm, int N, int init)
+{
+    int i, j, tmp;
+
+    if (init) {
+        /* Initialize the permutation if necessary. */
+        for (i = 0;i < N;++i) {
+            perm[i] = i;
+        }
+    }
+
+    for (i = 0;i < N;++i) {
+        j = mt_genrand_int31() % N;
+        tmp = perm[j];
+        perm[j] = perm[i];
+        perm[i] = tmp;
+    }
 }
 
 crf1ml_t* crf1ml_new()
@@ -655,7 +675,7 @@ static int crf_train_train(
 {
 	int i, max_item_length;
 	int ret = 0;
-	floatval_t sigma = 10, *best_lambda = NULL;
+	floatval_t sigma = 10, *best_w = NULL;
 	crf_sequence_t* seqs = (crf_sequence_t*)instances;
 	crf1ml_features_t* features = NULL;
 	crf1ml_t *crf1mt = (crf1ml_t*)trainer->internal;
@@ -718,10 +738,10 @@ static int crf_train_train(
     ret = crf1ml_lbfgs_sgd(crf1mt, opt);
 
 	/* Store the feature weights. */
-	best_lambda = ret == 0 ? crf1mt->lambda : crf1mt->best_lambda;
+	best_w = ret == 0 ? crf1mt->w : crf1mt->best_w;
 	for (i = 0;i < crf1mt->num_features;++i) {
 		crf1ml_feature_t* f = &crf1mt->features[i];
-		f->lambda = best_lambda[i];
+		f->w = best_w[i];
 	}
 
 	return 0;
@@ -786,7 +806,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	/* Determine a set of active features and attributes. */
 	for (k = 0;k < crf1mt->num_features;++k) {
 		crf1ml_feature_t* f = &crf1mt->features[k];
-		if (f->lambda != 0) {
+		if (f->w != 0) {
 			int src;
 			crf1mm_feature_t feat;
 
@@ -807,7 +827,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 			feat.type = f->type;
 			feat.src = src;
 			feat.dst = f->dst;
-			feat.weight = f->lambda;
+			feat.weight = f->w;
 
 			/* Write the feature. */
 			if (ret = crf1mmw_put_feature(writer, fmap[k], &feat)) {
