@@ -216,7 +216,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 	trans = TRANSITION_BOS(trainer);
 	for (r = 0;r < trans->num_features;++r) {
 		f = FEATURE(trainer, trans->fids[r]);
-        func(f, prob[f->dst], 1., seq, 0);
+        func(f, prob[f->dst], 1., trainer, seq, 0);
     }
 
 	/* Compute expectations for state features at position #0. */
@@ -231,7 +231,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 		for (r = 0;r < attr->num_features;++r) {
 			/* Reuse the probability prob[f->dst]. */
 			f = FEATURE(trainer, attr->fids[r]);
-            func(f, prob[f->dst], scale, seq, 0);
+            func(f, prob[f->dst], scale, trainer, seq, 0);
 		}
 	}
 
@@ -253,7 +253,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 	trans = TRANSITION_EOS(trainer);
 	for (r = 0;r < trans->num_features;++r) {
 		f = FEATURE(trainer, trans->fids[r]);
-        func(f, prob[f->src], 1., seq, T-1);
+        func(f, prob[f->src], 1., trainer, seq, T-1);
 	}
 
 	/* Compute expectations for state features at position #(T-1). */
@@ -268,7 +268,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 		for (r = 0;r < attr->num_features;++r) {
 			/* Reuse the probability prob[f->dst]. */
 			f = FEATURE(trainer, attr->fids[r]);
-            func(f, prob[f->dst], scale, seq, T-1);
+            func(f, prob[f->dst], scale, trainer, seq, T-1);
 		}
 	}
 
@@ -304,7 +304,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 					/* Unfilled: calculate the probability. */
 					prob[i] = fwd[i] * bwd[i] * coeff;
 				}
-                func(f, prob[i], scale, seq, t);
+                func(f, prob[i], scale, trainer, seq, t);
 			}
 		}
 	}
@@ -330,7 +330,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 			for (r = 0;r < trans->num_features;++r) {
 				f = FEATURE(trainer, trans->fids[r]);
 				j = f->dst;
-                func(f, fwd[i] * edge[j] * state[j] * bwd[j] * coeff, 1., seq, t);
+                func(f, fwd[i] * edge[j] * state[j] * bwd[j] * coeff, 1., trainer, seq, t);
 			}
 		}
 	}

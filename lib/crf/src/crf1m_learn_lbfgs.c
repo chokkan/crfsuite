@@ -52,6 +52,7 @@ inline static void update_model_expectations(
     crf1ml_feature_t* f,
     floatval_t prob,
     floatval_t scale,
+    crf1ml_t* trainer,
     const crf_sequence_t* seq,
     int t
     )

@@ -29,7 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id:$ */
+/* $Id$ */
 
 #ifdef	HAVE_CONFIG_H
 #include <config.h>
@@ -54,32 +54,33 @@ inline static void update_features(
     crf1ml_feature_t* f,
     floatval_t prob,
     floatval_t scale,
+    crf1ml_t* trainer,
     const crf_sequence_t* seq,
     int t
     )
 {
-    f->mexp += prob * scale;
+    f->w -= trainer->gain * prob * scale;
 
     switch (f->type) {
     case FT_STATE:      /**< State features. */
         if (f->dst == seq->items[t].label) {
-            f->oexp += scale;
+            f->w += trainer->gain * scale;
         }
         break;
     case FT_TRANS:      /**< Transition features. */
         if (f->src == seq->items[t].label &&
             f->dst == seq->items[t+1].label) {
-            f->oexp += scale;
+            f->w += trainer->gain * scale;
         }
         break;
     case FT_TRANS_BOS:  /**< BOS transition features. */
         if (f->dst == seq->items[t].label) {
-            f->oexp += scale;
+            f->w += trainer->gain * scale;
         }
         break;
     case FT_TRANS_EOS:  /**< EOS transition features. */
         if (f->src == seq->items[t].label) {
-            f->oexp += scale;
+            f->w += trainer->gain * scale;
         }
         break;
     }
@@ -145,6 +146,8 @@ int crf1ml_lbfgs_sgd(
     perm = (int*)malloc(sizeof(int) * N);
     crf1ml_shuffle(perm, N, 1);
 
+    crf1mt->decay = 1.;
+
     for (epoch = 1;epoch <= 10;++epoch) {
         crf1mt->clk_prev = clock();
 
@@ -153,12 +156,16 @@ int crf1ml_lbfgs_sgd(
         /* Generate a permutation that shuffles the instances. */
         crf1ml_shuffle(perm, N, 0);
 
-        /* Set transition scores. */
-	    crf1ml_transition_score(crf1mt);
-	    crf1mc_exp_transition(crf1mt->ctx);
-
         for (i = 0;i < N;++i) {
             seq = &seqs[perm[i]];
+
+            crf1mt->eta = 1 / (lambda * (t0 + t));
+            crf1mt->decay *= (1.0 - crf1mt->eta * lambda);
+            crf1mt->gain = crf1mt->eta / crf1mt->decay;
+
+            /* Set transition scores. */
+            crf1ml_transition_score(crf1mt);
+            crf1mc_exp_transition(crf1mt->ctx);
 
 		    /* Set label sequences and state scores. */
 		    crf1ml_set_labels(crf1mt, seq);
@@ -175,8 +182,7 @@ int crf1ml_lbfgs_sgd(
 		    /* Update the model expectations of features. */
 		    crf1ml_enum_features(crf1mt, seq, update_features);
 
-            eta = 1 / (lambda * (t0 + t));
-
+            /*
             for (j = 0;j < crf1mt->num_features;++j) {
 	            crf1ml_feature_t* f = &crf1mt->features[j];
                 f->w *= (1.0 - eta * lambda);
@@ -184,6 +190,7 @@ int crf1ml_lbfgs_sgd(
                 f->oexp = 0;
                 f->mexp = 0;
             }
+            */
 
             ++t;
 
@@ -193,9 +200,6 @@ int crf1ml_lbfgs_sgd(
             scale = MIN(1, 1 / (sqrt(lambda) * norm));
             scale_weights(crf1mt->features, crf1mt->num_features, scale);
             */
-
-            crf1ml_transition_score(crf1mt);
-            crf1mc_exp_transition(crf1mt->ctx);
         }
 
 	    duration = clock() - crf1mt->clk_prev;

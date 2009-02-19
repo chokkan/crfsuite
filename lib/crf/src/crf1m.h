@@ -334,6 +334,10 @@ struct tag_crf1ml {
 
 	clock_t clk_begin;
 	clock_t clk_prev;
+
+    floatval_t eta;
+    floatval_t decay;
+    floatval_t gain;
 };
 typedef struct tag_crf1ml crf1ml_t;
 
@@ -341,6 +345,7 @@ typedef void (*update_feature_t)(
     crf1ml_feature_t* f,
     floatval_t prob,
     floatval_t scale,
+    crf1ml_t* trainer,
     const crf_sequence_t* seq,
     int t
     );
