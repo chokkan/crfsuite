@@ -31,6 +31,53 @@
 
 /* $Id$ */
 
+/*
+    SGD for L2-regularized MAP estimation.
+
+    The iterative algorithm is based on Pegasos:
+
+    Shai Shalev-Shwartz, Yoram Singer, and Nathan Srebro.
+    Pegasos: Primal Estimated sub-GrAdient SOlver for SVM.
+    In Proc. of ICML 2007, pp 807-814, 2007.
+
+    The objective function to minimize:
+        
+        f(w) = (lambda/2) * ||w||^2 + (1/N) * \sum_i^N log P^i(y|x)
+
+    The Pegasos algorithm.
+
+    0) Initialization
+        t = 0
+    1) Computing the learning rate (eta).
+        eta = 1 / (lambda * t)
+    2) Updating the feature weights.
+        w = (1 - eta * lambda) w + (eta / k) \sum_i (oexp - mexp)
+    3) Projecting the feature weights within L2-ball.
+        w = min{1, (1/sqrt(lambda))/||w||} * w
+    4) Goto 1 until convergence.
+
+    0)
+        decay = 1
+        scale = 1
+    1)
+        eta = 1 / (lambda * t)
+        decay *= (1 - eta * lambda)
+        gain = (eta / k) / (decay * scale)
+    2)
+        norm2 -= w * w
+        w -= gain * P(y|x) * f(x,y)
+        norm2 += w * w
+        norm2 -= w * w
+        w += gain * f(x, y)
+        norm2 += w * w
+    3)
+        if norm2 * decay^2 * scale^2 * lambda > 1:
+            scale = 1 / (sqrt(norm2 * lambda) * decay * scale)
+
+        
+*/
+
+
 #ifdef	HAVE_CONFIG_H
 #include <config.h>
 #endif/*HAVE_CONFIG_H*/
@@ -51,7 +98,19 @@
 
 #define MIN(a, b)   ((a) < (b) ? (a) : (b))
 
-inline static void update_features(
+inline void
+update_weight(
+    crf1ml_t* trainer,
+    crf1ml_feature_t* f,
+    floatval_t a
+    )
+{
+    floatval_t w = f->w;
+    f->w += a;
+    trainer->norm += a * (a + w + w);
+}
+
+inline static void update_feature_weights(
     crf1ml_feature_t* f,
     floatval_t prob,
     floatval_t scale,
@@ -60,97 +119,32 @@ inline static void update_features(
     int t
     )
 {
-    f->w -= trainer->gain * prob * scale;
+    // Subtract the model expectation from the weight.
+    update_weight(trainer, f, -trainer->gain * prob * scale);
 
     switch (f->type) {
     case FT_STATE:      /**< State features. */
         if (f->dst == seq->items[t].label) {
-            f->w += trainer->gain * scale;
+            update_weight(trainer, f, trainer->gain * scale);
         }
         break;
     case FT_TRANS:      /**< Transition features. */
         if (f->src == seq->items[t].label &&
             f->dst == seq->items[t+1].label) {
-            f->w += trainer->gain * scale;
+            update_weight(trainer, f, trainer->gain * scale);
         }
         break;
     case FT_TRANS_BOS:  /**< BOS transition features. */
         if (f->dst == seq->items[t].label) {
-            f->w += trainer->gain * scale;
+            update_weight(trainer, f, trainer->gain * scale);
         }
         break;
     case FT_TRANS_EOS:  /**< EOS transition features. */
         if (f->src == seq->items[t].label) {
-            f->w += trainer->gain * scale;
+            update_weight(trainer, f, trainer->gain * scale);
         }
         break;
     }
-
-    if (trainer->maxw < fabs(f->w)) {
-        trainer->maxw = fabs(f->w);
-    }
-
-}
-
-inline static void update_features_with_projection(
-    crf1ml_feature_t* f,
-    floatval_t prob,
-    floatval_t scale,
-    crf1ml_t* trainer,
-    const crf_sequence_t* seq,
-    int t
-    )
-{
-    trainer->norm -= (f->w * f->w);
-    f->w -= trainer->gain * prob * scale;
-    trainer->norm += (f->w * f->w);
-
-    switch (f->type) {
-    case FT_STATE:      /**< State features. */
-        if (f->dst == seq->items[t].label) {
-            trainer->norm -= (f->w * f->w);
-            f->w += trainer->gain * scale;
-            trainer->norm += (f->w * f->w);
-        }
-        break;
-    case FT_TRANS:      /**< Transition features. */
-        if (f->src == seq->items[t].label &&
-            f->dst == seq->items[t+1].label) {
-            trainer->norm -= (f->w * f->w);
-            f->w += trainer->gain * scale;
-            trainer->norm += (f->w * f->w);
-        }
-        break;
-    case FT_TRANS_BOS:  /**< BOS transition features. */
-        if (f->dst == seq->items[t].label) {
-            trainer->norm -= (f->w * f->w);
-            f->w += trainer->gain * scale;
-            trainer->norm += (f->w * f->w);
-        }
-        break;
-    case FT_TRANS_EOS:  /**< EOS transition features. */
-        if (f->src == seq->items[t].label) {
-            trainer->norm -= (f->w * f->w);
-            f->w += trainer->gain * scale;
-            trainer->norm += (f->w * f->w);
-        }
-        break;
-    }
-
-    if (trainer->maxw < fabs(f->w)) {
-        trainer->maxw = fabs(f->w);
-    }
-}
-
-floatval_t l2norm(const crf1ml_feature_t* fs, const int n)
-{
-    int i;
-    floatval_t s = 0.;
-
-    for (i = 0;i < n;++i) {
-        s += fs[i].w * fs[i].w;
-    }
-    return sqrt(s);
 }
 
 void scale_weights(crf1ml_feature_t* fs, const int n, const floatval_t scale)
@@ -166,25 +160,24 @@ int crf1ml_lbfgs_sgd(
     crf1ml_option_t *opt
     )
 {
-    int epoch, i, j, k;
-    clock_t duration;
-    floatval_t logp = 0, loss = 0.;
-    floatval_t maxv, v;
+    int epoch, i;
+    int *perm = NULL;
+    floatval_t logp = 0;
+    clock_t clk_prev, duration;
 	crf_sequence_t *seq, *seqs = crf1mt->seqs;
 	const int N = crf1mt->num_sequences;
     const int K = crf1mt->num_features;
-    int *perm = NULL;
 
 //    const double t0 = 20120;
-    const double t0 = 89360;
+    const floatval_t t0 = 89360;
     //const double t0 = 10.120;
-    double t = 0;
-    const double lambda = 1.0 / (1 * N);
+    floatval_t t = 0;
+    const floatval_t lambda = 1.0 / (1 * N);
     //const double lambda = 0.01;
-    double norm, scale;
+    floatval_t eta, proj, decay, scale, boundary;
 
 	logging(crf1mt->lg, "Stochastic Gradient Descent (SGD)\n");
-    logging(crf1mt->lg, "Lambda: %f\n", lambda);
+    logging(crf1mt->lg, "lambda: %f\n", lambda);
     logging(crf1mt->lg, "t0: %f\n", t0);
 	logging(crf1mt->lg, "\n");
 
@@ -192,10 +185,7 @@ int crf1ml_lbfgs_sgd(
 		Initialize feature weights as zero.
 	 */
 	for (i = 0;i < crf1mt->num_features;++i) {
-		crf1ml_feature_t* f = &crf1mt->features[i];
-		f->w = 0;
-        f->oexp = 0;
-        f->mexp = 0;
+		crf1mt->features[i].w = 0;
 	}
 
     /*
@@ -204,35 +194,38 @@ int crf1ml_lbfgs_sgd(
     perm = (int*)malloc(sizeof(int) * N);
     crf1ml_shuffle(perm, N, 1);
 
-    crf1mt->decay = 1.;
+    /* Initialize the factors. */
+    t = 0;
+    decay = 1.;
+    proj = 1.;
     crf1mt->norm = 0.;
-    crf1mt->maxw = 1.;
 
-    scale = 1.;
-
+    /* Loop for epochs. */
     for (epoch = 1;epoch <= 10;++epoch) {
-        crf1mt->clk_prev = clock();
-
 	    logging(crf1mt->lg, "***** Epoch #%d *****\n", epoch);
+        clk_prev = clock();
 
         /* Generate a permutation that shuffles the instances. */
         crf1ml_shuffle(perm, N, 0);
-        loss = 0.;
 
+        /* Loop for instances. */
+        logp = 0.;
         for (i = 0;i < N;++i) {
             seq = &seqs[perm[i]];
 
-            crf1mt->eta = 1 / (lambda * (t0 + t));
-            crf1mt->decay *= (1.0 - crf1mt->eta * lambda);
-            crf1mt->gain = crf1mt->eta / (crf1mt->decay * scale);
+            /* Update various factors. */
+            eta = 1 / (lambda * (t0 + t));
+            decay *= (1.0 - eta * lambda);
+            scale = decay * proj;
+            crf1mt->gain = eta / scale;
 
             /* Set transition scores. */
-            crf1ml_transition_score(crf1mt, 0.1/* / crf1mt->maxw*/);
+            crf1ml_transition_score(crf1mt, scale);
             crf1mc_exp_transition(crf1mt->ctx);
 
 		    /* Set label sequences and state scores. */
 		    crf1ml_set_labels(crf1mt, seq);
-		    crf1ml_state_score(crf1mt, seq, 0.1/* / crf1mt->maxw*/);
+		    crf1ml_state_score(crf1mt, seq, scale);
 		    crf1mc_exp_state(crf1mt->ctx);
 
 		    /* Compute forward/backward scores. */
@@ -240,56 +233,36 @@ int crf1ml_lbfgs_sgd(
 		    crf1mc_backward_score(crf1mt->ctx);
 
 		    /* Compute the probability of the input sequence on the model. */
-            logp = crf1mc_logprob(crf1mt->ctx);
-            loss += logp;
+            logp += crf1mc_logprob(crf1mt->ctx);
 
-		    /* Update the model expectations of features. */
-		    crf1ml_enum_features(crf1mt, seq, update_features_with_projection);
+		    /* Update the feature weights. */
+		    crf1ml_enum_features(crf1mt, seq, update_feature_weights);
 
-            /*
-            for (j = 0;j < crf1mt->num_features;++j) {
-	            crf1ml_feature_t* f = &crf1mt->features[j];
-                f->w *= (1.0 - eta * lambda);
-                f->w += eta * (f->oexp - f->mexp);
-                f->oexp = 0;
-                f->mexp = 0;
+            /* Project feature weights in the L2-ball. */
+            boundary = crf1mt->norm * scale * scale * lambda;
+            if (1. < boundary) {
+                proj = 1.0 / sqrt(boundary);
             }
-            */
 
             ++t;
-
-            /* Project to the L2-ball. */
-            norm = crf1mt->norm * crf1mt->decay * crf1mt->decay * scale * scale;
-            if (norm * lambda > 1.) {
-                scale = sqrt(1.0/(lambda*norm));
-            }
-
-            /*
-            norm = l2norm(crf1mt->features, crf1mt->num_features);
-            scale = MIN(1, 1 / (sqrt(lambda) * norm));
-            scale_weights(crf1mt->features, crf1mt->num_features, scale);
-            */
         }
 
-        /* Prevent the decay factor being too small. */
-        printf("decay = %f\n", crf1mt->decay);
-        if (crf1mt->decay < 1e-6) {
-            logging(crf1mt->lg, "Merging the decay factor to the weights\n");
-            scale_weights(crf1mt->features, K, crf1mt->decay);
-            crf1mt->decay = 1.;
+        /* Include the L2 norm of feature weights to the objective. */
+        logp -= lambda / 2 * crf1mt->norm * scale * scale;
+
+        /* Prevent the scale factor being too small. */
+        if (scale < 1e-20) {
+            scale_weights(crf1mt->features, K, scale);
+            decay = 1.;
+            proj = 1.;
         }
 
-	    duration = clock() - crf1mt->clk_prev;
-
-        norm = 0.;
-        for (k = 0;k < K;++k) {
-            norm += crf1mt->features[k].w * crf1mt->features[k].w;
-        }
-        norm = sqrt(norm) * crf1mt->decay * scale;
-
-    	logging(crf1mt->lg, "Log-likelihood: %f\n", loss);
-    	logging(crf1mt->lg, "Feature norm: %f\n", norm);
-    	logging(crf1mt->lg, "Eta: %f\n", crf1mt->eta);
+        /* One epoch finished. */
+	    duration = clock() - clk_prev;
+    	logging(crf1mt->lg, "Log-likelihood: %f\n", logp);
+    	logging(crf1mt->lg, "Feature L2-norm: %f\n", sqrt(crf1mt->norm) * scale);
+    	logging(crf1mt->lg, "Learning rate (eta): %f\n", eta);
+        logging(crf1mt->lg, "Total number of feature updates: %f\n", t);
       	logging(crf1mt->lg, "Seconds required for this iteration: %.3f\n", duration / (double)CLOCKS_PER_SEC);
 
 	    /* Send the tagger with the current parameters. */
@@ -297,6 +270,7 @@ int crf1ml_lbfgs_sgd(
 		    /* Callback notification with the tagger object. */
 		    int ret = crf1mt->cbe_proc(crf1mt->cbe_instance, &crf1mt->tagger);
 	    }
+
 	    logging(crf1mt->lg, "\n");
     }
 

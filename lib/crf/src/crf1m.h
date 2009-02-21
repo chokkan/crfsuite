@@ -335,11 +335,8 @@ struct tag_crf1ml {
 	clock_t clk_begin;
 	clock_t clk_prev;
 
-    floatval_t eta;
-    floatval_t decay;
     floatval_t gain;
     floatval_t norm;
-    floatval_t maxw;
 };
 typedef struct tag_crf1ml crf1ml_t;
 
