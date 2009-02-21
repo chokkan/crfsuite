@@ -163,7 +163,7 @@ void crf1mc_forward_score(crf1m_context_t* ctx)
 		/* Transit from BOS to #j. */
 		sum += cur[j] = trans[j] * state[j];
 	}
-	ctx->scale_factor[0] = 1. / sum;
+    ctx->scale_factor[0] = (sum != 0.) ? 1. / sum : 1.;
 	for (j = 0;j < L;++j) cur[j] *= ctx->scale_factor[0];
 
 	/* Compute the scores at position #t. */
@@ -186,7 +186,7 @@ void crf1mc_forward_score(crf1m_context_t* ctx)
 		}
 
 		/* Compute the scale factor. */
-		ctx->scale_factor[t] = 1. / sum;
+        ctx->scale_factor[t] = (sum != 0.) ? 1. / sum : 1.;
 		/* Apply the scaling factor. */
 		for (j = 0;j < L;++j) cur[j] *= ctx->scale_factor[t];
 	}
@@ -198,7 +198,7 @@ void crf1mc_forward_score(crf1m_context_t* ctx)
 		trans = TRANS_SCORE_FROM(ctx, i);
 		sum += cur[i] * trans[L];
 	}
-	ctx->scale_factor[T] = 1. / sum;
+    ctx->scale_factor[T] = (sum != 0.) ? 1. / sum : 1.;
 
 	/* Compute the logarithm of the normalization factor here.
 		norm = sum / (C[0] * C[1] ... * C[T-1]) = 1 / (C[0] * ... * C[T])

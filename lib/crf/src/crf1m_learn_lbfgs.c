@@ -88,7 +88,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
 		Set the scores (weights) of transition features here because
 		these are independent of input label sequences.
 	 */
-	crf1ml_transition_score(crf1mt);
+	crf1ml_transition_score(crf1mt, 1.0);
 	crf1mc_exp_transition(crf1mt->ctx);
 
 	/*
@@ -97,7 +97,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
 	for (i = 0;i < N;++i) {
 		/* Set label sequences and state scores. */
 		crf1ml_set_labels(crf1mt, &seqs[i]);
-		crf1ml_state_score(crf1mt, &seqs[i]);
+		crf1ml_state_score(crf1mt, &seqs[i], 1.0);
 		crf1mc_exp_state(crf1mt->ctx);
 
 		/* Compute forward/backward scores. */

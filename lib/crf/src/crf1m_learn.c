@@ -79,7 +79,7 @@ void crf1ml_set_labels(crf1ml_t* trainer, const crf_sequence_t* seq)
 	}
 }
 
-void crf1ml_state_score(crf1ml_t* trainer, const crf_sequence_t* seq)
+void crf1ml_state_score(crf1ml_t* trainer, const crf_sequence_t* seq, floatval_t dummy)
 {
 	int a, i, l, t, r;
 	floatval_t scale, *state = NULL;
@@ -106,7 +106,7 @@ void crf1ml_state_score(crf1ml_t* trainer, const crf_sequence_t* seq)
 			a = item->contents[i].aid;
 			attr = ATTRIBUTE(trainer, a);
 			/* A scale usually represents the atrribute frequency in the item. */
-			scale = item->contents[i].scale;
+			scale = item->contents[i].scale * dummy;
 
 			/* Loop over the state features associated with the attribute. */
 			for (r = 0;r < attr->num_features;++r) {
@@ -120,7 +120,7 @@ void crf1ml_state_score(crf1ml_t* trainer, const crf_sequence_t* seq)
 	}
 }
 
-void crf1ml_transition_score(crf1ml_t* trainer)
+void crf1ml_transition_score(crf1ml_t* trainer, floatval_t dummy)
 {
 	int i, j, r;
 	floatval_t *trans = NULL;
@@ -133,7 +133,7 @@ void crf1ml_transition_score(crf1ml_t* trainer)
 	for (i = 0;i <= L;++i) {
 		trans = TRANS_SCORE_FROM(ctx, i);
 		for (j = 0;j <= L;++j) {
-			trans[j] = 0.;
+			trans[j] = 0. * dummy;
 		}
 	}
 
@@ -143,7 +143,7 @@ void crf1ml_transition_score(crf1ml_t* trainer)
 	for (r = 0;r < edge->num_features;++r) {
 		/* Transition feature from BOS to #(f->dst). */
 		f = FEATURE(trainer, edge->fids[r]);
-		trans[f->dst] = f->w;
+		trans[f->dst] = f->w * dummy;
 	}
 
 	/* Compute transition scores between two labels. */
@@ -153,7 +153,7 @@ void crf1ml_transition_score(crf1ml_t* trainer)
 		for (r = 0;r < edge->num_features;++r) {
 			/* Transition feature from #i to #(f->dst). */
 			f = FEATURE(trainer, edge->fids[r]);
-			trans[f->dst] = f->w;
+			trans[f->dst] = f->w * dummy;
 		}		
 	}
 
@@ -163,7 +163,7 @@ void crf1ml_transition_score(crf1ml_t* trainer)
 		/* Transition feature from #(f->src) to EOS. */
 		f = FEATURE(trainer, edge->fids[r]);
 		trans = TRANS_SCORE_FROM(ctx, f->src);
-		trans[L] = f->w;
+		trans[L] = f->w * dummy;
 	}	
 }
 
@@ -602,9 +602,9 @@ int crf_train_tag(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* outp
 
 	crf1mc_set_num_items(ctx, inst->num_items);
 
-	crf1ml_transition_score(crf1mt);
+	crf1ml_transition_score(crf1mt, 1.0);
 	crf1ml_set_labels(crf1mt, inst);
-	crf1ml_state_score(crf1mt, inst);
+	crf1ml_state_score(crf1mt, inst, 1.0);
 	logscore = crf1mc_viterbi(crf1mt->ctx);
 
 	crf_output_init_n(output, inst->num_items);
