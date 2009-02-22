@@ -321,6 +321,9 @@ l2sgd_calibration(
     const int M = MIN(N, num_samples);
 
 	logging(crf1mt->lg, "Calibrating the learning rate (eta)\n");
+    logging(crf1mt->lg, "Initial learning rate (eta): %f\n", init_eta);
+    logging(crf1mt->lg, "Rate of geometric progression: %f\n", factor);
+    logging(crf1mt->lg, "Number of instances for calibration: %d\n", M);
 
 	/* Initialize feature weights as zero. */
 	for (i = 0;i < crf1mt->num_features;++i) {
@@ -338,8 +341,7 @@ l2sgd_calibration(
     logging(crf1mt->lg, "\n");
 
     while (num_candidates > 0 || !dec) {
-        logging(crf1mt->lg, "***** Trial #%d *****\n", trials);
-        logging(crf1mt->lg, "Learning rate (eta): %f\n", eta);
+        logging(crf1mt->lg, "Trial #%d (eta = %f): ", trials, eta);
 
 	    /* Initialize feature weights as zero. */
         crf1mt->norm = 0.;
@@ -351,11 +353,10 @@ l2sgd_calibration(
         ok = (init_logp < logp);
 
         if (ok) {
-    	    logging(crf1mt->lg, "Log-likelihood (good): %f\n", logp);
+    	    logging(crf1mt->lg, "%f\n", logp);
         } else {
-    	    logging(crf1mt->lg, "Log-likelihood (bad): %f\n", logp);
+    	    logging(crf1mt->lg, "%f (inc)\n", logp);
         }
-        logging(crf1mt->lg, "\n");
 
         if (ok) {
             --num_candidates;
@@ -381,14 +382,12 @@ l2sgd_calibration(
 
     free(perm);
 
-    best_eta /= factor;
+    eta = best_eta;
 
-    logging(crf1mt->lg, "***** Calibration result *****\n", trials);
-    logging(crf1mt->lg, "Learning rate (eta): %f\n", best_eta);
-    logging(crf1mt->lg, "t0: %f\n", 1.0 / (lambda * best_eta));
+    logging(crf1mt->lg, "Best learning rate (eta): %f\n", eta);
     logging(crf1mt->lg, "\n");
 
-    return 1.0 / (lambda * best_eta);
+    return 1.0 / (lambda * eta);
 }
 
 int crf1ml_lbfgs_sgd(
