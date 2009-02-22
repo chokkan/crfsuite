@@ -537,14 +537,9 @@ static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, i
 		DDX_PARAM_INT("feature.bos_eos", opt->feature_bos_eos, 1)
 		DDX_PARAM_STRING("regularization", opt->regularization, "L2")
 		DDX_PARAM_FLOAT("regularization.sigma", opt->regularization_sigma, 10.0)
-		DDX_PARAM_INT("lbfgs.max_iterations", opt->lbfgs_max_iterations, INT_MAX)
-		DDX_PARAM_INT("lbfgs.num_memories", opt->lbfgs_memory, 6)
-		DDX_PARAM_FLOAT("lbfgs.epsilon", opt->lbfgs_epsilon, 1e-5)
-		DDX_PARAM_INT("lbfgs.stop", opt->lbfgs_stop, 10)
-		DDX_PARAM_FLOAT("lbfgs.delta", opt->lbfgs_delta, 1e-5)
-		DDX_PARAM_STRING("lbfgs.linesearch", opt->lbfgs_linesearch, "MoreThuente")
-		DDX_PARAM_INT("lbfgs.linesearch.max_iterations", opt->lbfgs_linesearch_max_iterations, 20)
 	END_PARAM_MAP()
+
+    crf1ml_lbfgs_options(params, opt, mode);
 
 	return 0;
 }

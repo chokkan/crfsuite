@@ -272,20 +272,27 @@ void crf1mm_dump(crf1mm_t* model, FILE *fp);
 
 
 typedef struct {
+	int			memory;
+	floatval_t	epsilon;
+    int         stop;
+    floatval_t  delta;
+	int			max_iterations;
+    char*       linesearch;
+    int         linesearch_max_iterations;
+} crf1ml_lbfgs_option_t;
+
+typedef struct {
 	floatval_t	feature_minfreq;
 	int			feature_possible_states;
 	int			feature_possible_transitions;
 	int			feature_bos_eos;
-	int			lbfgs_max_iterations;
 	char*		regularization;
 	floatval_t	regularization_sigma;
-	int			lbfgs_memory;
-	floatval_t	lbfgs_epsilon;
-    int         lbfgs_stop;
-    floatval_t  lbfgs_delta;
-    char*       lbfgs_linesearch;
-    int         lbfgs_linesearch_max_iterations;
+
+    crf1ml_lbfgs_option_t   lbfgs;
 } crf1ml_option_t;
+
+
 
 /**
  * First-order Markov CRF trainer.
@@ -357,6 +364,7 @@ void crf1ml_shuffle(int *perm, int N, int init);
 
 /* crf1m_learn_lbfgs.c */
 int crf1ml_lbfgs(crf1ml_t* crf1mt, crf1ml_option_t *opt);
+int crf1ml_lbfgs_options(crf_params_t* params, crf1ml_option_t* opt, int mode);
 
 
 /* crf1m_tag.c */

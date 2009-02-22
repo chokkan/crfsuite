@@ -43,9 +43,10 @@
 #include <time.h>
 
 #include <crf.h>
+#include "crf1m.h"
 
 #include "logging.h"
-#include "crf1m.h"
+#include "params.h"
 #include <lbfgs.h>
 
 inline static void update_model_expectations(
@@ -189,53 +190,72 @@ static int lbfgs_progress(
 	return 0;
 }
 
+int crf1ml_lbfgs_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
+{
+    crf1ml_lbfgs_option_t* lbfgs = &opt->lbfgs;
+
+	BEGIN_PARAM_MAP(params, mode)
+		DDX_PARAM_INT("lbfgs.max_iterations", lbfgs->max_iterations, INT_MAX)
+		DDX_PARAM_INT("lbfgs.num_memories", lbfgs->memory, 6)
+		DDX_PARAM_FLOAT("lbfgs.epsilon", lbfgs->epsilon, 1e-5)
+		DDX_PARAM_INT("lbfgs.stop", lbfgs->stop, 10)
+		DDX_PARAM_FLOAT("lbfgs.delta", lbfgs->delta, 1e-5)
+		DDX_PARAM_STRING("lbfgs.linesearch", lbfgs->linesearch, "MoreThuente")
+		DDX_PARAM_INT("lbfgs.linesearch.max_iterations", lbfgs->linesearch_max_iterations, 20)
+	END_PARAM_MAP()
+
+	return 0;
+}
+
+
 int crf1ml_lbfgs(
     crf1ml_t* crf1mt,
     crf1ml_option_t *opt
     )
 {
     int ret;
-	lbfgs_parameter_t lbfgsopt;
+	lbfgs_parameter_t lbfgsparam;
+    crf1ml_lbfgs_option_t* lbfgsopt = &opt->lbfgs;
 
 	/* Initialize the L-BFGS parameters with default values. */
-	lbfgs_parameter_init(&lbfgsopt);
+	lbfgs_parameter_init(&lbfgsparam);
 
 	logging(crf1mt->lg, "L-BFGS optimization\n");
-	logging(crf1mt->lg, "lbfgs.num_memories: %d\n", opt->lbfgs_memory);
-	logging(crf1mt->lg, "lbfgs.max_iterations: %d\n", opt->lbfgs_max_iterations);
-	logging(crf1mt->lg, "lbfgs.epsilon: %f\n", opt->lbfgs_epsilon);
-	logging(crf1mt->lg, "lbfgs.stop: %d\n", opt->lbfgs_stop);
-	logging(crf1mt->lg, "lbfgs.delta: %f\n", opt->lbfgs_delta);
-	logging(crf1mt->lg, "lbfgs.linesearch: %s\n", opt->lbfgs_linesearch);
-	logging(crf1mt->lg, "lbfgs.linesearch.max_iterations: %d\n", opt->lbfgs_linesearch_max_iterations);
+	logging(crf1mt->lg, "lbfgs.num_memories: %d\n", lbfgsopt->memory);
+	logging(crf1mt->lg, "lbfgs.max_iterations: %d\n", lbfgsopt->max_iterations);
+	logging(crf1mt->lg, "lbfgs.epsilon: %f\n", lbfgsopt->epsilon);
+	logging(crf1mt->lg, "lbfgs.stop: %d\n", lbfgsopt->stop);
+	logging(crf1mt->lg, "lbfgs.delta: %f\n", lbfgsopt->delta);
+	logging(crf1mt->lg, "lbfgs.linesearch: %s\n", lbfgsopt->linesearch);
+	logging(crf1mt->lg, "lbfgs.linesearch.max_iterations: %d\n", lbfgsopt->linesearch_max_iterations);
 	logging(crf1mt->lg, "\n");
 
 	/* Set parameters for L-BFGS. */
-	lbfgsopt.m = opt->lbfgs_memory;
-	lbfgsopt.epsilon = opt->lbfgs_epsilon;
-    lbfgsopt.past = opt->lbfgs_stop;
-    lbfgsopt.delta = opt->lbfgs_delta;
-	lbfgsopt.max_iterations = opt->lbfgs_max_iterations;
-    if (strcmp(opt->lbfgs_linesearch, "Backtracking") == 0) {
-        lbfgsopt.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
-    } else if (strcmp(opt->lbfgs_linesearch, "LooseBacktracking") == 0) {
-        lbfgsopt.linesearch = LBFGS_LINESEARCH_BACKTRACKING_LOOSE;
+	lbfgsparam.m = lbfgsopt->memory;
+	lbfgsparam.epsilon = lbfgsopt->epsilon;
+    lbfgsparam.past = lbfgsopt->stop;
+    lbfgsparam.delta = lbfgsopt->delta;
+	lbfgsparam.max_iterations = lbfgsopt->max_iterations;
+    if (strcmp(lbfgsopt->linesearch, "Backtracking") == 0) {
+        lbfgsparam.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
+    } else if (strcmp(lbfgsopt->linesearch, "LooseBacktracking") == 0) {
+        lbfgsparam.linesearch = LBFGS_LINESEARCH_BACKTRACKING_LOOSE;
     } else {
-        lbfgsopt.linesearch = LBFGS_LINESEARCH_MORETHUENTE;
+        lbfgsparam.linesearch = LBFGS_LINESEARCH_MORETHUENTE;
     }
-    lbfgsopt.max_linesearch = opt->lbfgs_linesearch_max_iterations;
+    lbfgsparam.max_linesearch = lbfgsopt->linesearch_max_iterations;
 
 	/* Set regularization parameters. */
 	if (strcmp(opt->regularization, "L1") == 0) {
 		crf1mt->l2_regularization = 0;
-		lbfgsopt.orthantwise_c = 1.0 / opt->regularization_sigma;
+		lbfgsparam.orthantwise_c = 1.0 / opt->regularization_sigma;
 	} else if (strcmp(opt->regularization, "L2") == 0) {
 		crf1mt->l2_regularization = 1;
 		crf1mt->sigma2inv = 1.0 / (opt->regularization_sigma * opt->regularization_sigma);
-		lbfgsopt.orthantwise_c = 0.;
+		lbfgsparam.orthantwise_c = 0.;
     } else {
         crf1mt->l2_regularization = 0;
-        lbfgsopt.orthantwise_c = 0.;
+        lbfgsparam.orthantwise_c = 0.;
     }
 
 	/* Call the L-BFGS solver. */
@@ -248,7 +268,7 @@ int crf1ml_lbfgs(
 		lbfgs_evaluate,
 		lbfgs_progress,
 		crf1mt,
-		&lbfgsopt
+		&lbfgsparam
 		);
     if (ret == LBFGS_CONVERGENCE) {
 		logging(crf1mt->lg, "L-BFGS resulted in convergence\n");
