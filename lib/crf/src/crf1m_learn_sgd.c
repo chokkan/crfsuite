@@ -98,17 +98,38 @@
 
 #define MIN(a, b)   ((a) < (b) ? (a) : (b))
 
+typedef struct {
+    /** The square of the feature L2 norm. */
+    floatval_t  norm2;
+    /** Scaling factor for updating weights. */
+    floatval_t  gain;
+} sgd_internal_t;
+
+#define SGD_INTERNAL(crf1ml)    ((sgd_internal_t*)((crf1ml)->solver_data))
+
+inline void initialize_weights(crf1ml_t* crf1ml)
+{
+    int i;
+    floatval_t *w = crf1ml->w;
+    sgd_internal_t *sgdi = SGD_INTERNAL(crf1ml);
+
+    for (i = 0;i < crf1ml->num_features;++i) {
+        w[i] = 0.;
+    }
+    sgdi->norm2 = 0;
+}
+
 inline void
 update_weight(
-    crf1ml_t* trainer,
+    sgd_internal_t* sgdi,
+    floatval_t* w,
     const int fid,
     floatval_t a
     )
 {
-    floatval_t *w = trainer->w;
     floatval_t w0 = w[fid];
     w[fid] += a;
-    trainer->norm += a * (a + w0 + w0);
+    sgdi->norm2 += a * (a + w0 + w0);
 }
 
 inline static void update_feature_weights(
@@ -121,29 +142,32 @@ inline static void update_feature_weights(
     int t
     )
 {
+    floatval_t *w = trainer->w;
+    sgd_internal_t* sgdi = SGD_INTERNAL(trainer);
+
     // Subtract the model expectation from the weight.
-    update_weight(trainer, fid, -trainer->gain * prob * scale);
+    update_weight(sgdi, w, fid, -sgdi->gain * prob * scale);
 
     switch (f->type) {
     case FT_STATE:      /**< State features. */
         if (f->dst == seq->items[t].label) {
-            update_weight(trainer, fid, trainer->gain * scale);
+            update_weight(sgdi, w, fid, sgdi->gain * scale);
         }
         break;
     case FT_TRANS:      /**< Transition features. */
         if (f->src == seq->items[t].label &&
             f->dst == seq->items[t+1].label) {
-            update_weight(trainer, fid, trainer->gain * scale);
+            update_weight(sgdi, w, fid, sgdi->gain * scale);
         }
         break;
     case FT_TRANS_BOS:  /**< BOS transition features. */
         if (f->dst == seq->items[t].label) {
-            update_weight(trainer, fid, trainer->gain * scale);
+            update_weight(sgdi, w, fid, sgdi->gain * scale);
         }
         break;
     case FT_TRANS_EOS:  /**< EOS transition features. */
         if (f->src == seq->items[t].label) {
-            update_weight(trainer, fid, trainer->gain * scale);
+            update_weight(sgdi, w, fid, sgdi->gain * scale);
         }
         break;
     }
@@ -220,6 +244,7 @@ static floatval_t l2sgd(
     const int K = crf1mt->num_features;
     floatval_t eta, scale, boundary;
     floatval_t decay = 1., proj = 1.;
+    sgd_internal_t* sgdi = SGD_INTERNAL(crf1mt);
 
     /* Loop for epochs. */
     for (epoch = 1;epoch <= num_epochs;++epoch) {
@@ -242,7 +267,7 @@ static floatval_t l2sgd(
             eta = 1 / (lambda * (t0 + t));
             decay *= (1.0 - eta * lambda);
             scale = decay * proj;
-            crf1mt->gain = eta / scale;
+            sgdi->gain = eta / scale;
 
             /* Set transition scores. */
             crf1ml_transition_score(crf1mt, w, K, scale);
@@ -264,7 +289,7 @@ static floatval_t l2sgd(
 		    crf1ml_enum_features(crf1mt, seq, update_feature_weights);
 
             /* Project feature weights in the L2-ball. */
-            boundary = crf1mt->norm * scale * scale * lambda;
+            boundary = sgdi->norm2 * scale * scale * lambda;
             if (1. < boundary) {
                 proj = 1.0 / sqrt(boundary);
             }
@@ -273,7 +298,7 @@ static floatval_t l2sgd(
         }
 
         /* Include the L2 norm of feature weights to the objective. */
-        logp -= lambda / 2 * crf1mt->norm * scale * scale;
+        logp -= lambda / 2 * sgdi->norm2 * scale * scale;
 
         /* Prevent the scale factor being too small. */
         if (scale < 1e-20) {
@@ -285,7 +310,7 @@ static floatval_t l2sgd(
         /* One epoch finished. */
         if (!calibration) {
     	    logging(crf1mt->lg, "Log-likelihood: %f\n", logp);
-    	    logging(crf1mt->lg, "Feature L2-norm: %f\n", sqrt(crf1mt->norm) * scale);
+    	    logging(crf1mt->lg, "Feature L2-norm: %f\n", sqrt(sgdi->norm2) * scale);
     	    logging(crf1mt->lg, "Learning rate (eta): %f\n", eta);
             logging(crf1mt->lg, "Total number of feature updates: %f\n", t);
       	    logging(crf1mt->lg, "Seconds required for this iteration: %.3f\n", (clock() - clk_prev) / (double)CLOCKS_PER_SEC);
@@ -313,7 +338,6 @@ l2sgd_calibration(
     floatval_t factor
     )
 {
-    int i;
     int *perm = NULL;
     int dec = 0, ok, trials = 1;
     floatval_t logp;
@@ -331,10 +355,7 @@ l2sgd_calibration(
     logging(crf1mt->lg, "Number of instances for calibration: %d\n", M);
 
 	/* Initialize feature weights as zero. */
-	for (i = 0;i < crf1mt->num_features;++i) {
-		w[i] = 0;
-	}
-    crf1mt->norm = 0.;
+    initialize_weights(crf1mt);
 
     /* Initialize a permutation that shuffles the instances. */
     perm = (int*)malloc(sizeof(int) * N);
@@ -349,10 +370,7 @@ l2sgd_calibration(
         logging(crf1mt->lg, "Trial #%d (eta = %f): ", trials, eta);
 
 	    /* Initialize feature weights as zero. */
-        crf1mt->norm = 0.;
-	    for (i = 0;i < crf1mt->num_features;++i) {
-    		w[i] = 0;
-	    }
+        initialize_weights(crf1mt);
 
         logp = l2sgd(crf1mt, perm, M, 1.0 / (lambda * eta), lambda, 1, 1);
         ok = (init_logp < logp);
@@ -406,6 +424,7 @@ int crf1ml_lbfgs_sgd(
     clock_t clk_begin, clk_prev;
 	const int N = crf1mt->num_sequences;
     const int K = crf1mt->num_features;
+    sgd_internal_t sgd_internal;
 
 //    const double t0 = 20120;
     // floatval_t t0 = 89360;
@@ -413,6 +432,8 @@ int crf1ml_lbfgs_sgd(
     //const double t0 = 10.120;
     const floatval_t lambda = 1.0 / (1 * N);
     floatval_t eta;
+
+    crf1mt->solver_data = &sgd_internal;
 
 	logging(crf1mt->lg, "Stochastic Gradient Descent (SGD)\n");
     logging(crf1mt->lg, "lambda: %f\n", lambda);
@@ -422,10 +443,7 @@ int crf1ml_lbfgs_sgd(
 	/*
 		Initialize feature weights as zero.
 	 */
-	for (i = 0;i < crf1mt->num_features;++i) {
-		crf1mt->w[i] = 0;
-	}
-    crf1mt->norm = 0.;
+    initialize_weights(crf1mt);
 
     /*
         Initialize a permutation that shuffles the instances.
@@ -436,10 +454,7 @@ int crf1ml_lbfgs_sgd(
     t0 = l2sgd_calibration(crf1mt, 10, 1000, 0.1, lambda, 2);
 
     /* Initialize feature weights as zero. */
-    crf1mt->norm = 0.;
-    for (i = 0;i < crf1mt->num_features;++i) {
-	    crf1mt->w[i] = 0;
-    }
+    initialize_weights(crf1mt);
 
     l2sgd(crf1mt, perm, N, t0, lambda, 10, 0);
 

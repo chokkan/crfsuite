@@ -336,8 +336,7 @@ struct tag_crf1ml {
 	clock_t clk_begin;
 	clock_t clk_prev;
 
-    floatval_t gain;
-    floatval_t norm;
+    void *solver_data;
 };
 typedef struct tag_crf1ml crf1ml_t;
 
