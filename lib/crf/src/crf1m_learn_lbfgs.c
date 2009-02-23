@@ -51,19 +51,22 @@
 
 typedef struct {
     floatval_t* g;
-} crf1ml_lbfgs_t;
+} lbfgs_internal_t;
+
+#define LBFGS_INTERNAL(crf1ml)    ((lbfgs_internal_t*)((crf1ml)->solver_data))
 
 inline static void update_model_expectations(
     crf1ml_feature_t* f,
     const int fid,
     floatval_t prob,
     floatval_t scale,
-    crf1ml_t* trainer,
+    crf1ml_t* crf1ml,
     const crf_sequence_t* seq,
     int t
     )
 {
-    f->mexp += prob * scale;
+    lbfgs_internal_t *lbfgsi = LBFGS_INTERNAL(crf1ml);
+    lbfgsi->g[fid] += prob * scale;
 }
 
 static lbfgsfloatval_t lbfgs_evaluate(
@@ -79,6 +82,10 @@ static lbfgsfloatval_t lbfgs_evaluate(
 	crf1ml_t* crf1mt = (crf1ml_t*)instance;
 	crf_sequence_t* seqs = crf1mt->seqs;
 	const int N = crf1mt->num_sequences;
+    lbfgs_internal_t *lbfgsi = LBFGS_INTERNAL(crf1mt);
+
+    /* Set the gradient vector. */
+    lbfgsi->g = g;
 
 	/*
 		Set feature weights from the L-BFGS solver. Initialize model
@@ -86,7 +93,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
 	 */
 	for (i = 0;i < crf1mt->num_features;++i) {
 		crf1ml_feature_t* f = &crf1mt->features[i];
-		f->mexp = 0;
+        g[i] = -f->oexp;
 	}
 
 	/*
@@ -119,14 +126,6 @@ static lbfgsfloatval_t lbfgs_evaluate(
 
 		/* Update the model expectations of features. */
 		crf1ml_enum_features(crf1mt, &seqs[i], update_model_expectations);
-	}
-
-	/*
-		Update the gradient vector.
-	 */
-	for (i = 0;i < crf1mt->num_features;++i) {
-		const crf1ml_feature_t* f = &crf1mt->features[i];
-		g[i] = -(f->oexp - f->mexp);
 	}
 
 	/*
@@ -216,8 +215,11 @@ int crf1ml_lbfgs(
     )
 {
     int ret;
+    lbfgs_internal_t lbfgsi;
 	lbfgs_parameter_t lbfgsparam;
     crf1ml_lbfgs_option_t* lbfgsopt = &opt->lbfgs;
+
+    crf1mt->solver_data = &lbfgsi;
 
 	/* Initialize the L-BFGS parameters with default values. */
 	lbfgs_parameter_init(&lbfgsparam);

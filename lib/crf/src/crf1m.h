@@ -183,11 +183,6 @@ typedef struct {
 	 * Observation expectation.
 	 */
 	floatval_t	oexp;
-
-	/**
-	 * Model expectation.
-	 */
-	floatval_t	mexp;
 } crf1ml_feature_t;
 
 /**
