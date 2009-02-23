@@ -79,9 +79,16 @@ void crf1ml_set_labels(crf1ml_t* trainer, const crf_sequence_t* seq)
 	}
 }
 
-void crf1ml_state_score(crf1ml_t* trainer, const crf_sequence_t* seq, floatval_t dummy)
+void
+crf1ml_state_score(
+    crf1ml_t* trainer,
+    const crf_sequence_t* seq,
+    const floatval_t* w,
+    const int K,
+    floatval_t dummy
+    )
 {
-	int a, i, l, t, r;
+	int a, i, l, t, r, fid;
 	floatval_t scale, *state = NULL;
 	crf1m_context_t* ctx = trainer->ctx;
 	const crf_item_t* item = NULL;
@@ -112,17 +119,23 @@ void crf1ml_state_score(crf1ml_t* trainer, const crf_sequence_t* seq, floatval_t
 			for (r = 0;r < attr->num_features;++r) {
 				/* The state feature #(attr->fids[r]), which is represented by
 				   the attribute #a, outputs the label #(f->dst). */
-				f = FEATURE(trainer, attr->fids[r]);
+                fid = attr->fids[r];
+				f = FEATURE(trainer, fid);
 				l = f->dst;
-				state[l] += f->w * scale;
+				state[l] += w[fid] * scale;
 			}
 		}
 	}
 }
 
-void crf1ml_transition_score(crf1ml_t* trainer, floatval_t dummy)
+void crf1ml_transition_score(
+    crf1ml_t* trainer,
+    const floatval_t* w,
+    const int K,
+    floatval_t dummy
+    )
 {
-	int i, j, r;
+	int i, j, r, fid;
 	floatval_t *trans = NULL;
 	crf1m_context_t* ctx = trainer->ctx;
 	const crf1ml_feature_t* f = NULL;
@@ -142,8 +155,9 @@ void crf1ml_transition_score(crf1ml_t* trainer, floatval_t dummy)
 	edge = TRANSITION_BOS(trainer);
 	for (r = 0;r < edge->num_features;++r) {
 		/* Transition feature from BOS to #(f->dst). */
-		f = FEATURE(trainer, edge->fids[r]);
-		trans[f->dst] = f->w * dummy;
+        fid = edge->fids[r];
+		f = FEATURE(trainer, fid);
+		trans[f->dst] = w[fid] * dummy;
 	}
 
 	/* Compute transition scores between two labels. */
@@ -152,8 +166,9 @@ void crf1ml_transition_score(crf1ml_t* trainer, floatval_t dummy)
 		edge = TRANSITION_FROM(trainer, i);
 		for (r = 0;r < edge->num_features;++r) {
 			/* Transition feature from #i to #(f->dst). */
-			f = FEATURE(trainer, edge->fids[r]);
-			trans[f->dst] = f->w * dummy;
+            fid = edge->fids[r];
+			f = FEATURE(trainer, fid);
+			trans[f->dst] = w[fid] * dummy;
 		}		
 	}
 
@@ -161,9 +176,10 @@ void crf1ml_transition_score(crf1ml_t* trainer, floatval_t dummy)
 	edge = TRANSITION_EOS(trainer);
 	for (r = 0;r < edge->num_features;++r) {
 		/* Transition feature from #(f->src) to EOS. */
-		f = FEATURE(trainer, edge->fids[r]);
+        fid = edge->fids[r];
+		f = FEATURE(trainer, fid);
 		trans = TRANS_SCORE_FROM(ctx, f->src);
-		trans[L] = f->w * dummy;
+		trans[L] = w[fid] * dummy;
 	}	
 }
 
@@ -171,7 +187,7 @@ void crf1ml_transition_score(crf1ml_t* trainer, floatval_t dummy)
 
 void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_feature_t func)
 {
-	int a, c, i, j, t, r;
+	int a, c, i, j, t, r, fid;
 	floatval_t coeff, scale, *prob = trainer->prob;
 	crf1m_context_t* ctx = trainer->ctx;
 	const floatval_t lognorm = ctx->log_norm;
@@ -215,8 +231,9 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 	/* Compute expectations for transition features from BOS. */
 	trans = TRANSITION_BOS(trainer);
 	for (r = 0;r < trans->num_features;++r) {
-		f = FEATURE(trainer, trans->fids[r]);
-        func(f, prob[f->dst], 1., trainer, seq, 0);
+        fid = trans->fids[r];
+		f = FEATURE(trainer, fid);
+        func(f, fid, prob[f->dst], 1., trainer, seq, 0);
     }
 
 	/* Compute expectations for state features at position #0. */
@@ -230,8 +247,9 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 		/* Loop over state features for the attribute. */
 		for (r = 0;r < attr->num_features;++r) {
 			/* Reuse the probability prob[f->dst]. */
-			f = FEATURE(trainer, attr->fids[r]);
-            func(f, prob[f->dst], scale, trainer, seq, 0);
+            fid = attr->fids[r];
+			f = FEATURE(trainer, fid);
+            func(f, fid, prob[f->dst], scale, trainer, seq, 0);
 		}
 	}
 
@@ -252,8 +270,9 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 	/* Compute expectations for transition features to EOS. */
 	trans = TRANSITION_EOS(trainer);
 	for (r = 0;r < trans->num_features;++r) {
-		f = FEATURE(trainer, trans->fids[r]);
-        func(f, prob[f->src], 1., trainer, seq, T-1);
+        fid = trans->fids[r];
+		f = FEATURE(trainer, fid);
+        func(f, fid, prob[f->src], 1., trainer, seq, T-1);
 	}
 
 	/* Compute expectations for state features at position #(T-1). */
@@ -267,8 +286,9 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 		/* Loop over state features for the attribute. */
 		for (r = 0;r < attr->num_features;++r) {
 			/* Reuse the probability prob[f->dst]. */
-			f = FEATURE(trainer, attr->fids[r]);
-            func(f, prob[f->dst], scale, trainer, seq, T-1);
+            fid = attr->fids[r];
+			f = FEATURE(trainer, fid);
+            func(f, fid, prob[f->dst], scale, trainer, seq, T-1);
 		}
 	}
 
@@ -296,7 +316,8 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 
 			/* Loop over state features for the attribute. */
 			for (r = 0;r < attr->num_features;++r) {
-				f = FEATURE(trainer, attr->fids[r]);
+                fid = attr->fids[r];
+				f = FEATURE(trainer, fid);
 				i = f->dst;
 
 				/* Reuse the probability prob[i] if it has been calculated. */
@@ -304,7 +325,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 					/* Unfilled: calculate the probability. */
 					prob[i] = fwd[i] * bwd[i] * coeff;
 				}
-                func(f, prob[i], scale, trainer, seq, t);
+                func(f, fid, prob[i], scale, trainer, seq, t);
 			}
 		}
 	}
@@ -328,9 +349,10 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 			edge = TRANS_SCORE_FROM(ctx, i);
 			trans = TRANSITION_FROM(trainer, i);
 			for (r = 0;r < trans->num_features;++r) {
-				f = FEATURE(trainer, trans->fids[r]);
+                fid = trans->fids[r];
+				f = FEATURE(trainer, fid);
 				j = f->dst;
-                func(f, fwd[i] * edge[j] * state[j] * bwd[j] * coeff, 1., trainer, seq, t);
+                func(f, fid, fwd[i] * edge[j] * state[j] * bwd[j] * coeff, 1., trainer, seq, t);
 			}
 		}
 	}
@@ -593,13 +615,15 @@ int crf_train_tag(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* outp
 	int i;
 	floatval_t logscore = 0;
 	crf1ml_t *crf1mt = (crf1ml_t*)tagger->internal;
+    const floatval_t* w = crf1mt->w;
+    const int K = crf1mt->num_features;
 	crf1m_context_t* ctx = crf1mt->ctx;
 
 	crf1mc_set_num_items(ctx, inst->num_items);
 
-	crf1ml_transition_score(crf1mt, 1.0);
+	crf1ml_transition_score(crf1mt, w, K, 1.0);
 	crf1ml_set_labels(crf1mt, inst);
-	crf1ml_state_score(crf1mt, inst, 1.0);
+	crf1ml_state_score(crf1mt, inst, w, K, 1.0);
 	logscore = crf1mc_viterbi(crf1mt->ctx);
 
 	crf_output_init_n(output, inst->num_items);
@@ -703,11 +727,11 @@ static int crf_train_train(
     ret = crf1ml_lbfgs_sgd(crf1mt, opt);
 
 	/* Store the feature weights. */
-	best_w = ret == 0 ? crf1mt->w : crf1mt->best_w;
-	for (i = 0;i < crf1mt->num_features;++i) {
-		crf1ml_feature_t* f = &crf1mt->features[i];
-		f->w = best_w[i];
-	}
+    if (ret != 0) {
+	    for (i = 0;i < crf1mt->num_features;++i) {
+            crf1mt->w[i] = crf1mt->best_w[i];
+        }
+    }
 
 	return 0;
 }
@@ -721,6 +745,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	int *fmap = NULL, *amap = NULL;
 	crf1mmw_t* writer = NULL;
 	const feature_refs_t *edge = NULL, *attr = NULL;
+    const floatval_t *w = crf1mt->w;
 	const floatval_t threshold = 0.01;
 	const int L = crf1mt->num_labels;
 	const int A = crf1mt->num_attributes;
@@ -771,7 +796,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	/* Determine a set of active features and attributes. */
 	for (k = 0;k < crf1mt->num_features;++k) {
 		crf1ml_feature_t* f = &crf1mt->features[k];
-		if (f->w != 0) {
+		if (w[k] != 0) {
 			int src;
 			crf1mm_feature_t feat;
 
@@ -792,7 +817,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 			feat.type = f->type;
 			feat.src = src;
 			feat.dst = f->dst;
-			feat.weight = f->w;
+			feat.weight = w[k];
 
 			/* Write the feature. */
 			if (ret = crf1mmw_put_feature(writer, fmap[k], &feat)) {

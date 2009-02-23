@@ -193,7 +193,6 @@ crf1ml_features_t* crf1ml_generate_features(
 			f.dst = cur;
 			f.oexp = 1;
 			f.mexp = 0;
-			f.w = 0;
 			featureset_add(set, &f);
 
 			for (c = 0;c < item->num_contents;++c) {
@@ -203,7 +202,6 @@ crf1ml_features_t* crf1ml_generate_features(
 				f.dst = cur;
 				f.oexp = item->contents[c].scale;
 				f.mexp = 0;
-				f.w = 0;
 				featureset_add(set, &f);
 
 				/* Generate state features connecting attributes with all
@@ -216,7 +214,6 @@ crf1ml_features_t* crf1ml_generate_features(
 						f.dst = i;
 						f.oexp = 0;
 						f.mexp = 0;
-						f.w = 0;
 						featureset_add(set, &f);
 					}
 				}
@@ -232,7 +229,6 @@ crf1ml_features_t* crf1ml_generate_features(
 		f.dst = L;
 		f.oexp = 1;
 		f.mexp = 0;
-		f.w = 0;
 		featureset_add(set, &f);
 
 		logging_progress(&lg, s * 100 / N);
@@ -246,7 +242,6 @@ crf1ml_features_t* crf1ml_generate_features(
 		f.dst = i;
 		f.oexp = 0;
 		f.mexp = 0;
-		f.w = 0;
 		featureset_add(set, &f);
 
 		f.type = FT_TRANS_EOS;
@@ -254,7 +249,6 @@ crf1ml_features_t* crf1ml_generate_features(
 		f.dst = L;
 		f.oexp = 0;
 		f.mexp = 0;
-		f.w = 0;
 		featureset_add(set, &f);
 	}
 
@@ -269,7 +263,6 @@ crf1ml_features_t* crf1ml_generate_features(
 				f.dst = j;
 				f.oexp = 0;
 				f.mexp = 0;
-				f.w = 0;
 				featureset_add(set, &f);
 			}
 		}

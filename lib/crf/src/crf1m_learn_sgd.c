@@ -101,17 +101,19 @@
 inline void
 update_weight(
     crf1ml_t* trainer,
-    crf1ml_feature_t* f,
+    const int fid,
     floatval_t a
     )
 {
-    floatval_t w = f->w;
-    f->w += a;
-    trainer->norm += a * (a + w + w);
+    floatval_t *w = trainer->w;
+    floatval_t w0 = w[fid];
+    w[fid] += a;
+    trainer->norm += a * (a + w0 + w0);
 }
 
 inline static void update_feature_weights(
     crf1ml_feature_t* f,
+    const int fid,
     floatval_t prob,
     floatval_t scale,
     crf1ml_t* trainer,
@@ -120,38 +122,38 @@ inline static void update_feature_weights(
     )
 {
     // Subtract the model expectation from the weight.
-    update_weight(trainer, f, -trainer->gain * prob * scale);
+    update_weight(trainer, fid, -trainer->gain * prob * scale);
 
     switch (f->type) {
     case FT_STATE:      /**< State features. */
         if (f->dst == seq->items[t].label) {
-            update_weight(trainer, f, trainer->gain * scale);
+            update_weight(trainer, fid, trainer->gain * scale);
         }
         break;
     case FT_TRANS:      /**< Transition features. */
         if (f->src == seq->items[t].label &&
             f->dst == seq->items[t+1].label) {
-            update_weight(trainer, f, trainer->gain * scale);
+            update_weight(trainer, fid, trainer->gain * scale);
         }
         break;
     case FT_TRANS_BOS:  /**< BOS transition features. */
         if (f->dst == seq->items[t].label) {
-            update_weight(trainer, f, trainer->gain * scale);
+            update_weight(trainer, fid, trainer->gain * scale);
         }
         break;
     case FT_TRANS_EOS:  /**< EOS transition features. */
         if (f->src == seq->items[t].label) {
-            update_weight(trainer, f, trainer->gain * scale);
+            update_weight(trainer, fid, trainer->gain * scale);
         }
         break;
     }
 }
 
-void scale_weights(crf1ml_feature_t* fs, const int n, const floatval_t scale)
+void scale_weights(floatval_t* w, const int n, const floatval_t scale)
 {
     int i;
     for (i = 0;i < n;++i) {
-        fs[i].w *= scale;
+        w[i] *= scale;
     }
 }
 
@@ -166,10 +168,11 @@ compute_loglikelihood(
     int i;
 	crf_sequence_t *seq;
     floatval_t logp = 0., norm = 0.;
+    const floatval_t* w = crf1mt->w;
     const int K = crf1mt->num_features;
 
     /* Set transition scores. */
-    crf1ml_transition_score(crf1mt, 1.);
+    crf1ml_transition_score(crf1mt, w, K, 1.);
     crf1mc_exp_transition(crf1mt->ctx);
 
     for (i = 0;i < N;++i) {
@@ -177,7 +180,7 @@ compute_loglikelihood(
 
 	    /* Set label sequences and state scores. */
 	    crf1ml_set_labels(crf1mt, seq);
-	    crf1ml_state_score(crf1mt, seq, 1.);
+	    crf1ml_state_score(crf1mt, seq, w, K, 1.);
 	    crf1mc_exp_state(crf1mt->ctx);
 
 	    /* Compute forward/backward scores. */
@@ -190,7 +193,7 @@ compute_loglikelihood(
 
     /* Compute the L2 norm of feature weights. */
     for (i = 0;i < K;++i) {
-        norm += crf1mt->w[i] * crf1mt->w[i];
+        norm += w[i] * w[i];
     }
 
     return logp - lambda / 2 * norm;
@@ -213,6 +216,7 @@ static floatval_t l2sgd(
     floatval_t logp = 0;
     clock_t clk_prev;
 	crf_sequence_t *seq, *seqs = crf1mt->seqs;
+    floatval_t* w = crf1mt->w;
     const int K = crf1mt->num_features;
     floatval_t eta, scale, boundary;
     floatval_t decay = 1., proj = 1.;
@@ -241,12 +245,12 @@ static floatval_t l2sgd(
             crf1mt->gain = eta / scale;
 
             /* Set transition scores. */
-            crf1ml_transition_score(crf1mt, scale);
+            crf1ml_transition_score(crf1mt, w, K, scale);
             crf1mc_exp_transition(crf1mt->ctx);
 
 		    /* Set label sequences and state scores. */
 		    crf1ml_set_labels(crf1mt, seq);
-		    crf1ml_state_score(crf1mt, seq, scale);
+		    crf1ml_state_score(crf1mt, seq, w, K, scale);
 		    crf1mc_exp_state(crf1mt->ctx);
 
 		    /* Compute forward/backward scores. */
@@ -273,7 +277,7 @@ static floatval_t l2sgd(
 
         /* Prevent the scale factor being too small. */
         if (scale < 1e-20) {
-            scale_weights(crf1mt->features, K, scale);
+            scale_weights(w, K, scale);
             decay = 1.;
             proj = 1.;
         }
@@ -317,6 +321,7 @@ l2sgd_calibration(
     floatval_t best_logp = -DBL_MAX;
     floatval_t eta = init_eta;
     floatval_t best_eta = init_eta;
+    floatval_t *w = crf1mt->w;
     const int N = crf1mt->num_sequences;
     const int M = MIN(N, num_samples);
 
@@ -327,7 +332,7 @@ l2sgd_calibration(
 
 	/* Initialize feature weights as zero. */
 	for (i = 0;i < crf1mt->num_features;++i) {
-		crf1mt->features[i].w = 0;
+		w[i] = 0;
 	}
     crf1mt->norm = 0.;
 
@@ -346,7 +351,7 @@ l2sgd_calibration(
 	    /* Initialize feature weights as zero. */
         crf1mt->norm = 0.;
 	    for (i = 0;i < crf1mt->num_features;++i) {
-		    crf1mt->features[i].w = 0;
+    		w[i] = 0;
 	    }
 
         logp = l2sgd(crf1mt, perm, M, 1.0 / (lambda * eta), lambda, 1, 1);
@@ -418,7 +423,7 @@ int crf1ml_lbfgs_sgd(
 		Initialize feature weights as zero.
 	 */
 	for (i = 0;i < crf1mt->num_features;++i) {
-		crf1mt->features[i].w = 0;
+		crf1mt->w[i] = 0;
 	}
     crf1mt->norm = 0.;
 
@@ -433,7 +438,7 @@ int crf1ml_lbfgs_sgd(
     /* Initialize feature weights as zero. */
     crf1mt->norm = 0.;
     for (i = 0;i < crf1mt->num_features;++i) {
-	    crf1mt->features[i].w = 0;
+	    crf1mt->w[i] = 0;
     }
 
     l2sgd(crf1mt, perm, N, t0, lambda, 10, 0);

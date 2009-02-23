@@ -49,8 +49,13 @@
 #include "params.h"
 #include <lbfgs.h>
 
+typedef struct {
+    floatval_t* g;
+} crf1ml_lbfgs_t;
+
 inline static void update_model_expectations(
     crf1ml_feature_t* f,
+    const int fid,
     floatval_t prob,
     floatval_t scale,
     crf1ml_t* trainer,
@@ -81,7 +86,6 @@ static lbfgsfloatval_t lbfgs_evaluate(
 	 */
 	for (i = 0;i < crf1mt->num_features;++i) {
 		crf1ml_feature_t* f = &crf1mt->features[i];
-		f->w = x[i];
 		f->mexp = 0;
 	}
 
@@ -89,7 +93,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
 		Set the scores (weights) of transition features here because
 		these are independent of input label sequences.
 	 */
-	crf1ml_transition_score(crf1mt, 1.0);
+	crf1ml_transition_score(crf1mt, x, n, 1.0);
 	crf1mc_exp_transition(crf1mt->ctx);
 
 	/*
@@ -98,7 +102,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
 	for (i = 0;i < N;++i) {
 		/* Set label sequences and state scores. */
 		crf1ml_set_labels(crf1mt, &seqs[i]);
-		crf1ml_state_score(crf1mt, &seqs[i], 1.0);
+		crf1ml_state_score(crf1mt, &seqs[i], x, n, 1.0);
 		crf1mc_exp_state(crf1mt->ctx);
 
 		/* Compute forward/backward scores. */
@@ -132,8 +136,8 @@ static lbfgsfloatval_t lbfgs_evaluate(
 	if (crf1mt->l2_regularization) {
 		for (i = 0;i < crf1mt->num_features;++i) {
 			const crf1ml_feature_t* f = &crf1mt->features[i];
-			g[i] += (crf1mt->sigma2inv * f->w);
-			norm += f->w * f->w;
+			g[i] += (crf1mt->sigma2inv * x[i]);
+			norm += x[i] * x[i];
 		}
 		logl -= (crf1mt->sigma2inv * norm * 0.5);
 	}
@@ -163,8 +167,6 @@ static int lbfgs_progress(
 
 	/* Set feature weights from the L-BFGS solver. */
 	for (i = 0;i < crf1mt->num_features;++i) {
-		crf1ml_feature_t* f = &crf1mt->features[i];
-		f->w = x[i];
 		crf1mt->best_w[i] = x[i];
 		if (x[i] != 0.) ++num_active_features;
 	}

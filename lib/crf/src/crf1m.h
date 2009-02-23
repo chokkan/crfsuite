@@ -180,11 +180,6 @@ typedef struct {
 	int		dst;
 
 	/**
-	 * Lambda (weight).
-	 */
-	floatval_t w;
-
-	/**
 	 * Observation expectation.
 	 */
 	floatval_t	oexp;
@@ -293,7 +288,6 @@ typedef struct {
 } crf1ml_option_t;
 
 
-
 /**
  * First-order Markov CRF trainer.
  */
@@ -349,6 +343,7 @@ typedef struct tag_crf1ml crf1ml_t;
 
 typedef void (*update_feature_t)(
     crf1ml_feature_t* f,
+    const int fid,
     floatval_t prob,
     floatval_t scale,
     crf1ml_t* trainer,
@@ -357,8 +352,20 @@ typedef void (*update_feature_t)(
     );
 
 void crf1ml_set_labels(crf1ml_t* trainer, const crf_sequence_t* seq);
-void crf1ml_state_score(crf1ml_t* trainer, const crf_sequence_t* seq, floatval_t scale);
-void crf1ml_transition_score(crf1ml_t* trainer, floatval_t scale);
+void
+crf1ml_state_score(
+    crf1ml_t* trainer,
+    const crf_sequence_t* seq,
+    const floatval_t* w,
+    const int K,
+    floatval_t dummy
+    );
+void crf1ml_transition_score(
+    crf1ml_t* trainer,
+    const floatval_t* w,
+    const int K,
+    floatval_t dummy
+    );
 void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_feature_t func);
 void crf1ml_shuffle(int *perm, int N, int init);
 
