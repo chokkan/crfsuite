@@ -93,7 +93,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
 	 */
 	for (i = 0;i < crf1mt->num_features;++i) {
 		crf1ml_feature_t* f = &crf1mt->features[i];
-        g[i] = -f->oexp;
+        g[i] = -f->freq;
 	}
 
 	/*

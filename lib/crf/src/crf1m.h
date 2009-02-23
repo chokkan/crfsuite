@@ -180,9 +180,9 @@ typedef struct {
 	int		dst;
 
 	/**
-	 * Observation expectation.
+	 * Frequency (observation expectation).
 	 */
-	floatval_t	oexp;
+	floatval_t	freq;
 } crf1ml_feature_t;
 
 /**

@@ -108,7 +108,7 @@ static int featureset_add(featureset_t* set, const crf1ml_feature_t* f)
 		++set->num;
 	} else {
 		/* An existing feature: add the observation expectation. */
-		p->oexp += f->oexp;
+		p->freq += f->freq;
 	}
 	return 0;
 }
@@ -123,7 +123,7 @@ static void featureset_generate(crf1ml_features_t* features, featureset_t* set, 
 
 	/* The first pass: count the number of valid features. */
 	while ((node = rumavl_node_next(set->avl, node, 1, (void**)&f)) != NULL) {
-		if (minfreq <= f->oexp) {
+		if (minfreq <= f->freq) {
 			++n;
 		}
 	}
@@ -133,7 +133,7 @@ static void featureset_generate(crf1ml_features_t* features, featureset_t* set, 
 	if (features->features != NULL) {
 		node = NULL;
 		while ((node = rumavl_node_next(set->avl, node, 1, (void**)&f)) != NULL) {
-			if (minfreq <= f->oexp) {
+			if (minfreq <= f->freq) {
 				memcpy(&features->features[k], f, sizeof(crf1ml_feature_t));
 				++k;
 			}
@@ -191,7 +191,7 @@ crf1ml_features_t* crf1ml_generate_features(
 			f.type = (prev == L) ? FT_TRANS_BOS : FT_TRANS;
 			f.src = prev;
 			f.dst = cur;
-			f.oexp = 1;
+			f.freq = 1;
 			featureset_add(set, &f);
 
 			for (c = 0;c < item->num_contents;++c) {
@@ -199,7 +199,7 @@ crf1ml_features_t* crf1ml_generate_features(
 				f.type = FT_STATE;
 				f.src = item->contents[c].aid;
 				f.dst = cur;
-				f.oexp = item->contents[c].scale;
+				f.freq = item->contents[c].scale;
 				featureset_add(set, &f);
 
 				/* Generate state features connecting attributes with all
@@ -210,7 +210,7 @@ crf1ml_features_t* crf1ml_generate_features(
 						f.type = FT_STATE;
 						f.src = item->contents[c].aid;
 						f.dst = i;
-						f.oexp = 0;
+						f.freq = 0;
 						featureset_add(set, &f);
 					}
 				}
@@ -224,7 +224,7 @@ crf1ml_features_t* crf1ml_generate_features(
 		f.type = FT_TRANS_EOS;
 		f.src = cur;
 		f.dst = L;
-		f.oexp = 1;
+		f.freq = 1;
 		featureset_add(set, &f);
 
 		logging_progress(&lg, s * 100 / N);
@@ -236,13 +236,13 @@ crf1ml_features_t* crf1ml_generate_features(
 		f.type = FT_TRANS_BOS;
 		f.src = L;
 		f.dst = i;
-		f.oexp = 0;
+		f.freq = 0;
 		featureset_add(set, &f);
 
 		f.type = FT_TRANS_EOS;
 		f.src = i;
 		f.dst = L;
-		f.oexp = 0;
+		f.freq = 0;
 		featureset_add(set, &f);
 	}
 
@@ -255,7 +255,7 @@ crf1ml_features_t* crf1ml_generate_features(
 				f.type = FT_TRANS;
 				f.src = i;
 				f.dst = j;
-				f.oexp = 0;
+				f.freq = 0;
 				featureset_add(set, &f);
 			}
 		}
