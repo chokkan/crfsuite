@@ -20,6 +20,8 @@ libcrf_la_SOURCES = \
 	src/crf1m_context.c \
 	src/crf1m_feature.c \
 	src/crf1m_learn.c \
+	src/crf1m_learn_lbfgs.c \
+	src/crf1m_learn_sgd.c \
 	src/crf1m_model.c \
 	src/crf1m_tag.c \
 	include/crf.h \

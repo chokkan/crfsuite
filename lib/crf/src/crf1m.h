@@ -272,6 +272,18 @@ typedef struct {
 } crf1ml_lbfgs_option_t;
 
 typedef struct {
+    floatval_t  c;
+    floatval_t  lambda;
+    floatval_t  t0;
+    int         max_iterations;
+    floatval_t  calibration_eta;
+    floatval_t  calibration_rate;
+    int         calibration_samples;
+    int         calibration_candidates;
+} crf1ml_sgd_option_t;
+
+typedef struct {
+    char*       algorithm;
 	floatval_t	feature_minfreq;
 	int			feature_possible_states;
 	int			feature_possible_transitions;
@@ -280,6 +292,7 @@ typedef struct {
 	floatval_t	regularization_sigma;
 
     crf1ml_lbfgs_option_t   lbfgs;
+    crf1ml_sgd_option_t     sgd;
 } crf1ml_option_t;
 
 
@@ -366,6 +379,9 @@ void crf1ml_shuffle(int *perm, int N, int init);
 /* crf1m_learn_lbfgs.c */
 int crf1ml_lbfgs(crf1ml_t* crf1mt, crf1ml_option_t *opt);
 int crf1ml_lbfgs_options(crf_params_t* params, crf1ml_option_t* opt, int mode);
+
+int crf1ml_sgd(crf1ml_t* crf1mt, crf1ml_option_t *opt);
+int crf1ml_sgd_options(crf_params_t* params, crf1ml_option_t* opt, int mode);
 
 
 /* crf1m_tag.c */

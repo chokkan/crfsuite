@@ -94,6 +94,7 @@
 #include <crf.h>
 
 #include "logging.h"
+#include "params.h"
 #include "crf1m.h"
 
 #define MIN(a, b)   ((a) < (b) ? (a) : (b))
@@ -331,27 +332,27 @@ static floatval_t l2sgd(
 static floatval_t
 l2sgd_calibration(
     crf1ml_t* crf1mt,
-    int num_candidates,
-    int num_samples,
-    floatval_t init_eta,
-    floatval_t lambda,
-    floatval_t factor
+    const crf1ml_sgd_option_t* opt
     )
 {
     int *perm = NULL;
     int dec = 0, ok, trials = 1;
+    int num_candidates = opt->calibration_candidates;
     floatval_t logp;
     floatval_t init_logp = 0.;
     floatval_t best_logp = -DBL_MAX;
-    floatval_t eta = init_eta;
-    floatval_t best_eta = init_eta;
+    floatval_t eta = opt->calibration_eta;
+    floatval_t best_eta = opt->calibration_eta;
     floatval_t *w = crf1mt->w;
     const int N = crf1mt->num_sequences;
-    const int M = MIN(N, num_samples);
+    const int M = MIN(N, opt->calibration_samples);
+    const floatval_t init_eta = opt->calibration_eta;
+    const floatval_t rate = opt->calibration_rate;
+    const floatval_t lambda = opt->lambda;
 
 	logging(crf1mt->lg, "Calibrating the learning rate (eta)\n");
-    logging(crf1mt->lg, "Initial learning rate (eta): %f\n", init_eta);
-    logging(crf1mt->lg, "Rate of geometric progression: %f\n", factor);
+    logging(crf1mt->lg, "Initial learning rate (eta): %f\n", eta);
+    logging(crf1mt->lg, "Rate of geometric progression: %f\n", rate);
     logging(crf1mt->lg, "Number of instances for calibration: %d\n", M);
 
 	/* Initialize feature weights as zero. */
@@ -391,13 +392,13 @@ l2sgd_calibration(
 
         if (!dec) {
             if (ok) {
-                eta *= factor;
+                eta *= rate;
             } else {
                 dec = 1;
-                eta = init_eta / factor;
+                eta = init_eta / rate;
             }
         } else {
-            eta /= factor;
+            eta /= rate;
         }
 
         ++trials;
@@ -413,7 +414,23 @@ l2sgd_calibration(
     return 1.0 / (lambda * eta);
 }
 
-int crf1ml_lbfgs_sgd(
+int crf1ml_sgd_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
+{
+    crf1ml_sgd_option_t* sgd = &opt->sgd;
+
+	BEGIN_PARAM_MAP(params, mode)
+		DDX_PARAM_FLOAT("regularization.c", sgd->c, 1.)
+		DDX_PARAM_INT("sgd.max_iterations", sgd->max_iterations, 1000)
+		DDX_PARAM_FLOAT("sgd.calibration.eta", sgd->calibration_eta, 0.1)
+		DDX_PARAM_FLOAT("sgd.calibration.rate", sgd->calibration_rate, 2.)
+		DDX_PARAM_INT("sgd.calibration.samples", sgd->calibration_samples, 1000)
+        DDX_PARAM_INT("sgd.calibration.candidates", sgd->calibration_candidates, 10)
+	END_PARAM_MAP()
+
+	return 0;
+}
+
+int crf1ml_sgd(
     crf1ml_t* crf1mt,
     crf1ml_option_t *opt
     )
@@ -424,19 +441,16 @@ int crf1ml_lbfgs_sgd(
     clock_t clk_begin, clk_prev;
 	const int N = crf1mt->num_sequences;
     const int K = crf1mt->num_features;
+    crf1ml_sgd_option_t* sgdopt = &opt->sgd;
     sgd_internal_t sgd_internal;
 
-//    const double t0 = 20120;
-    // floatval_t t0 = 89360;
-    floatval_t t0;
-    //const double t0 = 10.120;
-    const floatval_t lambda = 1.0 / (1 * N);
-    floatval_t eta;
+    sgdopt->lambda = 2.0 * sgdopt->c / N;
+    //const floatval_t lambda = 1.0 / (1 * N);
 
     crf1mt->solver_data = &sgd_internal;
 
 	logging(crf1mt->lg, "Stochastic Gradient Descent (SGD)\n");
-    logging(crf1mt->lg, "lambda: %f\n", lambda);
+    logging(crf1mt->lg, "c: %f\n", sgdopt->c);
 	logging(crf1mt->lg, "\n");
     clk_begin = clock();
 
@@ -451,12 +465,20 @@ int crf1ml_lbfgs_sgd(
     perm = (int*)malloc(sizeof(int) * N);
     crf1ml_shuffle(perm, N, 1);
 
-    t0 = l2sgd_calibration(crf1mt, 10, 1000, 0.1, lambda, 2);
+    sgdopt->t0 = l2sgd_calibration(crf1mt, sgdopt);
 
     /* Initialize feature weights as zero. */
     initialize_weights(crf1mt);
 
-    l2sgd(crf1mt, perm, N, t0, lambda, 10, 0);
+    l2sgd(
+        crf1mt,
+        perm,
+        N,
+        sgdopt->t0,
+        sgdopt->lambda,
+        sgdopt->max_iterations,
+        0
+        );
 
 	logging(crf1mt->lg, "Total seconds required for SGD: %.3f\n", (clock() - clk_begin) / (double)CLOCKS_PER_SEC);
 	logging(crf1mt->lg, "\n");
