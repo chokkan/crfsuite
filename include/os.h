@@ -48,9 +48,10 @@ typedef double floatval_t;
 #define	_CRT_SECURE_NO_WARNINGS 1
 #pragma warning(disable : 4996)
 
-#define	alloca	_alloca
-#define	strdup	_strdup
-#define	open	_open
+#define	alloca	    _alloca
+#define	strdup	    _strdup
+#define	open	    _open
+#define isfinite    _finite
 
 #ifndef	__cplusplus
 /* Microsoft Visual C specific */

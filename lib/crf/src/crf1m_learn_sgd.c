@@ -374,7 +374,7 @@ l2sgd_calibration(
         initialize_weights(crf1mt);
 
         logp = l2sgd(crf1mt, perm, M, 1.0 / (lambda * eta), lambda, 1, 1);
-        ok = (init_logp < logp);
+        ok = isfinite(logp) && (init_logp < logp);
 
         if (ok) {
     	    logging(crf1mt->lg, "%f\n", logp);
@@ -451,6 +451,7 @@ int crf1ml_sgd(
 
 	logging(crf1mt->lg, "Stochastic Gradient Descent (SGD)\n");
     logging(crf1mt->lg, "c: %f\n", sgdopt->c);
+    logging(crf1mt->lg, "lambda: %f\n", sgdopt->lambda);
 	logging(crf1mt->lg, "\n");
     clk_begin = clock();
 
