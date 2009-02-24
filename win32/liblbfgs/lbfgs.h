@@ -2,7 +2,7 @@
  *      C library of Limited memory BFGS (L-BFGS).
  *
  * Copyright (c) 1990, Jorge Nocedal
- * Copyright (c) 2007,2008, Naoaki Okazaki
+ * Copyright (c) 2007,2008,2009 Naoaki Okazaki
  * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -153,9 +153,9 @@ enum {
     /** MoreThuente method proposd by More and Thuente. */
     LBFGS_LINESEARCH_MORETHUENTE = 0,
     /** Backtracking method with strong Wolfe condition. */
-    LBFGS_LINESEARCH_BACKTRACKING,
+    LBFGS_LINESEARCH_BACKTRACKING_STRONG,
     /** Backtracking method with regular Wolfe condition. */
-    LBFGS_LINESEARCH_BACKTRACKING_LOOSE,
+    LBFGS_LINESEARCH_BACKTRACKING,
 };
 
 /**
@@ -529,18 +529,29 @@ This library is used by:
 
 @section download Download
 
-- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.6.tar.gz">Source code</a>
+- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.7.tar.gz">Source code</a>
 
 libLBFGS is distributed under the term of the
 <a href="http://opensource.org/licenses/mit-license.php">MIT license</a>.
 
 @section changelog History
+- Version 1.7 (2009-02-23):
+    - Accurate calculation of the Armijo condition in the backtracking
+      algorithm for the OW-LQN method. This fix reduces the cases where
+      iteration processes stop before objective values are minimized well.
+    - Removed the support of OW-LQN method in MoreThuente algorithm because
+      the previous implementation did not calculate the Armijo condition
+      accurately. <b>The OW-LQN method must be used with the backtracking
+      algorithm (::LBFGS_LINESEARCH_BACKTRACKING).</b>
+    - Renamed line search algorithms as follows:
+        - ::LBFGS_LINESEARCH_BACKTRACKING: regular Wolfe condition.
+        - ::LBFGS_LINESEARCH_BACKTRACKING_STRONG: strong Wolfe condition.
 - Version 1.6 (2008-11-02):
     - Improved line-search algorithm with strong Wolfe condition, which was
       contributed by Takashi Imamichi. This routine is now default for
-      ::LBFGS_LINESEARCH_BACKTRACKING. The previous line search algorithm
+      ::LBFGS_LINESEARCH_BACKTRACKING_STRONG. The previous line search algorithm
       with regular Wolfe condition is still available as
-      ::LBFGS_LINESEARCH_BACKTRACKING_LOOSE.
+      ::LBFGS_LINESEARCH_BACKTRACKING.
     - Configurable stop index for L1-norm computation. A member variable
       ::lbfgs_parameter_t::orthantwise_end was added to specify the index
       number at which the library stops computing the L1 norm of the
@@ -563,7 +574,7 @@ libLBFGS is distributed under the term of the
     - Configurable line search algorithms. A member variable
       ::lbfgs_parameter_t::linesearch was added to choose either MoreThuente
       method (::LBFGS_LINESEARCH_MORETHUENTE) or backtracking algorithm
-      (::LBFGS_LINESEARCH_BACKTRACKING).
+      (::LBFGS_LINESEARCH_BACKTRACKING_STRONG).
     - Fixed a bug: the previous version did not compute psuedo-gradients
       properly in the line search routines for OWL-QN. This bug might quit
       an iteration process too early when the OWL-QN routine was activated
@@ -633,7 +644,7 @@ licence.
 @section reference Reference
 
 - <a href="http://www.ece.northwestern.edu/~nocedal/lbfgs.html">L-BFGS</a> by Jorge Nocedal.
-- <a href="http://research.microsoft.com/research/downloads/Details/3f1840b2-dbb3-45e5-91b0-5ecd94bb73cf/Details.aspx">OWL-QN</a> by Galen Andrew.
+- <a href="http://research.microsoft.com/en-us/downloads/b1eb1016-1738-4bd5-83a9-370c9d498a03/default.aspx">Orthant-Wise Limited-memory Quasi-Newton Optimizer for L1-regularized Objectives</a> by Galen Andrew.
 - <a href="http://chasen.org/~taku/software/misc/lbfgs/">C port (via f2c)</a> by Taku Kudo.
 - <a href="http://www.alglib.net/optimization/lbfgs.php">C#/C++/Delphi/VisualBasic6 port</a> in ALGLIB.
 - <a href="http://cctbx.sourceforge.net/">Computational Crystallography Toolbox</a> includes
