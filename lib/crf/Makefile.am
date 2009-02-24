@@ -15,6 +15,8 @@ libcrf_la_SOURCES = \
 	src/quark.h \
 	src/rumavl.c \
 	src/rumavl.h \
+	src/mt19937ar.c \
+	src/mt19937ar.h \
 	src/crf1m.c \
 	src/crf1m.h \
 	src/crf1m_context.c \

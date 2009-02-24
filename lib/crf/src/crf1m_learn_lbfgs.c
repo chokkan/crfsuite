@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include <time.h>
 
 #include <crf.h>
@@ -242,8 +243,8 @@ int crf1ml_lbfgs(
 	lbfgsparam.max_iterations = lbfgsopt->max_iterations;
     if (strcmp(lbfgsopt->linesearch, "Backtracking") == 0) {
         lbfgsparam.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
-    } else if (strcmp(lbfgsopt->linesearch, "LooseBacktracking") == 0) {
-        lbfgsparam.linesearch = LBFGS_LINESEARCH_BACKTRACKING_LOOSE;
+    } else if (strcmp(lbfgsopt->linesearch, "StrongBacktracking") == 0) {
+        lbfgsparam.linesearch = LBFGS_LINESEARCH_BACKTRACKING_STRONG;
     } else {
         lbfgsparam.linesearch = LBFGS_LINESEARCH_MORETHUENTE;
     }

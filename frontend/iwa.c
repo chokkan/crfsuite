@@ -202,7 +202,7 @@ static int read_item(iwa_t* iwa)
 {
 	int c;
 	
-	read_field_unquoted(iwa, &iwa->attr);
+	read_field_quoted(iwa, &iwa->attr);
 
 	/* Check the character just after the attribute field is terminated. */
 	c = peek_char(iwa);
@@ -210,7 +210,7 @@ static int read_item(iwa_t* iwa)
 		/* Discard the colon. */
 		get_char(iwa);
 
-		read_field_unquoted(iwa, &iwa->value);
+		read_field_quoted(iwa, &iwa->value);
 
 		c = peek_char(iwa);
 		if (c == ':') {
