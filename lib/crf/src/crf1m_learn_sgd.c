@@ -98,7 +98,6 @@
 #include "crf1m.h"
 
 #define MIN(a, b)   ((a) < (b) ? (a) : (b))
-#define ISFINITE(x) ((x) - (x) == 0)
 
 typedef struct {
     /** The square of the feature L2 norm. */
@@ -375,7 +374,7 @@ l2sgd_calibration(
         initialize_weights(crf1mt);
 
         logp = l2sgd(crf1mt, perm, M, 1.0 / (lambda * eta), lambda, 1, 1);
-        ok = ISFINITE(logp) && (init_logp < logp);
+        ok = isfinite(logp) && (init_logp < logp);
 
         if (ok) {
     	    logging(crf1mt->lg, "%f\n", logp);
