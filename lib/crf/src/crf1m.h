@@ -276,6 +276,8 @@ typedef struct {
     floatval_t  lambda;
     floatval_t  t0;
     int         max_iterations;
+    int         period;
+    floatval_t  delta;
     floatval_t  calibration_eta;
     floatval_t  calibration_rate;
     int         calibration_samples;

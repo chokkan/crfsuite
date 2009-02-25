@@ -233,10 +233,12 @@ static floatval_t l2sgd(
     const floatval_t t0,
     const floatval_t lambda,
     const int num_epochs,
-    int calibration
+    int calibration,
+    int period,
+    const floatval_t epsilon
     )
 {
-    int epoch, i;
+    int i, epoch;
     floatval_t t = 0;
     floatval_t logp = 0;
     clock_t clk_prev;
@@ -246,6 +248,8 @@ static floatval_t l2sgd(
     floatval_t eta, scale, boundary;
     floatval_t decay = 1., proj = 1.;
     sgd_internal_t* sgdi = SGD_INTERNAL(crf1mt);
+    floatval_t sma = 0.;
+    floatval_t *pf = (floatval_t*)alloca(sizeof(floatval_t) * period);
 
     /* Loop for epochs. */
     for (epoch = 1;epoch <= num_epochs;++epoch) {
@@ -322,6 +326,26 @@ static floatval_t l2sgd(
 		        int ret = crf1mt->cbe_proc(crf1mt->cbe_instance, &crf1mt->tagger);
 	        }
 
+            /* We don't test the stopping criterion while period < epoch. */
+            if (period < epoch) {
+                /* Compute the simple moving average. */
+                sma = 0.;
+                for (i = 0;i < period;++i) {
+                    sma += pf[i];
+                }
+                sma /= period;
+
+      	        logging(crf1mt->lg, "Improvement: %.3f\n", (logp - sma) / logp);
+
+                /* Compute the relative improvement from the past. */
+                if ((logp - sma) / logp < epsilon) {
+                    break;
+                }
+            }
+
+            /* Store the current value of the objective function. */
+            pf[(epoch-1) % period] = logp;
+
 	        logging(crf1mt->lg, "\n");
         }
     }
@@ -354,13 +378,14 @@ l2sgd_calibration(
     logging(crf1mt->lg, "Initial learning rate (eta): %f\n", eta);
     logging(crf1mt->lg, "Rate of geometric progression: %f\n", rate);
     logging(crf1mt->lg, "Number of instances for calibration: %d\n", M);
-
-	/* Initialize feature weights as zero. */
-    initialize_weights(crf1mt);
+    logging(crf1mt->lg, "Number of possible candidates for eta: %d\n", num_candidates);
 
     /* Initialize a permutation that shuffles the instances. */
     perm = (int*)malloc(sizeof(int) * N);
     crf1ml_shuffle(perm, N, 1);
+
+	/* Initialize feature weights as zero. */
+    initialize_weights(crf1mt);
 
     /* Compute the initial log likelihood. */
     init_logp = compute_loglikelihood(crf1mt, perm, M, lambda);
@@ -373,13 +398,15 @@ l2sgd_calibration(
 	    /* Initialize feature weights as zero. */
         initialize_weights(crf1mt);
 
-        logp = l2sgd(crf1mt, perm, M, 1.0 / (lambda * eta), lambda, 1, 1);
-        ok = isfinite(logp) && (init_logp < logp);
+        /* Perform SGD for one epoch. */
+        logp = l2sgd(crf1mt, perm, M, 1.0 / (lambda * eta), lambda, 1, 1, 1, 0.);
 
+        /* Make sure that the learning rate decreases the log-likelihood. */
+        ok = isfinite(logp) && (init_logp < logp);
         if (ok) {
     	    logging(crf1mt->lg, "%f\n", logp);
         } else {
-    	    logging(crf1mt->lg, "%f (inc)\n", logp);
+    	    logging(crf1mt->lg, "%f (worse)\n", logp);
         }
 
         if (ok) {
@@ -404,12 +431,11 @@ l2sgd_calibration(
         ++trials;
     }
 
-    free(perm);
-
     eta = best_eta;
-
     logging(crf1mt->lg, "Best learning rate (eta): %f\n", eta);
     logging(crf1mt->lg, "\n");
+
+    free(perm);
 
     return 1.0 / (lambda * eta);
 }
@@ -421,6 +447,8 @@ int crf1ml_sgd_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
 	BEGIN_PARAM_MAP(params, mode)
 		DDX_PARAM_FLOAT("regularization.c", sgd->c, 1.)
 		DDX_PARAM_INT("sgd.max_iterations", sgd->max_iterations, 1000)
+		DDX_PARAM_INT("sgd.period", sgd->period, 10)
+		DDX_PARAM_INT("sgd.delta", sgd->delta, 0.01)
 		DDX_PARAM_FLOAT("sgd.calibration.eta", sgd->calibration_eta, 0.1)
 		DDX_PARAM_FLOAT("sgd.calibration.rate", sgd->calibration_rate, 2.)
 		DDX_PARAM_INT("sgd.calibration.samples", sgd->calibration_samples, 1000)
@@ -444,33 +472,27 @@ int crf1ml_sgd(
     crf1ml_sgd_option_t* sgdopt = &opt->sgd;
     sgd_internal_t sgd_internal;
 
-    sgdopt->lambda = 2.0 * sgdopt->c / N;
-    //const floatval_t lambda = 1.0 / (1 * N);
-
+    /* Set the solver-specific information. */
     crf1mt->solver_data = &sgd_internal;
 
+    sgdopt->lambda = 2.0 * sgdopt->c / N;
+
 	logging(crf1mt->lg, "Stochastic Gradient Descent (SGD)\n");
-    logging(crf1mt->lg, "c: %f\n", sgdopt->c);
-    logging(crf1mt->lg, "lambda: %f\n", sgdopt->lambda);
+    logging(crf1mt->lg, "regularization.c: %f\n", sgdopt->c);
 	logging(crf1mt->lg, "\n");
     clk_begin = clock();
 
-	/*
-		Initialize feature weights as zero.
-	 */
-    initialize_weights(crf1mt);
+    /* Calibrate the training rate (eta). */
+    sgdopt->t0 = l2sgd_calibration(crf1mt, sgdopt);
 
-    /*
-        Initialize a permutation that shuffles the instances.
-     */
+    /* Initialize a permutation that shuffles the instances. */
     perm = (int*)malloc(sizeof(int) * N);
     crf1ml_shuffle(perm, N, 1);
-
-    sgdopt->t0 = l2sgd_calibration(crf1mt, sgdopt);
 
     /* Initialize feature weights as zero. */
     initialize_weights(crf1mt);
 
+    /* Perform stochastic gradient descent. */
     l2sgd(
         crf1mt,
         perm,
@@ -478,7 +500,9 @@ int crf1ml_sgd(
         sgdopt->t0,
         sgdopt->lambda,
         sgdopt->max_iterations,
-        0
+        0,
+        sgdopt->period,
+        sgdopt->delta
         );
 
 	logging(crf1mt->lg, "Total seconds required for SGD: %.3f\n", (clock() - clk_begin) / (double)CLOCKS_PER_SEC);
