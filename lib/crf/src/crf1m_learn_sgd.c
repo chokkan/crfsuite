@@ -248,7 +248,7 @@ static floatval_t l2sgd(
     floatval_t eta, scale, boundary;
     floatval_t decay = 1., proj = 1.;
     sgd_internal_t* sgdi = SGD_INTERNAL(crf1mt);
-    floatval_t sma = 0.;
+    floatval_t sma = 0., improvement = 0.;
     floatval_t *pf = NULL;
 
     if (!calibration) {
@@ -318,7 +318,24 @@ static floatval_t l2sgd(
 
         /* One epoch finished. */
         if (!calibration) {
-    	    logging(crf1mt->lg, "Log-likelihood: %f\n", logp);
+            /* We don't test the stopping criterion while period < epoch. */
+            if (period < epoch) {
+                /* Compute the simple moving average. */
+                sma = 0.;
+                for (i = 0;i < period;++i) {
+                    sma += pf[i];
+                }
+                sma /= period;
+                improvement = (sma - logp) / logp;
+            }
+
+            /* Store the current value of the objective function. */
+            pf[(epoch-1) % period] = logp;
+
+            logging(crf1mt->lg, "Log-likelihood: %f\n", logp);
+            if (period < epoch) {
+                logging(crf1mt->lg, "Improvement ratio: %f\n", improvement);
+            }
     	    logging(crf1mt->lg, "Feature L2-norm: %f\n", sqrt(sgdi->norm2) * scale);
     	    logging(crf1mt->lg, "Learning rate (eta): %f\n", eta);
             logging(crf1mt->lg, "Total number of feature updates: %f\n", t);
@@ -330,27 +347,12 @@ static floatval_t l2sgd(
 		        int ret = crf1mt->cbe_proc(crf1mt->cbe_instance, &crf1mt->tagger);
 	        }
 
-            /* We don't test the stopping criterion while period < epoch. */
-            if (period < epoch) {
-                /* Compute the simple moving average. */
-                sma = 0.;
-                for (i = 0;i < period;++i) {
-                    sma += pf[i];
-                }
-                sma /= period;
-
-      	        logging(crf1mt->lg, "Improvement: %f\n", (sma - logp) / logp);
-
-                /* Compute the relative improvement from the past. */
-                if ((sma - logp) / logp < epsilon) {
-                    break;
-                }
-            }
-
-            /* Store the current value of the objective function. */
-            pf[(epoch-1) % period] = logp;
-
 	        logging(crf1mt->lg, "\n");
+
+            /* Check for the stopping criterion. */
+            if (improvement < epsilon) {
+                break;
+            }
         }
     }
 
@@ -454,7 +456,7 @@ int crf1ml_sgd_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
 		DDX_PARAM_FLOAT("regularization.c", sgd->c, 1.)
 		DDX_PARAM_INT("sgd.max_iterations", sgd->max_iterations, 1000)
 		DDX_PARAM_INT("sgd.period", sgd->period, 10)
-		DDX_PARAM_INT("sgd.delta", sgd->delta, 0.01)
+		DDX_PARAM_FLOAT("sgd.delta", sgd->delta, 1e-6)
 		DDX_PARAM_FLOAT("sgd.calibration.eta", sgd->calibration_eta, 0.1)
 		DDX_PARAM_FLOAT("sgd.calibration.rate", sgd->calibration_rate, 2.)
 		DDX_PARAM_INT("sgd.calibration.samples", sgd->calibration_samples, 1000)
