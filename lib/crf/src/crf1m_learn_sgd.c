@@ -339,7 +339,7 @@ static floatval_t l2sgd(
                 }
                 sma /= period;
 
-      	        logging(crf1mt->lg, "Improvement: %.3f\n", (logp - sma) / logp);
+      	        logging(crf1mt->lg, "Improvement: %f\n", (sma - logp) / logp);
 
                 /* Compute the relative improvement from the past. */
                 if ((sma - logp) / logp < epsilon) {
