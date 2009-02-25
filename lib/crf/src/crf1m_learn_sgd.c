@@ -318,6 +318,8 @@ static floatval_t l2sgd(
 
         /* One epoch finished. */
         if (!calibration) {
+            improvement = epsilon;
+
             /* We don't test the stopping criterion while period < epoch. */
             if (period < epoch) {
                 /* Compute the simple moving average. */
