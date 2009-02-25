@@ -249,7 +249,11 @@ static floatval_t l2sgd(
     floatval_t decay = 1., proj = 1.;
     sgd_internal_t* sgdi = SGD_INTERNAL(crf1mt);
     floatval_t sma = 0.;
-    floatval_t *pf = (floatval_t*)alloca(sizeof(floatval_t) * period);
+    floatval_t *pf = NULL;
+
+    if (!calibration) {
+        pf = (floatval_t*)malloc(sizeof(floatval_t) * period);
+    }
 
     /* Loop for epochs. */
     for (epoch = 1;epoch <= num_epochs;++epoch) {
@@ -349,6 +353,8 @@ static floatval_t l2sgd(
 	        logging(crf1mt->lg, "\n");
         }
     }
+
+    free(pf);
 
     return logp;
 }
