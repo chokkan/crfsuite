@@ -164,27 +164,26 @@ static int read_comment(iwa_t* iwa, iwa_string_t* str)
 	return c;
 }
 
-static void read_field_quoted(iwa_t* iwa, iwa_string_t* str)
+static void read_field_unescaped(iwa_t* iwa, iwa_string_t* str)
 {
-	/* Read until a tab or br character. */
-	for (;;) {
-		int c = peek_char(iwa);
-
-		if (c == EOF || c == '\t' || c == '\n') {
-			break;
-		}
-
-        get_char(iwa);
-
-		if (c == '\\') {
-			int e = peek_char(iwa);
-            if (e == '\\' || e == ':') {
-    			c = get_char(iwa);
-			}
-		}
-
+	int c, d;
+	/* Read until a colon, space, tab, or break-line character. */
+	while (c = peek_char(iwa), c != ':' && c != '\t' && c != '\n' && c != EOF) {
+		get_char(iwa);
+        if (c == '\\') {
+            /* Possibly a escape sequence. */
+            d = peek_char(iwa);
+            switch (d) {
+            case ':':
+            case '\\':
+                c = d;
+                get_char(iwa);
+                break;
+            }
+        }
 		string_append(str, c);
 	}
+	/* The input stream points to the character just after the field is terminated. */
 }
 
 static void read_field_unquoted(iwa_t* iwa, iwa_string_t* str)
@@ -202,7 +201,7 @@ static int read_item(iwa_t* iwa)
 {
 	int c;
 	
-	read_field_unquoted(iwa, &iwa->attr);
+	read_field_unescaped(iwa, &iwa->attr);
 
 	/* Check the character just after the attribute field is terminated. */
 	c = peek_char(iwa);
@@ -210,7 +209,7 @@ static int read_item(iwa_t* iwa)
 		/* Discard the colon. */
 		get_char(iwa);
 
-		read_field_unquoted(iwa, &iwa->value);
+		read_field_unescaped(iwa, &iwa->value);
 
 		c = peek_char(iwa);
 		if (c == ':') {
