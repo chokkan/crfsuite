@@ -32,7 +32,8 @@ def output_features(fo, seq):
     fo.write('\n')
 
 def encode(x):
-    x = x.replace(':', '-COLON-')
+    x = x.replace('\\', '\\\\')
+    x = x.replace(':', '\\:')
     return x
     
 fi = sys.stdin
@@ -50,4 +51,4 @@ for line in fi:
         seq = [d, d]
     else:
         fields = line.strip('\n').split(' ')
-        seq.append((fields[0], encode(fields[1]), encode(fields[2])))
+        seq.append((encode(fields[0]), encode(fields[1]), encode(fields[2])))
