@@ -553,13 +553,33 @@ error_exit:
 static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
 {
 	BEGIN_PARAM_MAP(params, mode)
-        DDX_PARAM_STRING("algorithm", opt->algorithm, "lbfgs")
-		DDX_PARAM_FLOAT("feature.minfreq", opt->feature_minfreq, 0.0)
-		DDX_PARAM_INT("feature.possible_states", opt->feature_possible_states, 0)
-		DDX_PARAM_INT("feature.possible_transitions", opt->feature_possible_transitions, 0)
-		DDX_PARAM_INT("feature.bos_eos", opt->feature_bos_eos, 1)
-		DDX_PARAM_STRING("regularization", opt->regularization, "L2")
-		DDX_PARAM_FLOAT("regularization.sigma", opt->regularization_sigma, 10.0)
+        DDX_PARAM_STRING(
+            "algorithm", opt->algorithm, "lbfgs",
+            "The training algorithm."
+            )
+		DDX_PARAM_FLOAT(
+            "feature.minfreq", opt->feature_minfreq, 0.0,
+            "The minimum frequency of features."
+            )
+		DDX_PARAM_INT(
+            "feature.possible_states", opt->feature_possible_states, 0,
+            "Force to generate possible state features."
+            )
+		DDX_PARAM_INT(
+            "feature.possible_transitions", opt->feature_possible_transitions, 0,
+            "Force to generate possible transition features."
+            )
+		DDX_PARAM_INT("feature.bos_eos", opt->feature_bos_eos, 1,
+            "Generate BOS/EOS features."
+            )
+		DDX_PARAM_STRING(
+            "regularization", opt->regularization, "L2",
+            "Specify the regularization type."
+            )
+		DDX_PARAM_FLOAT(
+            "regularization.sigma", opt->regularization_sigma, 10.0,
+            "Specify the regularization constant."
+            )
 	END_PARAM_MAP()
 
     crf1ml_lbfgs_options(params, opt, mode);

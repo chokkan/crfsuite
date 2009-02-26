@@ -197,13 +197,37 @@ int crf1ml_lbfgs_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
     crf1ml_lbfgs_option_t* lbfgs = &opt->lbfgs;
 
 	BEGIN_PARAM_MAP(params, mode)
-		DDX_PARAM_INT("lbfgs.max_iterations", lbfgs->max_iterations, INT_MAX)
-		DDX_PARAM_INT("lbfgs.num_memories", lbfgs->memory, 6)
-		DDX_PARAM_FLOAT("lbfgs.epsilon", lbfgs->epsilon, 1e-5)
-		DDX_PARAM_INT("lbfgs.stop", lbfgs->stop, 10)
-		DDX_PARAM_FLOAT("lbfgs.delta", lbfgs->delta, 1e-5)
-		DDX_PARAM_STRING("lbfgs.linesearch", lbfgs->linesearch, "MoreThuente")
-		DDX_PARAM_INT("lbfgs.linesearch.max_iterations", lbfgs->linesearch_max_iterations, 20)
+		DDX_PARAM_INT(
+            "lbfgs.max_iterations", lbfgs->max_iterations, INT_MAX,
+            "The maximum number of L-BFGS iterations."
+            )
+		DDX_PARAM_INT(
+            "lbfgs.num_memories", lbfgs->memory, 6,
+            "The number of corrections to approximate the inverse hessian matrix."
+            )
+		DDX_PARAM_FLOAT(
+            "lbfgs.epsilon", lbfgs->epsilon, 1e-5,
+            "Epsilon for testing the convergence of the objective."
+            )
+		DDX_PARAM_INT(
+            "lbfgs.stop", lbfgs->stop, 10,
+            "The duration of iterations to test the stopping criterion."
+            )
+		DDX_PARAM_FLOAT(
+            "lbfgs.delta", lbfgs->delta, 1e-5,
+            "The threshold for the stopping criterion; an L-BFGS iteration stops when the\n"
+            "improvement of the log likelihood over the last ${lbfgs.stop} iterations is\n"
+            "no greater than this threshold."
+            )
+		DDX_PARAM_STRING(
+            "lbfgs.linesearch", lbfgs->linesearch, "MoreThuente",
+            "The line search algorithm used in L-BFGS updates:\n"
+            "{'MoreThuente': More and Thuente's method, 'Backtracking': backtracking}"
+            )
+		DDX_PARAM_INT(
+            "lbfgs.linesearch.max_iterations", lbfgs->linesearch_max_iterations, 20,
+            "The maximum number of trials for the line search algorithm."
+            )
 	END_PARAM_MAP()
 
 	return 0;

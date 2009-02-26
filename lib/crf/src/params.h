@@ -48,7 +48,7 @@ int params_add_string(crf_params_t* params, const char *name, const char *value)
 #define	END_PARAM_MAP() \
 	} while (0) ;
 
-#define	DDX_PARAM_INT(name, var, defval) \
+#define	DDX_PARAM_INT(name, var, defval, help) \
 	if (__mode < 0) \
 		__ret = __params->get_int(__params, name, &var); \
 	else if (__mode > 0) \
@@ -56,7 +56,7 @@ int params_add_string(crf_params_t* params, const char *name, const char *value)
 	else \
 		__ret = params_add_int(__params, name, defval);
 
-#define	DDX_PARAM_FLOAT(name, var, defval) \
+#define	DDX_PARAM_FLOAT(name, var, defval, help) \
 	if (__mode < 0) \
 		__ret = __params->get_float(__params, name, &var); \
 	else if (__mode > 0) \
@@ -64,7 +64,7 @@ int params_add_string(crf_params_t* params, const char *name, const char *value)
 	else \
 		__ret = params_add_float(__params, name, defval);
 
-#define	DDX_PARAM_STRING(name, var, defval) \
+#define	DDX_PARAM_STRING(name, var, defval, help) \
 	if (__mode < 0) \
 		__ret = __params->get_string(__params, name, &var); \
 	else if (__mode > 0) \

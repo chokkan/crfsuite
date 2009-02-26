@@ -34,47 +34,60 @@
 /*
     SGD for L2-regularized MAP estimation.
 
-    The iterative algorithm is based on Pegasos:
+    The iterative algorithm is inspired by Pegasos:
 
     Shai Shalev-Shwartz, Yoram Singer, and Nathan Srebro.
     Pegasos: Primal Estimated sub-GrAdient SOlver for SVM.
     In Proc. of ICML 2007, pp 807-814, 2007.
 
-    The objective function to minimize:
+    The calibration strategy is inspired by the implementation of sgd:
+    http://leon.bottou.org/projects/sgd
+    written by Léon Bottou.
+
+    The objective function to minimize is:
         
         f(w) = (lambda/2) * ||w||^2 + (1/N) * \sum_i^N log P^i(y|x)
+        lambda = 2 * C / N
 
-    The Pegasos algorithm.
+    The original version of the Pegasos algorithm.
 
     0) Initialization
-        t = 0
+        t = t0
+        k = [the batch size]
     1) Computing the learning rate (eta).
         eta = 1 / (lambda * t)
-    2) Updating the feature weights.
-        w = (1 - eta * lambda) w + (eta / k) \sum_i (oexp - mexp)
-    3) Projecting the feature weights within L2-ball.
+    2) Updating feature weights.
+        w = (1 - eta * lambda) w - (eta / k) \sum_i (oexp - mexp)
+    3) Projecting feature weights within an L2-ball.
         w = min{1, (1/sqrt(lambda))/||w||} * w
     4) Goto 1 until convergence.
 
-    0)
+    A naive implementation requires O(K) computations for steps 2 and 3,
+    where K is the total number of features. This code implements the procedure
+    in an efficient way:
+
+    0) Initialization
+        norm2 = 0
         decay = 1
-        scale = 1
-    1)
+        proj = 1
+    1) Computing various factors
         eta = 1 / (lambda * t)
         decay *= (1 - eta * lambda)
-        gain = (eta / k) / (decay * scale)
-    2)
-        norm2 -= w * w
-        w -= gain * P(y|x) * f(x,y)
-        norm2 += w * w
-        norm2 -= w * w
-        w += gain * f(x, y)
-        norm2 += w * w
-    3)
-        if norm2 * decay^2 * scale^2 * lambda > 1:
-            scale = 1 / (sqrt(norm2 * lambda) * decay * scale)
-
-        
+        scale = decay * proj
+        gain = (eta / k) / scale
+    2) Updating feature weights
+        Updating feature weights from observation expectation:
+            delta = gain * (-1.0) * f(x,y)
+            norm2 += delta * (delta + w + w);
+            w += delta
+        Updating feature weights from model expectation:
+            delta = gain * P(y|x) * f(x,y)
+            norm2 += delta * (delta + w + w);
+            w += delta
+    3) Projecting feature weights within an L2-ball
+        If 1.0 / lambda < norm2 * scale * scale:
+            proj = 1.0 / (sqrt(norm2 * lambda) * scale)
+    4) Goto 1 until convergence.
 */
 
 
@@ -146,7 +159,7 @@ inline static void update_feature_weights(
     floatval_t *w = trainer->w;
     sgd_internal_t* sgdi = SGD_INTERNAL(trainer);
 
-    // Subtract the model expectation from the weight.
+    /* Subtract the observation expectation from the weight. */
     update_weight(sgdi, w, fid, -sgdi->gain * prob * scale);
 
     switch (f->type) {
@@ -171,14 +184,6 @@ inline static void update_feature_weights(
             update_weight(sgdi, w, fid, sgdi->gain * scale);
         }
         break;
-    }
-}
-
-void scale_weights(floatval_t* w, const int n, const floatval_t scale)
-{
-    int i;
-    for (i = 0;i < n;++i) {
-        w[i] *= scale;
     }
 }
 
@@ -221,12 +226,12 @@ compute_loglikelihood(
         norm += w[i] * w[i];
     }
 
-    return logp - lambda / 2 * norm;
+    return logp - 0.5 * lambda * norm * N;
 }
 
 
 
-static floatval_t l2sgd(
+static int l2sgd(
     crf1ml_t* crf1mt,
     int *perm,
     const int N,
@@ -235,10 +240,11 @@ static floatval_t l2sgd(
     const int num_epochs,
     int calibration,
     int period,
-    const floatval_t epsilon
+    const floatval_t epsilon,
+    floatval_t *ptr_logp
     )
 {
-    int i, epoch;
+    int i, epoch, ret = 0;
     floatval_t t = 0;
     floatval_t logp = 0;
     clock_t clk_prev;
@@ -306,12 +312,21 @@ static floatval_t l2sgd(
             ++t;
         }
 
+        /* Terminate when the log probability is abnormal (NaN, -Inf, +Inf). */
+        if (!isfinite(logp)) {
+            ret = CRFERR_OVERFLOW;
+            break;
+        }
+
         /* Include the L2 norm of feature weights to the objective. */
-        logp -= lambda / 2 * sgdi->norm2 * scale * scale * N;
+        /* The factor N is necessary because lambda = 2 * C / N. */
+        logp -= 0.5 * lambda * sgdi->norm2 * scale * scale * N;
 
         /* Prevent the scale factor being too small. */
         if (scale < 1e-20) {
-            scale_weights(w, K, scale);
+            for (i = 0;i < K;++i) {
+                w[i] *= scale;
+            }
             decay = 1.;
             proj = 1.;
         }
@@ -360,7 +375,10 @@ static floatval_t l2sgd(
 
     free(pf);
 
-    return logp;
+    if (ptr_logp != NULL) {
+        *ptr_logp = logp;
+    }
+    return ret;
 }
 
 static floatval_t
@@ -385,10 +403,10 @@ l2sgd_calibration(
     const floatval_t lambda = opt->lambda;
 
 	logging(crf1mt->lg, "Calibrating the learning rate (eta)\n");
-    logging(crf1mt->lg, "Initial learning rate (eta): %f\n", eta);
-    logging(crf1mt->lg, "Rate of geometric progression: %f\n", rate);
-    logging(crf1mt->lg, "Number of instances for calibration: %d\n", M);
-    logging(crf1mt->lg, "Number of possible candidates for eta: %d\n", num_candidates);
+    logging(crf1mt->lg, "sgd.calibration.eta: %f\n", eta);
+    logging(crf1mt->lg, "sgd.calibration.rate: %f\n", rate);
+    logging(crf1mt->lg, "sgd.calibration.samples: %d\n", M);
+    logging(crf1mt->lg, "sgd.calibration.candidates: %d\n", num_candidates);
 
     /* Initialize a permutation that shuffles the instances. */
     perm = (int*)malloc(sizeof(int) * N);
@@ -409,7 +427,7 @@ l2sgd_calibration(
         initialize_weights(crf1mt);
 
         /* Perform SGD for one epoch. */
-        logp = l2sgd(crf1mt, perm, M, 1.0 / (lambda * eta), lambda, 1, 1, 1, 0.);
+        l2sgd(crf1mt, perm, M, 1.0 / (lambda * eta), lambda, 1, 1, 1, 0., &logp);
 
         /* Make sure that the learning rate decreases the log-likelihood. */
         ok = isfinite(logp) && (init_logp < logp);
@@ -455,14 +473,38 @@ int crf1ml_sgd_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
     crf1ml_sgd_option_t* sgd = &opt->sgd;
 
 	BEGIN_PARAM_MAP(params, mode)
-		DDX_PARAM_FLOAT("regularization.c", sgd->c, 1.)
-		DDX_PARAM_INT("sgd.max_iterations", sgd->max_iterations, 1000)
-		DDX_PARAM_INT("sgd.period", sgd->period, 10)
-		DDX_PARAM_FLOAT("sgd.delta", sgd->delta, 1e-6)
-		DDX_PARAM_FLOAT("sgd.calibration.eta", sgd->calibration_eta, 0.1)
-		DDX_PARAM_FLOAT("sgd.calibration.rate", sgd->calibration_rate, 2.)
-		DDX_PARAM_INT("sgd.calibration.samples", sgd->calibration_samples, 1000)
-        DDX_PARAM_INT("sgd.calibration.candidates", sgd->calibration_candidates, 10)
+		DDX_PARAM_FLOAT(
+            "regularization.c", sgd->c, 1.,
+            ""
+            )
+		DDX_PARAM_INT(
+            "sgd.max_iterations", sgd->max_iterations, 1000,
+            ""
+            )
+		DDX_PARAM_INT(
+            "sgd.period", sgd->period, 10,
+            ""
+            )
+		DDX_PARAM_FLOAT(
+            "sgd.delta", sgd->delta, 1e-6,
+            ""
+            )
+		DDX_PARAM_FLOAT(
+            "sgd.calibration.eta", sgd->calibration_eta, 0.1,
+            ""
+            )
+		DDX_PARAM_FLOAT(
+            "sgd.calibration.rate", sgd->calibration_rate, 2.,
+            ""
+            )
+		DDX_PARAM_INT(
+            "sgd.calibration.samples", sgd->calibration_samples, 1000,
+            ""
+            )
+        DDX_PARAM_INT(
+            "sgd.calibration.candidates", sgd->calibration_candidates, 10,
+            ""
+            )
 	END_PARAM_MAP()
 
 	return 0;
@@ -473,7 +515,7 @@ int crf1ml_sgd(
     crf1ml_option_t *opt
     )
 {
-    int i;
+    int i, ret = 0;
     int *perm = NULL;
     floatval_t logp = 0;
     clock_t clk_begin, clk_prev;
@@ -503,7 +545,7 @@ int crf1ml_sgd(
     initialize_weights(crf1mt);
 
     /* Perform stochastic gradient descent. */
-    l2sgd(
+    ret = l2sgd(
         crf1mt,
         perm,
         N,
@@ -512,7 +554,8 @@ int crf1ml_sgd(
         sgdopt->max_iterations,
         0,
         sgdopt->period,
-        sgdopt->delta
+        sgdopt->delta,
+        NULL
         );
 
 	logging(crf1mt->lg, "Total seconds required for SGD: %.3f\n", (clock() - clk_begin) / (double)CLOCKS_PER_SEC);
@@ -520,5 +563,5 @@ int crf1ml_sgd(
 
     free(perm);
 
-    return 0;
+    return ret;
 }
