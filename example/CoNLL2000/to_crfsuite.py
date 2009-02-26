@@ -32,8 +32,7 @@ def output_features(fo, seq):
     fo.write('\n')
 
 def encode(x):
-    x = x.replace(':', '\\:')
-    x = x.replace('\\', '\\\\')
+    x = x.replace(':', '-COLON-')
     return x
     
 fi = sys.stdin
