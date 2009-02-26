@@ -307,7 +307,7 @@ static floatval_t l2sgd(
         }
 
         /* Include the L2 norm of feature weights to the objective. */
-        logp -= lambda / 2 * sgdi->norm2 * scale * scale;
+        logp -= lambda / 2 * sgdi->norm2 * scale * scale * N;
 
         /* Prevent the scale factor being too small. */
         if (scale < 1e-20) {
