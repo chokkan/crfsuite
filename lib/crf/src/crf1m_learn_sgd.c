@@ -254,7 +254,7 @@ static int l2sgd(
     floatval_t eta, scale, boundary;
     floatval_t decay = 1., proj = 1.;
     sgd_internal_t* sgdi = SGD_INTERNAL(crf1mt);
-    floatval_t sma = 0., improvement = 0.;
+    floatval_t improvement = 0.;
     floatval_t *pf = NULL;
 
     if (!calibration) {
@@ -337,13 +337,7 @@ static int l2sgd(
 
             /* We don't test the stopping criterion while period < epoch. */
             if (period < epoch) {
-                /* Compute the simple moving average. */
-                sma = 0.;
-                for (i = 0;i < period;++i) {
-                    sma += pf[i];
-                }
-                sma /= period;
-                improvement = (sma - logp) / logp;
+                improvement = (pf[(epoch-1) % period] - logp) / logp;
             }
 
             /* Store the current value of the objective function. */
