@@ -51,6 +51,8 @@
 #include <lbfgs.h>
 
 typedef struct {
+	int l2_regularization;
+	floatval_t sigma2inv;
     floatval_t* g;
 } lbfgs_internal_t;
 
@@ -133,13 +135,13 @@ static lbfgsfloatval_t lbfgs_evaluate(
 		L2 regularization.
 		Note that we *add* the (w * sigma) to g[i].
 	 */
-	if (crf1mt->l2_regularization) {
+	if (lbfgsi->l2_regularization) {
 		for (i = 0;i < crf1mt->num_features;++i) {
 			const crf1ml_feature_t* f = &crf1mt->features[i];
-			g[i] += (crf1mt->sigma2inv * x[i]);
+			g[i] += (lbfgsi->sigma2inv * x[i]);
 			norm += x[i] * x[i];
 		}
-		logl -= (crf1mt->sigma2inv * norm * 0.5);
+		logl -= (lbfgsi->sigma2inv * norm * 0.5);
 	}
 
 	return -logl;
@@ -197,6 +199,14 @@ int crf1ml_lbfgs_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
     crf1ml_lbfgs_option_t* lbfgs = &opt->lbfgs;
 
 	BEGIN_PARAM_MAP(params, mode)
+		DDX_PARAM_STRING(
+            "regularization", lbfgs->regularization, "L2",
+            "Specify the regularization type."
+            )
+		DDX_PARAM_FLOAT(
+            "regularization.sigma", lbfgs->regularization_sigma, 10.0,
+            "Specify the regularization constant."
+            )
 		DDX_PARAM_INT(
             "lbfgs.max_iterations", lbfgs->max_iterations, INT_MAX,
             "The maximum number of L-BFGS iterations."
@@ -250,6 +260,8 @@ int crf1ml_lbfgs(
 	lbfgs_parameter_init(&lbfgsparam);
 
 	logging(crf1mt->lg, "L-BFGS optimization\n");
+	logging(crf1mt->lg, "regularization: %s\n", lbfgsopt->regularization);
+	logging(crf1mt->lg, "regularization.sigma: %f\n", lbfgsopt->regularization_sigma);
 	logging(crf1mt->lg, "lbfgs.num_memories: %d\n", lbfgsopt->memory);
 	logging(crf1mt->lg, "lbfgs.max_iterations: %d\n", lbfgsopt->max_iterations);
 	logging(crf1mt->lg, "lbfgs.epsilon: %f\n", lbfgsopt->epsilon);
@@ -275,15 +287,16 @@ int crf1ml_lbfgs(
     lbfgsparam.max_linesearch = lbfgsopt->linesearch_max_iterations;
 
 	/* Set regularization parameters. */
-	if (strcmp(opt->regularization, "L1") == 0) {
-		crf1mt->l2_regularization = 0;
-		lbfgsparam.orthantwise_c = 1.0 / opt->regularization_sigma;
-	} else if (strcmp(opt->regularization, "L2") == 0) {
-		crf1mt->l2_regularization = 1;
-		crf1mt->sigma2inv = 1.0 / (opt->regularization_sigma * opt->regularization_sigma);
+	if (strcmp(lbfgsopt->regularization, "L1") == 0) {
+		lbfgsi.l2_regularization = 0;
+		lbfgsparam.orthantwise_c = 1.0 / lbfgsopt->regularization_sigma;
+        lbfgsparam.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
+	} else if (strcmp(lbfgsopt->regularization, "L2") == 0) {
+		lbfgsi.l2_regularization = 1;
+		lbfgsi.sigma2inv = 1.0 / (lbfgsopt->regularization_sigma * lbfgsopt->regularization_sigma);
 		lbfgsparam.orthantwise_c = 0.;
     } else {
-        crf1mt->l2_regularization = 0;
+        lbfgsi.l2_regularization = 0;
         lbfgsparam.orthantwise_c = 0.;
     }
 

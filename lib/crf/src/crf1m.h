@@ -262,6 +262,8 @@ void crf1mm_dump(crf1mm_t* model, FILE *fp);
 
 
 typedef struct {
+	char*		regularization;
+	floatval_t	regularization_sigma;
 	int			memory;
 	floatval_t	epsilon;
     int         stop;
@@ -290,8 +292,6 @@ typedef struct {
 	int			feature_possible_states;
 	int			feature_possible_transitions;
 	int			feature_bos_eos;
-	char*		regularization;
-	floatval_t	regularization_sigma;
 
     crf1ml_lbfgs_option_t   lbfgs;
     crf1ml_sgd_option_t     sgd;
@@ -304,9 +304,6 @@ typedef struct {
 struct tag_crf1ml {
 	int num_labels;			/**< Number of distinct output labels (L). */
 	int num_attributes;		/**< Number of distinct attributes (A). */
-
-	int l2_regularization;
-	floatval_t sigma2inv;
 
 	int max_items;
 

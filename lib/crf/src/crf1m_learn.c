@@ -572,14 +572,6 @@ static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, i
 		DDX_PARAM_INT("feature.bos_eos", opt->feature_bos_eos, 1,
             "Generate BOS/EOS features."
             )
-		DDX_PARAM_STRING(
-            "regularization", opt->regularization, "L2",
-            "Specify the regularization type."
-            )
-		DDX_PARAM_FLOAT(
-            "regularization.sigma", opt->regularization_sigma, 10.0,
-            "Specify the regularization constant."
-            )
 	END_PARAM_MAP()
 
     crf1ml_lbfgs_options(params, opt, mode);
@@ -706,8 +698,6 @@ static int crf_train_train(
 
 	/* Report the parameters. */
 	logging(crf1mt->lg, "Training first-order linear-chain CRFs (trainer.crf1m)\n");
-	logging(crf1mt->lg, "regularization: %s\n", opt->regularization);
-	logging(crf1mt->lg, "regularization.sigma: %f\n", opt->regularization_sigma);
 	logging(crf1mt->lg, "\n");
 
 	/* Generate features. */
