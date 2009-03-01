@@ -463,7 +463,7 @@ void crf_evaluation_compute(crf_evaluation_t* eval)
 void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FILE *fpo)
 {
 	int i;
-	char *lstr = NULL;
+	const char *lstr = NULL;
 
 	fprintf(fpo, "Performance by label (#match, #model, #ref) (precision, recall, F1):\n");
 

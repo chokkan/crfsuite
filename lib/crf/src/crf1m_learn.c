@@ -842,7 +842,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 		goto error_exit;
 	}
 	for (l = 0;l < L;++l) {
-		char *str = NULL;
+		const char *str = NULL;
 		labels->to_string(labels, l, &str);
 		if (str != NULL) {
 			if (ret = crf1mmw_put_label(writer, l, str)) {
@@ -862,7 +862,7 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
 	}
 	for (a = 0;a < A;++a) {
 		if (0 <= amap[a]) {
-			char *str = NULL;
+			const char *str = NULL;
 			attrs->to_string(attrs, a, &str);
 			if (str != NULL) {
 				if (ret = crf1mmw_put_attr(writer, amap[a], str)) {
