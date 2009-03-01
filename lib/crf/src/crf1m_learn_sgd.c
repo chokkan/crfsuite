@@ -550,8 +550,8 @@ int crf1ml_sgd(
 	logging(crf1mt->lg, "Stochastic Gradient Descent (SGD)\n");
     logging(crf1mt->lg, "regularization.sigma: %f\n", sgdopt->sigma);
     logging(crf1mt->lg, "sgd.max_iterations: %d\n", sgdopt->max_iterations);
-    logging(crf1mt->lg, "sgd.period", sgdopt->period);
-    logging(crf1mt->lg, "sgd.delta", sgdopt->delta);
+    logging(crf1mt->lg, "sgd.period: %d\n", sgdopt->period);
+    logging(crf1mt->lg, "sgd.delta: %f\n", sgdopt->delta);
 	logging(crf1mt->lg, "\n");
     clk_begin = clock();
 
