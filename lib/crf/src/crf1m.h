@@ -274,7 +274,7 @@ typedef struct {
 } crf1ml_lbfgs_option_t;
 
 typedef struct {
-    floatval_t  c;
+    floatval_t  sigma;
     floatval_t  lambda;
     floatval_t  t0;
     int         max_iterations;

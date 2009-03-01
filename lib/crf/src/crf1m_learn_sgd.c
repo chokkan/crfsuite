@@ -492,7 +492,7 @@ int crf1ml_sgd_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
 
 	BEGIN_PARAM_MAP(params, mode)
 		DDX_PARAM_FLOAT(
-            "regularization.c", sgd->c, 1.,
+            "regularization.sigma", sgd->sigma, 1.,
             ""
             )
 		DDX_PARAM_INT(
@@ -545,10 +545,10 @@ int crf1ml_sgd(
     /* Set the solver-specific information. */
     crf1mt->solver_data = &sgd_internal;
 
-    sgdopt->lambda = 2.0 * sgdopt->c / N;
+    sgdopt->lambda = 1.0 / (sgdopt->sigma * sgdopt->sigma * N);
 
 	logging(crf1mt->lg, "Stochastic Gradient Descent (SGD)\n");
-    logging(crf1mt->lg, "regularization.c: %f\n", sgdopt->c);
+    logging(crf1mt->lg, "regularization.sigma: %f\n", sgdopt->sigma);
     logging(crf1mt->lg, "sgd.max_iterations: %d\n", sgdopt->max_iterations);
     logging(crf1mt->lg, "sgd.period", sgdopt->period);
     logging(crf1mt->lg, "sgd.delta", sgdopt->delta);
