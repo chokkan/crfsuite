@@ -88,9 +88,9 @@ static int dictionary_num(crf_dictionary_t* dic)
 	return quark_num(qrk);
 }
 
-static void dictionary_free(crf_dictionary_t* dic, char *str)
+static void dictionary_free(crf_dictionary_t* dic, const char *str)
 {
-	free(str);
+	free((char*)str);
 }
 
 int crf_dictionary_create_instance(const char *interface, void **ptr)

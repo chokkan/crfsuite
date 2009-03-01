@@ -181,7 +181,7 @@ output_result(
 	int i;
 
 	for (i = 0;i < output->num_labels;++i) {
-		char *label = NULL;
+		const char *label = NULL;
 		labels->to_string(labels, output->labels[i], &label);
 		fprintf(fpo, "%s", label);
 		labels->free(labels, label);
@@ -206,13 +206,13 @@ output_instance(
 	int i, j;
 
 	for (i = 0;i < inst->num_items;++i) {
-		char *label = NULL;
+		const char *label = NULL;
 		labels->to_string(labels, inst->items[i].label, &label);
 		fprintf(fpo, "%s", label);
 		labels->free(labels, label);
 
         for (j = 0;j < inst->items[i].num_contents;++j) {
-            char *attr = NULL;
+            const char *attr = NULL;
             attrs->to_string(attrs, inst->items[i].contents[j].aid, &attr);
             fprintf(fpo, "\t%s:%f", attr, inst->items[i].contents[j].scale);
             attrs->free(attrs, attr);

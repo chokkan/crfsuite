@@ -104,7 +104,7 @@ static int model_attrs_num(crf_dictionary_t* dic)
 	return crf1mm_get_num_attrs(crf1mm);
 }
 
-static void model_attrs_free(crf_dictionary_t* dic, char *str)
+static void model_attrs_free(crf_dictionary_t* dic, const char *str)
 {
 	/* Unnecessary: all strings are freed on the final release. */
 }
@@ -153,7 +153,7 @@ static int model_labels_num(crf_dictionary_t* dic)
 	return crf1mm_get_num_labels(crf1mm);
 }
 
-static void model_labels_free(crf_dictionary_t* dic, char *str)
+static void model_labels_free(crf_dictionary_t* dic, const char *str)
 {
 	/* Unnecessary: all strings are freed on the final release. */
 }
