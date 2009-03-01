@@ -333,8 +333,6 @@ struct tag_crf1ml {
 	crf1ml_feature_t *features;
 
 	floatval_t *w;			/**< Array of w (feature weights) */
-	floatval_t *best_w;
-	int best;
 	floatval_t *prob;
 
 	crf_params_t* params;

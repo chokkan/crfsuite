@@ -54,6 +54,7 @@ typedef struct {
 	int l2_regularization;
 	floatval_t sigma2inv;
     floatval_t* g;
+    floatval_t* best_w;
 } lbfgs_internal_t;
 
 #define LBFGS_INTERNAL(crf1ml)    ((lbfgs_internal_t*)((crf1ml)->solver_data))
@@ -162,6 +163,7 @@ static int lbfgs_progress(
 	int i, num_active_features = 0;
 	clock_t duration, clk = clock();
 	crf1ml_t* crf1mt = (crf1ml_t*)instance;
+    lbfgs_internal_t *lbfgsi = LBFGS_INTERNAL(crf1mt);
 
 	/* Compute the duration required for this iteration. */
 	duration = clk - crf1mt->clk_prev;
@@ -169,7 +171,7 @@ static int lbfgs_progress(
 
 	/* Set feature weights from the L-BFGS solver. */
 	for (i = 0;i < crf1mt->num_features;++i) {
-		crf1mt->best_w[i] = x[i];
+        lbfgsi->best_w[i] = x[i];
 		if (x[i] != 0.) ++num_active_features;
 	}
 
@@ -249,12 +251,23 @@ int crf1ml_lbfgs(
     crf1ml_option_t *opt
     )
 {
-    int ret;
+    int i, ret;
+    const int K = crf1mt->num_features;
     lbfgs_internal_t lbfgsi;
 	lbfgs_parameter_t lbfgsparam;
     crf1ml_lbfgs_option_t* lbfgsopt = &opt->lbfgs;
 
+    /* Set the solver-specific information. */
     crf1mt->solver_data = &lbfgsi;
+
+    /* Allocate an array that stores the best weights. */
+    lbfgsi.best_w = (floatval_t*)malloc(sizeof(floatval_t) * K);
+    if (lbfgsi.best_w == NULL) {
+        return CRFERR_OUTOFMEMORY;
+    }
+    for (i = 0;i < K;++i) {
+        lbfgsi.best_w[i] = 0.;
+    }
 
 	/* Initialize the L-BFGS parameters with default values. */
 	lbfgs_parameter_init(&lbfgsparam);
@@ -321,6 +334,11 @@ int crf1ml_lbfgs(
 	} else {
 		logging(crf1mt->lg, "L-BFGS terminated with error code (%d)\n", ret);
 	}
+
+    for (i = 0;i < K;++i) {
+        crf1mt->w[i] = lbfgsi.best_w[i];
+    }
+
 	logging(crf1mt->lg, "Total seconds required for L-BFGS: %.3f\n", (clock() - crf1mt->clk_begin) / (double)CLOCKS_PER_SEC);
 	logging(crf1mt->lg, "\n");
 

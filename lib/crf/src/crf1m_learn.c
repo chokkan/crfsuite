@@ -522,12 +522,6 @@ int crf1ml_prepare(
 		ret = CRFERR_OUTOFMEMORY;
 		goto error_exit;
 	}
-	trainer->best_w = (floatval_t*)calloc(trainer->num_features, sizeof(floatval_t));
-	if (trainer->best_w == NULL) {
-		ret = CRFERR_OUTOFMEMORY;
-		goto error_exit;
-	}
-	trainer->best = 0;
 
 	/* Allocate the work space for probability calculation. */
 	trainer->prob = (floatval_t*)calloc(L, sizeof(floatval_t));
@@ -737,17 +731,10 @@ static int crf_train_train(
     } else if (strcmp(opt->algorithm, "sgd") == 0) {
         ret = crf1ml_sgd(crf1mt, opt);
     } else {
-        return 0;
+        return CRFERR_INTERNAL_LOGIC;
     }
 
-	/* Store the feature weights. */
-    if (ret != 0) {
-	    for (i = 0;i < crf1mt->num_features;++i) {
-            crf1mt->w[i] = crf1mt->best_w[i];
-        }
-    }
-
-	return 0;
+	return ret;
 }
 
 /*#define	CRF_TRAIN_SAVE_NO_PRUNING	1*/
