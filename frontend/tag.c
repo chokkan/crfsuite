@@ -59,13 +59,22 @@ typedef struct {
 	FILE *fpe;
 } tagger_option_t;
 
+static char* mystrdup(const char *src)
+{
+	char *dst = (char*)malloc(strlen(src)+1);
+	if (dst != NULL) {
+		strcpy(dst, src);
+	}
+	return dst;
+}
+
 static void tagger_option_init(tagger_option_t* opt)
 {
 	memset(opt, 0, sizeof(*opt));
 	opt->fpi = stdin;
 	opt->fpo = stdout;
 	opt->fpe = stderr;
-	opt->model = strdup("crfsuite.model");
+	opt->model = mystrdup("crfsuite.model");
 }
 
 static void tagger_option_finish(tagger_option_t* opt)
@@ -84,7 +93,7 @@ BEGIN_OPTION_MAP(parse_tagger_options, tagger_option_t)
 
 	ON_OPTION_WITH_ARG(SHORTOPT('m') || LONGOPT("model"))
 		free(opt->model);
-		opt->model = strdup(arg);
+		opt->model = mystrdup(arg);
 
 	ON_OPTION(SHORTOPT('t') || LONGOPT("test"))
 		opt->evaluate = 1;
@@ -97,7 +106,7 @@ BEGIN_OPTION_MAP(parse_tagger_options, tagger_option_t)
 
 	ON_OPTION_WITH_ARG(SHORTOPT('p') || LONGOPT("param"))
 		opt->params = (char **)realloc(opt->params, sizeof(char*) * (opt->num_params + 1));
-		opt->params[opt->num_params] = strdup(arg);
+		opt->params[opt->num_params] = mystrdup(arg);
 		++opt->num_params;
 
 END_OPTION_MAP()
@@ -156,7 +165,7 @@ static int comments_append(comments_t* comments, const char *value)
 		}
 	}
 
-	comments->array[comments->num++] = (value != NULL ? strdup(value) : NULL);
+	comments->array[comments->num++] = (value != NULL ? mystrdup(value) : NULL);
 	return 0;
 }
 
@@ -337,7 +346,7 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 			}
 			break;
 		case IWA_COMMENT:
-			comment = strdup(token->comment);
+			comment = mystrdup(token->comment);
 			break;
 		}
 	}
@@ -397,9 +406,9 @@ int main_tag(int argc, char *argv[], const char *argv0)
 
 	/* Set an input file. */
 	if (arg_used < argc) {
-		opt.input = strdup(argv[arg_used]);
+		opt.input = mystrdup(argv[arg_used]);
 	} else {
-		opt.input = strdup("-");	/* STDIN. */
+		opt.input = mystrdup("-");	/* STDIN. */
 	}
 
 	/* Read the model. */

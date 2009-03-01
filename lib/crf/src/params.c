@@ -59,6 +59,14 @@ typedef struct {
 	param_t* params;
 } params_t;
 
+static char *mystrdup(const char *src)
+{
+	char *dst = (char*)malloc(strlen(src) + 1);
+	if (dst != NULL) {
+		strcpy(dst, src);
+	}
+	return dst;
+}
 
 static int params_addref(crf_params_t* params)
 {
@@ -107,7 +115,7 @@ static int params_set(crf_params_t* params, const char *name, const char *value)
 		break;
 	case PT_STRING:
 		free(par->val_s);
-		par->val_s = (value != NULL) ? strdup(value) : strdup("");
+		par->val_s = (value != NULL) ? mystrdup(value) : mystrdup("");
 	}
 	return 0;
 }
@@ -139,7 +147,7 @@ static int params_set_string(crf_params_t* params, const char *name, const char 
 	if (par == NULL) return -1;
 	if (par->type != PT_STRING) return -1;
 	free(par->val_s);
-	par->val_s = strdup(value);
+	par->val_s = mystrdup(value);
 	return 0;
 }
 
@@ -212,7 +220,7 @@ int params_add_int(crf_params_t* params, const char *name, int value)
 
 	par = &pars->params[pars->num_params++];
 	memset(par, 0, sizeof(*par));
-	par->name = strdup(name);
+	par->name = mystrdup(name);
 	par->type = PT_INT;
 	par->val_i = value;
 	return 0;
@@ -229,7 +237,7 @@ int params_add_float(crf_params_t* params, const char *name, floatval_t value)
 
 	par = &pars->params[pars->num_params++];
 	memset(par, 0, sizeof(*par));
-	par->name = strdup(name);
+	par->name = mystrdup(name);
 	par->type = PT_FLOAT;
 	par->val_f = value;
 	return 0;
@@ -246,8 +254,8 @@ int params_add_string(crf_params_t* params, const char *name, const char *value)
 
 	par = &pars->params[pars->num_params++];
 	memset(par, 0, sizeof(*par));
-	par->name = strdup(name);
+	par->name = mystrdup(name);
 	par->type = PT_STRING;
-	par->val_s = strdup(value);
+	par->val_s = mystrdup(value);
 	return 0;
 }

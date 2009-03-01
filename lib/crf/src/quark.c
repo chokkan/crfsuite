@@ -98,7 +98,10 @@ int quark_get(quark_t* qrk, const char *str)
 	key.str = (char *)str;
 	record = (record_t*)rumavl_find(qrk->string_to_id, &key);
 	if (record == NULL) {
-		char *newstr = strdup(str);
+		char *newstr = (char*)malloc(strlen(str)+1);
+		if (newstr != NULL) {
+			strcpy(newstr, str);
+		}
 
 		if (qrk->max <= qrk->num) {
 			qrk->max = (qrk->max + 1) * 2;

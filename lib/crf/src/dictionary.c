@@ -72,11 +72,13 @@ static int dictionary_to_string(crf_dictionary_t* dic, int id, char **pstr)
 	quark_t *qrk = (quark_t*)dic->internal;
 	const char *str = quark_to_string(qrk, id);
 	if (str != NULL) {
-		*pstr = strdup(str);
-		return 0;
-	} else {
-		return 1;
+		*pstr = (char*)malloc(strlen(str)+1);
+		if (*pstr) {
+			strcpy(*pstr, str);
+			return 0;
+		}
 	}
+	return 1;
 }
 
 static int dictionary_num(crf_dictionary_t* dic)

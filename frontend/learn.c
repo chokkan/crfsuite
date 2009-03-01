@@ -57,11 +57,20 @@ typedef struct {
 	char **params;
 } learn_option_t;
 
+static char* mystrdup(const char *src)
+{
+	char *dst = (char*)malloc(strlen(src)+1);
+	if (dst != NULL) {
+		strcpy(dst, src);
+	}
+	return dst;
+}
+
 static void learn_option_init(learn_option_t* opt)
 {
 	memset(opt, 0, sizeof(*opt));
 	opt->num_params = 0;
-	opt->model = strdup("crfsuite.model");
+	opt->model = mystrdup("crfsuite.model");
 }
 
 static void learn_option_finish(learn_option_t* opt)
@@ -82,18 +91,18 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
 
 	ON_OPTION_WITH_ARG(SHORTOPT('m') || LONGOPT("model"))
 		free(opt->model);
-		opt->model = strdup(arg);
+		opt->model = mystrdup(arg);
 
 	ON_OPTION_WITH_ARG(SHORTOPT('t') || LONGOPT("test"))
 		free(opt->evaluation);
-		opt->evaluation = strdup(arg);
+		opt->evaluation = mystrdup(arg);
 
 	ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
 		opt->help = 1;
 
 	ON_OPTION_WITH_ARG(SHORTOPT('p') || LONGOPT("param"))
 		opt->params = (char **)realloc(opt->params, sizeof(char*) * (opt->num_params + 1));
-		opt->params[opt->num_params] = strdup(arg);
+		opt->params[opt->num_params] = mystrdup(arg);
 		++opt->num_params;
 
 END_OPTION_MAP()
@@ -206,9 +215,9 @@ int main_learn(int argc, char *argv[], const char *argv0)
 
 	/* Set a training file. */
 	if (arg_used < argc) {
-		opt.training = strdup(argv[arg_used]);
+		opt.training = mystrdup(argv[arg_used]);
 	} else {
-		opt.training = strdup("-");	/* STDIN. */
+		opt.training = mystrdup("-");	/* STDIN. */
 	}
 
 	/* Create dictionaries for attributes and labels. */
