@@ -414,7 +414,7 @@ int main_tag(int argc, char *argv[], const char *argv0)
 	/* Read the model. */
 	if (opt.model != NULL) {
 		/* Create a model instance corresponding to the model file. */
-		if (ret = crf_create_instance_from_file(opt.model, &model)) {
+		if (ret = crf_create_instance_from_file(opt.model, (void**)&model)) {
 			goto force_exit;
 		}
 

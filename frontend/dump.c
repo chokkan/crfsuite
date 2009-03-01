@@ -101,7 +101,7 @@ int main_dump(int argc, char *argv[], const char *argv0)
 	}
 
 	/* Create a model instance corresponding to the model file. */
-	if (ret = crf_create_instance_from_file(argv[arg_used], &model)) {
+	if (ret = crf_create_instance_from_file(argv[arg_used], (void**)&model)) {
 		goto force_exit;
 	}
 		
