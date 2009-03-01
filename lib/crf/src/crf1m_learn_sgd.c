@@ -247,9 +247,11 @@ static int l2sgd(
     int i, epoch, ret = 0;
     floatval_t t = 0;
     floatval_t logp = 0;
+    floatval_t best_logp = -DBL_MAX;
     clock_t clk_prev;
 	crf_sequence_t *seq, *seqs = crf1mt->seqs;
     floatval_t* w = crf1mt->w;
+    floatval_t* best_w = NULL;
     const int K = crf1mt->num_features;
     floatval_t eta, scale, boundary;
     floatval_t decay = 1., proj = 1.;
@@ -259,6 +261,10 @@ static int l2sgd(
 
     if (!calibration) {
         pf = (floatval_t*)malloc(sizeof(floatval_t) * period);
+        best_w = (floatval_t*)malloc(sizeof(floatval_t) * K);
+        for (i = 0;i < K;++i) {
+            best_w[i] = 0.;
+        }
     }
 
     /* Loop for epochs. */
@@ -333,11 +339,19 @@ static int l2sgd(
 
         /* One epoch finished. */
         if (!calibration) {
-            improvement = epsilon;
+            /* Check if the current epoch is the best. */
+            if (best_logp < logp) {
+                best_logp = logp;
+                for (i = 0;i < K;++i) {
+                    best_w[i] = w[i];
+                }
+            }
 
             /* We don't test the stopping criterion while period < epoch. */
             if (period < epoch) {
                 improvement = (pf[(epoch-1) % period] - logp) / logp;
+            } else {
+                improvement = epsilon;
             }
 
             /* Store the current value of the objective function. */
@@ -367,6 +381,15 @@ static int l2sgd(
         }
     }
 
+    /* Restore the best weights. */
+    if (best_w != NULL) {
+        logp = best_logp;
+        for (i = 0;i < K;++i) {
+            w[i] = best_w[i];
+        }
+    }
+
+    free(best_w);
     free(pf);
 
     if (ptr_logp != NULL) {
@@ -550,9 +573,10 @@ int crf1ml_sgd(
         0,
         sgdopt->period,
         sgdopt->delta,
-        NULL
+        &logp
         );
 
+    logging(crf1mt->lg, "Log-likelihood: %f\n", logp);
 	logging(crf1mt->lg, "Total seconds required for SGD: %.3f\n", (clock() - clk_begin) / (double)CLOCKS_PER_SEC);
 	logging(crf1mt->lg, "\n");
 
