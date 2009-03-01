@@ -384,6 +384,7 @@ l2sgd_calibration(
     int *perm = NULL;
     int dec = 0, ok, trials = 1;
     int num_candidates = opt->calibration_candidates;
+    clock_t clk_begin = clock();
     floatval_t logp;
     floatval_t init_logp = 0.;
     floatval_t best_logp = -DBL_MAX;
@@ -412,7 +413,6 @@ l2sgd_calibration(
     /* Compute the initial log likelihood. */
     init_logp = compute_loglikelihood(crf1mt, perm, M, lambda);
 	logging(crf1mt->lg, "Initial Log-likelihood: %f\n", init_logp);
-    logging(crf1mt->lg, "\n");
 
     while (num_candidates > 0 || !dec) {
         logging(crf1mt->lg, "Trial #%d (eta = %f): ", trials, eta);
@@ -455,6 +455,7 @@ l2sgd_calibration(
 
     eta = best_eta;
     logging(crf1mt->lg, "Best learning rate (eta): %f\n", eta);
+    logging(crf1mt->lg, "Seconds required: %.3f\n", (clock() - clk_begin) / (double)CLOCKS_PER_SEC);
     logging(crf1mt->lg, "\n");
 
     free(perm);
