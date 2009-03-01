@@ -90,7 +90,7 @@ static int model_attrs_to_id(crf_dictionary_t* dic, const char *str)
 	return crf1mm_to_aid(crf1mm, str);
 }
 
-static int model_attrs_to_string(crf_dictionary_t* dic, int id, char **pstr)
+static int model_attrs_to_string(crf_dictionary_t* dic, int id, char const **pstr)
 {
 	crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
 	const char *str = crf1mm_to_attr(crf1mm, id);
@@ -139,7 +139,7 @@ static int model_labels_to_id(crf_dictionary_t* dic, const char *str)
 	return crf1mm_to_lid(crf1mm, str);
 }
 
-static int model_labels_to_string(crf_dictionary_t* dic, int id, char **pstr)
+static int model_labels_to_string(crf_dictionary_t* dic, int id, char const **pstr)
 {
 	crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
 	const char *str = crf1mm_to_label(crf1mm, id);

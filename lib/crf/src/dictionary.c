@@ -67,14 +67,15 @@ static int dictionary_to_id(crf_dictionary_t* dic, const char *str)
 	return quark_to_id(qrk, str);	
 }
 
-static int dictionary_to_string(crf_dictionary_t* dic, int id, char **pstr)
+static int dictionary_to_string(crf_dictionary_t* dic, int id, char const **pstr)
 {
 	quark_t *qrk = (quark_t*)dic->internal;
 	const char *str = quark_to_string(qrk, id);
 	if (str != NULL) {
-		*pstr = (char*)malloc(strlen(str)+1);
-		if (*pstr) {
-			strcpy(*pstr, str);
+        char *dst = (char*)malloc(strlen(str)+1);
+		if (dst) {
+			strcpy(dst, str);
+            *pstr = dst;
 			return 0;
 		}
 	}

@@ -533,10 +533,10 @@ int crf1ml_sgd(
     crf1ml_option_t *opt
     )
 {
-    int i, ret = 0;
+    int ret = 0;
     int *perm = NULL;
+    clock_t clk_begin;
     floatval_t logp = 0;
-    clock_t clk_begin, clk_prev;
 	const int N = crf1mt->num_sequences;
     const int K = crf1mt->num_features;
     crf1ml_sgd_option_t* sgdopt = &opt->sgd;

@@ -263,7 +263,7 @@ struct tag_crf_dictionary {
 
 	int (*get)(crf_dictionary_t* dic, const char *str);
 	int (*to_id)(crf_dictionary_t* dic, const char *str);
-	int (*to_string)(crf_dictionary_t* dic, int id, char **pstr);
+	int (*to_string)(crf_dictionary_t* dic, int id, char const **pstr);
 	int (*num)(crf_dictionary_t* dic);
 	void (*free)(crf_dictionary_t* dic, char *str);
 };
