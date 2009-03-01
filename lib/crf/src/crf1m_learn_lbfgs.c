@@ -1,7 +1,7 @@
 /*
  *      Training linear-chain CRF with L-BFGS.
  *
- * Copyright (c) 2007,2008, Naoaki Okazaki
+ * Copyright (c) 2007-2009, Naoaki Okazaki
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
