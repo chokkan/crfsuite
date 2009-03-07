@@ -66,7 +66,7 @@ typedef int (*RUMAVLCB)(RUMAVL *tree, void *record, void *udata);
 
 /* Create a new RumAVL tree */
 RUMAVL *rumavl_new (size_t reclen, 
-					int (*cmp)(const void *, const void *, size_t));
+                    int (*cmp)(const void *, const void *, size_t));
 /* Destroy a RumAVL tree */
 void rumavl_destroy (RUMAVL *tree);
 
@@ -97,10 +97,10 @@ RUMAVL_NODE *rumavl_node_find (RUMAVL *tree, const void *find, void **record);
 /* Get the next node in sequence after a specific node, in a specific
  * direction, or get the first node on either end of a tree */
 RUMAVL_NODE *rumavl_node_next (RUMAVL *tree, RUMAVL_NODE *node, int dir,
-									void **record);
+                                    void **record);
 /* Possible directions */
 #define RUMAVL_DESC (-1)
-#define RUMAVL_ASC	(+1)
+#define RUMAVL_ASC    (+1)
 
 /* Get a record held by a specific node */
 void *rumavl_node_record (RUMAVL_NODE *node);
@@ -119,10 +119,10 @@ extern int rumavl_foreach (RUMAVL *tree, int dir, RUMAVLCB cbfn, void *udata);
 
 /* Struct holding callback function infomation */
 struct rumavl_cbinfo {
-	/* callback function called before each delete operation */
-    int		  (*del)(RUMAVL *tree, void *record, void *udata);
-	/* callback function called before each overwrite operation */
-	int		  (*ow)(RUMAVL *tree, void *r1, const void *r2, void *udata);
+    /* callback function called before each delete operation */
+    int          (*del)(RUMAVL *tree, void *record, void *udata);
+    /* callback function called before each overwrite operation */
+    int          (*ow)(RUMAVL *tree, void *r1, const void *r2, void *udata);
     void       *udata;      /* user data passed to cbfn. NOT COPIED. */
 };
 
@@ -139,7 +139,7 @@ struct rumavl_cbinfo *rumavl_cb (RUMAVL *tree);
  * and frees memory.
  *--------------------------------------------------------------------------*/
 struct rumavl_mem {
-	/* realloc like fn, with extra userdata pointer */
+    /* realloc like fn, with extra userdata pointer */
     void *(*alloc)(void *ptr, size_t size, void *udata);   
     void *udata;    /* Opaque pointer */
 };

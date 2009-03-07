@@ -1,5 +1,5 @@
 /*
- *		Data reader.
+ *        Data reader.
  *
  * Copyright (c) 2007-2009, Naoaki Okazaki
  * All rights reserved.
@@ -31,8 +31,8 @@
 
 /* $Id$ */
 
-#ifndef	__READDATA_H__
-#define	__READDATA_H__
+#ifndef    __READDATA_H__
+#define    __READDATA_H__
 
 void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, crf_dictionary_t* labels);
 

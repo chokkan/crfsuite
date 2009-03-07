@@ -31,10 +31,10 @@
 
 /* $Id$ */
 
-#ifndef	__CRF_H__
-#define	__CRF_H__
+#ifndef    __CRF_H__
+#define    __CRF_H__
 
-#ifdef	__cplusplus
+#ifdef    __cplusplus
 extern "C" {
 #endif/*__cplusplus*/
 
@@ -58,92 +58,92 @@ struct tag_crf_params;
 typedef struct tag_crf_params crf_params_t;
 
 enum {
-	CRF_SUCCESS = 0,
-	CRFERR_UNKNOWN = 0x80000000,
-	CRFERR_OUTOFMEMORY,
-	CRFERR_NOTSUPPORTED,
-	CRFERR_INCOMPATIBLE,
-	CRFERR_INTERNAL_LOGIC,
+    CRF_SUCCESS = 0,
+    CRFERR_UNKNOWN = 0x80000000,
+    CRFERR_OUTOFMEMORY,
+    CRFERR_NOTSUPPORTED,
+    CRFERR_INCOMPATIBLE,
+    CRFERR_INTERNAL_LOGIC,
     CRFERR_OVERFLOW,
 };
 
 
 /**
  * Content of an item.
- *	A content consists of an attribute id with its frequency in the item.
+ *    A content consists of an attribute id with its frequency in the item.
  */
 typedef struct {
-	int			aid;	/**< Attribute id. */
-	floatval_t	scale;	/**< Scale factor (frequency) of the attribute. */
+    int            aid;    /**< Attribute id. */
+    floatval_t    scale;    /**< Scale factor (frequency) of the attribute. */
 } crf_content_t;
 
 /**
  * An item.
  */
 typedef struct {
-	int				num_contents;	/**< Number of contents associated with the item. */
-	int				max_contents;	/**< Maximum number of contents. */
-	crf_content_t*	contents;		/**< Array of the contents. */
-	int				label;			/**< Output label. */
+    int                num_contents;    /**< Number of contents associated with the item. */
+    int                max_contents;    /**< Maximum number of contents. */
+    crf_content_t*    contents;        /**< Array of the contents. */
+    int                label;            /**< Output label. */
 } crf_item_t;
 
 /**
  * A sequence.
  */
 typedef struct {
-	int			num_items;	/**< Number of items in the sequence. */
-	int			max_items;	/**< Maximum number of items (internal use). */
-	crf_item_t*	items;		/**< Array of the items. */
+    int            num_items;    /**< Number of items in the sequence. */
+    int            max_items;    /**< Maximum number of items (internal use). */
+    crf_item_t*    items;        /**< Array of the items. */
 } crf_sequence_t;
 
 /**
  * A data.
  */
 typedef struct {
-	int				num_instances;		/**< Number of instances. */
-	int				max_instances;		/**< Maximum number of instances (internal use). */
-	int				num_labels;			/**< Number of distinct labels. */
-	int				num_attrs;			/**< Number of distinct attributes. */
-	int				max_item_length;	/**< Maximum item length. */
-	crf_sequence_t*	instances;			/**< Array of instances. */
+    int                num_instances;        /**< Number of instances. */
+    int                max_instances;        /**< Maximum number of instances (internal use). */
+    int                num_labels;            /**< Number of distinct labels. */
+    int                num_attrs;            /**< Number of distinct attributes. */
+    int                max_item_length;    /**< Maximum item length. */
+    crf_sequence_t*    instances;            /**< Array of instances. */
 } crf_data_t;
 
 /**
  * An output label sequence.
  */
 typedef struct {
-	int		num_labels;			/**< Number of output labels. */
-	int*	labels;				/**< Array of the output labels. */
-	floatval_t	probability;		/**< Probability of the output labels. */
+    int        num_labels;            /**< Number of output labels. */
+    int*    labels;                /**< Array of the output labels. */
+    floatval_t    probability;        /**< Probability of the output labels. */
 } crf_output_t;
 
 typedef struct {
-	int		num_correct;
-	int		num_observation;
-	int		num_model;
-	int		num_total;
-	floatval_t	precision;
-	floatval_t	recall;
-	floatval_t	fmeasure;
+    int        num_correct;
+    int        num_observation;
+    int        num_model;
+    int        num_total;
+    floatval_t    precision;
+    floatval_t    recall;
+    floatval_t    fmeasure;
 } crf_label_evaluation_t;
 
 typedef struct {
-	int		num_labels;
-	crf_label_evaluation_t* tbl;
+    int        num_labels;
+    crf_label_evaluation_t* tbl;
 
-	int		item_total_correct;
+    int        item_total_correct;
     int     item_total_num;
-	int		item_total_model;
-	int		item_total_observation;
-	floatval_t	item_accuracy;
+    int        item_total_model;
+    int        item_total_observation;
+    floatval_t    item_accuracy;
 
-	int		inst_total_correct;
-	int		inst_total_num;
-	floatval_t	inst_accuracy;
+    int        inst_total_correct;
+    int        inst_total_num;
+    floatval_t    inst_accuracy;
 
-	floatval_t	macro_precision;
-	floatval_t	macro_recall;
-	floatval_t	macro_fmeasure;
+    floatval_t    macro_precision;
+    floatval_t    macro_recall;
+    floatval_t    macro_fmeasure;
 } crf_evaluation_t;
 
 
@@ -154,149 +154,149 @@ typedef int (*crf_evaluate_callback)(void *instance, crf_tagger_t* tagger);
 
 
 struct tag_crf_model {
-	/**
-	 * Pointer to the instance data (internal use only).
-	 */
-	void *internal;
-	
-	/**
-	 * Reference counter (internal use only).
-	 */
-	int nref;
+    /**
+     * Pointer to the instance data (internal use only).
+     */
+    void *internal;
+    
+    /**
+     * Reference counter (internal use only).
+     */
+    int nref;
 
-	/**
-	 * Increment the reference counter.
-	 */
-	int (*addref)(crf_model_t* model);
+    /**
+     * Increment the reference counter.
+     */
+    int (*addref)(crf_model_t* model);
 
-	/**
-	 * Decrement the reference counter.
-	 */
-	int (*release)(crf_model_t* model);
+    /**
+     * Decrement the reference counter.
+     */
+    int (*release)(crf_model_t* model);
 
-	int (*get_tagger)(crf_model_t* model, crf_tagger_t** ptr_tagger);
-	int (*get_labels)(crf_model_t* model, crf_dictionary_t** ptr_labels);
-	int (*get_attrs)(crf_model_t* model, crf_dictionary_t** ptr_attrs);
-	int (*dump)(crf_model_t* model, FILE *fpo);
+    int (*get_tagger)(crf_model_t* model, crf_tagger_t** ptr_tagger);
+    int (*get_labels)(crf_model_t* model, crf_dictionary_t** ptr_labels);
+    int (*get_attrs)(crf_model_t* model, crf_dictionary_t** ptr_attrs);
+    int (*dump)(crf_model_t* model, FILE *fpo);
 };
 
 
 
 struct tag_crf_trainer {
-	/**
-	 * Pointer to the instance data (internal use only).
-	 */
-	void *internal;
-	
-	/**
-	 * Reference counter (internal use only).
-	 */
-	int nref;
+    /**
+     * Pointer to the instance data (internal use only).
+     */
+    void *internal;
+    
+    /**
+     * Reference counter (internal use only).
+     */
+    int nref;
 
-	/**
-	 * Increment the reference counter.
-	 */
-	int (*addref)(crf_trainer_t* trainer);
+    /**
+     * Increment the reference counter.
+     */
+    int (*addref)(crf_trainer_t* trainer);
 
-	/**
-	 * Decrement the reference counter.
-	 */
-	int (*release)(crf_trainer_t* trainer);
+    /**
+     * Decrement the reference counter.
+     */
+    int (*release)(crf_trainer_t* trainer);
 
-	crf_params_t* (*params)(crf_trainer_t* trainer);
+    crf_params_t* (*params)(crf_trainer_t* trainer);
 
-	void (*set_message_callback)(crf_trainer_t* trainer, void *instance, crf_logging_callback cbm);
-	void (*set_evaluate_callback)(crf_trainer_t* trainer, void *instance, crf_evaluate_callback cbe);
+    void (*set_message_callback)(crf_trainer_t* trainer, void *instance, crf_logging_callback cbm);
+    void (*set_evaluate_callback)(crf_trainer_t* trainer, void *instance, crf_evaluate_callback cbe);
 
-	int (*train)(crf_trainer_t* trainer, void* instances, int num_instances, int num_labels, int num_attributes);
-	int (*save)(crf_trainer_t* trainer, const char *filename, crf_dictionary_t* attrs, crf_dictionary_t* labels);
+    int (*train)(crf_trainer_t* trainer, void* instances, int num_instances, int num_labels, int num_attributes);
+    int (*save)(crf_trainer_t* trainer, const char *filename, crf_dictionary_t* attrs, crf_dictionary_t* labels);
 };
 
 struct tag_crf_tagger {
-	/**
-	 * Pointer to the instance data (internal use only).
-	 */
-	void *internal;
+    /**
+     * Pointer to the instance data (internal use only).
+     */
+    void *internal;
 
-	/**
-	 * Reference counter (internal use only).
-	 */
-	int nref;
+    /**
+     * Reference counter (internal use only).
+     */
+    int nref;
 
-	/**
-	 * Increment the reference counter.
-	 */
-	int (*addref)(crf_tagger_t* tagger);
+    /**
+     * Increment the reference counter.
+     */
+    int (*addref)(crf_tagger_t* tagger);
 
-	/**
-	 * Decrement the reference counter.
-	 */
-	int (*release)(crf_tagger_t* tagger);
+    /**
+     * Decrement the reference counter.
+     */
+    int (*release)(crf_tagger_t* tagger);
 
-	/**
-	 * Tag an input sequence.
-	 */
-	int (*tag)(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* output);
+    /**
+     * Tag an input sequence.
+     */
+    int (*tag)(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* output);
 
 };
 
 struct tag_crf_dictionary {
-	/**
-	 * Pointer to the instance data (internal use only).
-	 */
-	void *internal;
+    /**
+     * Pointer to the instance data (internal use only).
+     */
+    void *internal;
 
-	/**
-	 * Reference counter (internal use only).
-	 */
-	int nref;
+    /**
+     * Reference counter (internal use only).
+     */
+    int nref;
 
-	/**
-	 * Increment the reference counter.
-	 */
-	int (*addref)(crf_dictionary_t* dic);
+    /**
+     * Increment the reference counter.
+     */
+    int (*addref)(crf_dictionary_t* dic);
 
-	/**
-	 * Decrement the reference counter.
-	 */
-	int (*release)(crf_dictionary_t* dic);
+    /**
+     * Decrement the reference counter.
+     */
+    int (*release)(crf_dictionary_t* dic);
 
-	int (*get)(crf_dictionary_t* dic, const char *str);
-	int (*to_id)(crf_dictionary_t* dic, const char *str);
-	int (*to_string)(crf_dictionary_t* dic, int id, char const **pstr);
-	int (*num)(crf_dictionary_t* dic);
-	void (*free)(crf_dictionary_t* dic, const char *str);
+    int (*get)(crf_dictionary_t* dic, const char *str);
+    int (*to_id)(crf_dictionary_t* dic, const char *str);
+    int (*to_string)(crf_dictionary_t* dic, int id, char const **pstr);
+    int (*num)(crf_dictionary_t* dic);
+    void (*free)(crf_dictionary_t* dic, const char *str);
 };
 
 struct tag_crf_params {
-	/**
-	 * Pointer to the instance data (internal use only).
-	 */
-	void *internal;
+    /**
+     * Pointer to the instance data (internal use only).
+     */
+    void *internal;
 
-	/**
-	 * Reference counter (internal use only).
-	 */
-	int nref;
+    /**
+     * Reference counter (internal use only).
+     */
+    int nref;
 
-	/**
-	 * Increment the reference counter.
-	 */
-	int (*addref)(crf_params_t* params);
+    /**
+     * Increment the reference counter.
+     */
+    int (*addref)(crf_params_t* params);
 
-	/**
-	 * Decrement the reference counter.
-	 */
-	int (*release)(crf_params_t* params);
+    /**
+     * Decrement the reference counter.
+     */
+    int (*release)(crf_params_t* params);
 
-	int (*set)(crf_params_t* params, const char *name, const char *value);
-	int (*set_int)(crf_params_t* params, const char *name, int value);
-	int (*set_float)(crf_params_t* params, const char *name, floatval_t value);
-	int (*set_string)(crf_params_t* params, const char *name, const char *value);
+    int (*set)(crf_params_t* params, const char *name, const char *value);
+    int (*set_int)(crf_params_t* params, const char *name, int value);
+    int (*set_float)(crf_params_t* params, const char *name, floatval_t value);
+    int (*set_string)(crf_params_t* params, const char *name, const char *value);
 
-	int (*get_int)(crf_params_t* params, const char *name, int *value);
-	int (*get_float)(crf_params_t* params, const char *name, floatval_t *value);
-	int (*get_string)(crf_params_t* params, const char *name, char **value);
+    int (*get_int)(crf_params_t* params, const char *name, int *value);
+    int (*get_float)(crf_params_t* params, const char *name, floatval_t *value);
+    int (*get_string)(crf_params_t* params, const char *name, char **value);
 };
 
 
@@ -305,11 +305,11 @@ int crf_create_instance(const char *iid, void **ptr);
 int crf_create_instance_from_file(const char *filename, void **ptr);
 
 int crf_create_tagger(
-	const char *filename,
-	crf_tagger_t** ptr_tagger,
-	crf_dictionary_t** ptr_attrs,
-	crf_dictionary_t** ptr_labels
-	);
+    const char *filename,
+    crf_tagger_t** ptr_tagger,
+    crf_dictionary_t** ptr_attrs,
+    crf_dictionary_t** ptr_labels
+    );
 
 
 void crf_content_init(crf_content_t* cont);
@@ -358,7 +358,7 @@ int crf_interlocked_increment(int *count);
 int crf_interlocked_decrement(int *count);
 
 
-#ifdef	__cplusplus
+#ifdef    __cplusplus
 }
 #endif/*__cplusplus*/
 

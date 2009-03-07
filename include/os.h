@@ -1,5 +1,5 @@
 /*
- *		Compatibility stuff among operating systems and compilers.
+ *        Compatibility stuff among operating systems and compilers.
  *
  * Copyright (c) 2007-2009, Naoaki Okazaki
  * All rights reserved.
@@ -31,32 +31,32 @@
 
 /* $Id$ */
 
-#ifndef	__OS_H__
-#define	__OS_H__
+#ifndef    __OS_H__
+#define    __OS_H__
 
 
 typedef double floatval_t;
-#define	FLOAT_MAX	DBL_MAX
+#define    FLOAT_MAX    DBL_MAX
 
 
-//#define	__SSE__ 1
-#define	LBFGS_FLOAT		64
+//#define    __SSE__ 1
+#define    LBFGS_FLOAT        64
 
-#ifdef	_MSC_VER
+#ifdef    _MSC_VER
 /* Microsoft Visual C/C++ specific */
 
-#define	_CRT_SECURE_NO_WARNINGS 1
+#define    _CRT_SECURE_NO_WARNINGS 1
 #pragma warning(disable : 4996)
 
-#define	alloca	    _alloca
-#define	strdup	    _strdup
-#define	open	    _open
+#define    alloca        _alloca
+#define    strdup        _strdup
+#define    open        _open
 #define isfinite    _finite
 
-#ifndef	__cplusplus
+#ifndef    __cplusplus
 /* Microsoft Visual C specific */
 
-#define	inline	__inline
+#define    inline    __inline
 
 #endif/*__cplusplus*/
 

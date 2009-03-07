@@ -1,5 +1,5 @@
 /*
- *		A parser for Item With Attributes (IWA) format.
+ *        A parser for Item With Attributes (IWA) format.
  *
  * Copyright (c) 2007-2009, Naoaki Okazaki
  * All rights reserved.
@@ -31,29 +31,29 @@
 
 /* $Id$ */
 
-#ifndef	__IWA_H__
-#define	__IWA_H__
+#ifndef    __IWA_H__
+#define    __IWA_H__
 
-#ifdef	__cplusplus
+#ifdef    __cplusplus
 extern "C" {
 #endif/*__cplusplus*/
 
 typedef struct tag_iwa iwa_t;
 
 enum {
-	IWA_NONE,
-	IWA_EOF,
-	IWA_BOI,
-	IWA_EOI,
-	IWA_ITEM,
-	IWA_COMMENT,
+    IWA_NONE,
+    IWA_EOF,
+    IWA_BOI,
+    IWA_EOI,
+    IWA_ITEM,
+    IWA_COMMENT,
 };
 
 struct tag_iwa_token {
-	int type;
-	const char *attr;
-	const char *value;
-	const char *comment;
+    int type;
+    const char *attr;
+    const char *value;
+    const char *comment;
 };
 typedef struct tag_iwa_token iwa_token_t;
 
@@ -61,7 +61,7 @@ iwa_t* iwa_reader(FILE *fp);
 const iwa_token_t* iwa_read(iwa_t* iwa);
 void iwa_delete(iwa_t* iwa);
 
-#ifdef	__cplusplus
+#ifdef    __cplusplus
 }
 #endif/*__cplusplus*/
 

@@ -31,8 +31,8 @@
 
 /* $Id$ */
 
-#ifndef	__CRF1M_H__
-#define	__CRF1M_H__
+#ifndef    __CRF1M_H__
+#define    __CRF1M_H__
 
 #include <time.h>
 #include "logging.h"
@@ -41,90 +41,90 @@
  * CRF context. 
  */
 typedef struct {
-	/**
-	 * The total number of distinct output labels.
-	 *	The label number #num_labels represents BOS/EOS.
-	 */
-	int num_labels;
+    /**
+     * The total number of distinct output labels.
+     *    The label number #num_labels represents BOS/EOS.
+     */
+    int num_labels;
 
-	/**
-	 * The number of items.
-	 */
-	int num_items;
+    /**
+     * The number of items.
+     */
+    int num_items;
 
-	/**
-	 * The maximum number of labels.
-	 */
-	int max_items;
+    /**
+     * The maximum number of labels.
+     */
+    int max_items;
 
-	/**
-	 * Label array.
-	 *	This is a [T] vector whose element [t] presents the output label
-	 *	at position #t.
-	 */
-	int *labels;
+    /**
+     * Label array.
+     *    This is a [T] vector whose element [t] presents the output label
+     *    at position #t.
+     */
+    int *labels;
 
-	/**
-	 * Logarithm of the normalize factor for the input sequence.
-	 *	This is equivalent to the total scores of all paths from BOS to
-	 *	EOS, given an input sequence.
-	 */
-	floatval_t log_norm;
+    /**
+     * Logarithm of the normalize factor for the input sequence.
+     *    This is equivalent to the total scores of all paths from BOS to
+     *    EOS, given an input sequence.
+     */
+    floatval_t log_norm;
 
-	/**
-	 * Forward score matrix.
-	 *	This is a [T+1][L] matrix whose element [t][l] presents the total
-	 *	score of paths starting at BOS and arraiving at (t, l), given an
-	 *	input sequence. Elements [T][l] for any l are zero.
-	 */
-	floatval_t *forward_score;
+    /**
+     * Forward score matrix.
+     *    This is a [T+1][L] matrix whose element [t][l] presents the total
+     *    score of paths starting at BOS and arraiving at (t, l), given an
+     *    input sequence. Elements [T][l] for any l are zero.
+     */
+    floatval_t *forward_score;
 
-	/**
-	 * Backward score matrix.
-	 *	This is a [T+1][L] matrix whose element [t][l] presents the total
-	 *	score of paths starting at (t, l) and arraiving at EOS, given an
-	 *	input sequence. Elements [T][l] for any l are zero.
-	 */
-	floatval_t *backward_score;
+    /**
+     * Backward score matrix.
+     *    This is a [T+1][L] matrix whose element [t][l] presents the total
+     *    score of paths starting at (t, l) and arraiving at EOS, given an
+     *    input sequence. Elements [T][l] for any l are zero.
+     */
+    floatval_t *backward_score;
 
-	floatval_t *scale_factor;
+    floatval_t *scale_factor;
 
-	/**
-	 * State score matrix.
-	 *	This is a [T][L] matrix whose element [t][l] presents the total
-	 *	score when state features output label #l at position #i.
-	 */
-	floatval_t *state_score;
+    /**
+     * State score matrix.
+     *    This is a [T][L] matrix whose element [t][l] presents the total
+     *    score when state features output label #l at position #i.
+     */
+    floatval_t *state_score;
 
-	/**
-	 * Transition score matrix.
-	 *	This is a [L+1][L+1] matrix whose element [i][j] represents the
-	 *	score when a transition feature moves a label #i of the previous
-	 *	item to #j.
-	 */
-	floatval_t *trans_score;
+    /**
+     * Transition score matrix.
+     *    This is a [L+1][L+1] matrix whose element [i][j] represents the
+     *    score when a transition feature moves a label #i of the previous
+     *    item to #j.
+     */
+    floatval_t *trans_score;
 
-	/**
-	 * Backward edges.
-	 *	This is a [T][L] matrix whose element [t][j] represents the label
-	 *	#i that gives the maximum score to arrive at (t, j).
-	 */
-	int *backward_edge;
+    /**
+     * Backward edges.
+     *    This is a [T][L] matrix whose element [t][j] represents the label
+     *    #i that gives the maximum score to arrive at (t, j).
+     */
+    int *backward_edge;
 
 } crf1m_context_t;
 
-#define	MATRIX(p, xl, x, y)		((p)[(xl) * (y) + (x)])
+#define    MATRIX(p, xl, x, y)        ((p)[(xl) * (y) + (x)])
 
-#define	FORWARD_SCORE_AT(ctx, t) \
-	(&MATRIX(ctx->forward_score, ctx->num_labels, 0, t))
-#define	BACKWARD_SCORE_AT(ctx, t) \
-	(&MATRIX(ctx->backward_score, ctx->num_labels, 0, t))
-#define	STATE_SCORE_AT(ctx, i) \
-	(&MATRIX(ctx->state_score, ctx->num_labels, 0, i))
-#define	TRANS_SCORE_FROM(ctx, i) \
-	(&MATRIX(ctx->trans_score, ctx->num_labels+1, 0, i))
-#define	BACKWARD_EDGE_AT(ctx, t) \
-	(&MATRIX(ctx->backward_edge, ctx->num_labels, 0, t))
+#define    FORWARD_SCORE_AT(ctx, t) \
+    (&MATRIX(ctx->forward_score, ctx->num_labels, 0, t))
+#define    BACKWARD_SCORE_AT(ctx, t) \
+    (&MATRIX(ctx->backward_score, ctx->num_labels, 0, t))
+#define    STATE_SCORE_AT(ctx, i) \
+    (&MATRIX(ctx->state_score, ctx->num_labels, 0, i))
+#define    TRANS_SCORE_FROM(ctx, i) \
+    (&MATRIX(ctx->trans_score, ctx->num_labels+1, 0, i))
+#define    BACKWARD_EDGE_AT(ctx, t) \
+    (&MATRIX(ctx->backward_edge, ctx->num_labels, 0, t))
 
 
 /* crf1m_common.c */
@@ -145,74 +145,74 @@ void crf1mc_test_context(FILE *fp);
  * Feature type.
  */
 enum {
-	FT_STATE = 0,	/**< State features. */
-	FT_TRANS,		/**< Transition features. */
-	FT_TRANS_BOS,	/**< BOS transition features. */
-	FT_TRANS_EOS,	/**< EOS transition features. */
+    FT_STATE = 0,    /**< State features. */
+    FT_TRANS,        /**< Transition features. */
+    FT_TRANS_BOS,    /**< BOS transition features. */
+    FT_TRANS_EOS,    /**< EOS transition features. */
 };
 
 /**
  * A feature (for either state or transition).
  */
 typedef struct {
-	/**
-	 * Feature type.
-	 *	Possible values are:
-	 *	- FT_STATE (0) for state features.
-	 *	- FT_TRANS (1) for transition features.
-	 *	- FT_TRANS_BOS (2) for BOS transition features.
-	 *	- FT_TRANS_EOS (3) for EOS transition features.
-	 */
-	int		type;
+    /**
+     * Feature type.
+     *    Possible values are:
+     *    - FT_STATE (0) for state features.
+     *    - FT_TRANS (1) for transition features.
+     *    - FT_TRANS_BOS (2) for BOS transition features.
+     *    - FT_TRANS_EOS (3) for EOS transition features.
+     */
+    int        type;
 
-	/**
-	 * Source id.
-	 *	The semantic of this field depends on the feature type:
-	 *	- attribute id for state features (type == 0).
-	 *	- output label id for transition features (type != 0).
-	 */
-	int		src;
+    /**
+     * Source id.
+     *    The semantic of this field depends on the feature type:
+     *    - attribute id for state features (type == 0).
+     *    - output label id for transition features (type != 0).
+     */
+    int        src;
 
-	/**
-	 * Destination id.
-	 *	Label id emitted by this feature.
-	 */
-	int		dst;
+    /**
+     * Destination id.
+     *    Label id emitted by this feature.
+     */
+    int        dst;
 
-	/**
-	 * Frequency (observation expectation).
-	 */
-	floatval_t	freq;
+    /**
+     * Frequency (observation expectation).
+     */
+    floatval_t    freq;
 } crf1ml_feature_t;
 
 /**
  * Feature set.
  */
 typedef struct {
-	int					num_features;	/**< Number of features. */
-	crf1ml_feature_t*	features;		/**< Array of features. */
+    int                    num_features;    /**< Number of features. */
+    crf1ml_feature_t*    features;        /**< Array of features. */
 } crf1ml_features_t;
 
 /**
  * Feature references.
- *	This is a collection of feature ids used for faster accesses.
+ *    This is a collection of feature ids used for faster accesses.
  */
 typedef struct {
-	int		num_features;	/**< Number of features referred */
-	int*	fids;			/**< Array of feature ids */
+    int        num_features;    /**< Number of features referred */
+    int*    fids;            /**< Array of feature ids */
 } feature_refs_t;
 
 crf1ml_features_t* crf1ml_generate_features(
-	const crf_sequence_t *seqs,
-	int num_sequences,
-	int num_labels,
-	int num_attributes,
-	int connect_all_attrs,
-	int connect_all_edges,
-	floatval_t minfreq,
-	crf_logging_callback func,
-	void *instance
-	);
+    const crf_sequence_t *seqs,
+    int num_sequences,
+    int num_labels,
+    int num_attributes,
+    int connect_all_attrs,
+    int connect_all_edges,
+    floatval_t minfreq,
+    crf_logging_callback func,
+    void *instance
+    );
 
 /* crf1m_model.c */
 struct tag_crf1mm;
@@ -222,10 +222,10 @@ struct tag_crf1mmw;
 typedef struct tag_crf1mmw crf1mmw_t;
 
 typedef struct {
-	int		type;
-	int		src;
-	int		dst;
-	floatval_t	weight;
+    int        type;
+    int        src;
+    int        dst;
+    floatval_t    weight;
 } crf1mm_feature_t;
 
 crf1mmw_t* crf1mmw(const char *filename);
@@ -262,13 +262,13 @@ void crf1mm_dump(crf1mm_t* model, FILE *fp);
 
 
 typedef struct {
-	char*		regularization;
-	floatval_t	regularization_sigma;
-	int			memory;
-	floatval_t	epsilon;
+    char*        regularization;
+    floatval_t    regularization_sigma;
+    int            memory;
+    floatval_t    epsilon;
     int         stop;
     floatval_t  delta;
-	int			max_iterations;
+    int            max_iterations;
     char*       linesearch;
     int         linesearch_max_iterations;
 } crf1ml_lbfgs_option_t;
@@ -288,10 +288,10 @@ typedef struct {
 
 typedef struct {
     char*       algorithm;
-	floatval_t	feature_minfreq;
-	int			feature_possible_states;
-	int			feature_possible_transitions;
-	int			feature_bos_eos;
+    floatval_t    feature_minfreq;
+    int            feature_possible_states;
+    int            feature_possible_transitions;
+    int            feature_bos_eos;
 
     crf1ml_lbfgs_option_t   lbfgs;
     crf1ml_sgd_option_t     sgd;
@@ -302,44 +302,44 @@ typedef struct {
  * First-order Markov CRF trainer.
  */
 struct tag_crf1ml {
-	int num_labels;			/**< Number of distinct output labels (L). */
-	int num_attributes;		/**< Number of distinct attributes (A). */
+    int num_labels;            /**< Number of distinct output labels (L). */
+    int num_attributes;        /**< Number of distinct attributes (A). */
 
-	int max_items;
+    int max_items;
 
-	int num_sequences;
-	crf_sequence_t* seqs;
+    int num_sequences;
+    crf_sequence_t* seqs;
     crf_tagger_t tagger;
 
-	crf1m_context_t *ctx;	/**< CRF context. */
+    crf1m_context_t *ctx;    /**< CRF context. */
 
-	logging_t* lg;
+    logging_t* lg;
 
-	void *cbe_instance;
-	crf_evaluate_callback cbe_proc;
+    void *cbe_instance;
+    crf_evaluate_callback cbe_proc;
 
-	feature_refs_t* attributes;
-	feature_refs_t* forward_trans;
-	feature_refs_t* backward_trans;
-	feature_refs_t	bos_trans;
-	feature_refs_t	eos_trans;
+    feature_refs_t* attributes;
+    feature_refs_t* forward_trans;
+    feature_refs_t* backward_trans;
+    feature_refs_t    bos_trans;
+    feature_refs_t    eos_trans;
 
-	int num_features;			/**< Number of distinct features (K). */
+    int num_features;            /**< Number of distinct features (K). */
 
-	/**
-	 * Feature array.
-	 *	Elements must be sorted by type, src, and dst in this order.
-	 */
-	crf1ml_feature_t *features;
+    /**
+     * Feature array.
+     *    Elements must be sorted by type, src, and dst in this order.
+     */
+    crf1ml_feature_t *features;
 
-	floatval_t *w;			/**< Array of w (feature weights) */
-	floatval_t *prob;
+    floatval_t *w;            /**< Array of w (feature weights) */
+    floatval_t *prob;
 
-	crf_params_t* params;
-	crf1ml_option_t opt;
+    crf_params_t* params;
+    crf1ml_option_t opt;
 
-	clock_t clk_begin;
-	clock_t clk_prev;
+    clock_t clk_begin;
+    clock_t clk_prev;
 
     void *solver_data;
 };

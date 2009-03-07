@@ -31,8 +31,8 @@
 
 /* $Id$ */
 
-#ifndef	__QUARK_H__
-#define	__QUARK_H__
+#ifndef    __QUARK_H__
+#define    __QUARK_H__
 
 struct tag_quark;
 typedef struct tag_quark quark_t;

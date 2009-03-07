@@ -1,5 +1,5 @@
 /*
- *		A parser for command-line options.
+ *        A parser for command-line options.
  *
  * Copyright (c) 2007-2009, Naoaki Okazaki
  * All rights reserved.
@@ -31,10 +31,10 @@
 
 /* $Id$ */
 
-#ifndef	__OPTION_H__
-#define	__OPTION_H__
+#ifndef    __OPTION_H__
+#define    __OPTION_H__
 
-#ifdef	__cplusplus
+#ifdef    __cplusplus
 extern "C" {
 #endif/*__cplusplus*/
 
@@ -44,42 +44,42 @@ int option_parse(char * const argv[], int num_argv, option_handler_t handler, vo
 int option_strcmp(const char *option, const char *longname);
 
 /** The begin of inline option map. */
-#define	BEGIN_OPTION_MAP(name, type) \
-	int name(void *instance, char __c, const char *__longname, const char *arg) \
-	{ \
-		int used_args = 0; \
-		type *opt = (type *)instance; \
-		if (0) { \
+#define    BEGIN_OPTION_MAP(name, type) \
+    int name(void *instance, char __c, const char *__longname, const char *arg) \
+    { \
+        int used_args = 0; \
+        type *opt = (type *)instance; \
+        if (0) { \
 
 /** An entry of option map */
-#define	ON_OPTION(test) \
-			return used_args; \
-		} else if (test) { \
-			used_args = 0; \
+#define    ON_OPTION(test) \
+            return used_args; \
+        } else if (test) { \
+            used_args = 0; \
 
-#define	ON_OPTION_WITH_ARG(test) \
-			return used_args; \
-		} else if (test) { \
-			used_args = 1; \
+#define    ON_OPTION_WITH_ARG(test) \
+            return used_args; \
+        } else if (test) { \
+            used_args = 1; \
 
 /** The end of option map implementation */
-#define	END_OPTION_MAP() \
-			return used_args; \
-		} \
-		if (__c != 0) { \
-			fprintf(stderr, "Unrecognized option -%c\n", __c); \
-		} else if (__longname != NULL) { \
-			fprintf(stderr, "Unrecognized option --%s\n", __longname); \
-		} \
-		return -1; \
-	} \
+#define    END_OPTION_MAP() \
+            return used_args; \
+        } \
+        if (__c != 0) { \
+            fprintf(stderr, "Unrecognized option -%c\n", __c); \
+        } else if (__longname != NULL) { \
+            fprintf(stderr, "Unrecognized option --%s\n", __longname); \
+        } \
+        return -1; \
+    } \
 
 /** A predicator for short options */
-#define	SHORTOPT(x)		(__c == x)
+#define    SHORTOPT(x)        (__c == x)
 /** A predicator for long options */
-#define	LONGOPT(x)		(!__c && option_strcmp(__longname, x) == 0)
+#define    LONGOPT(x)        (!__c && option_strcmp(__longname, x) == 0)
 
-#ifdef	__cplusplus
+#ifdef    __cplusplus
 }
 #endif/*__cplusplus*/
 

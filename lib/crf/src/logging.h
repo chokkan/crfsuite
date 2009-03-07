@@ -31,13 +31,13 @@
 
 /* $Id$ */
 
-#ifndef	__LOGGING_H__
-#define	__LOGGING_H__
+#ifndef    __LOGGING_H__
+#define    __LOGGING_H__
 
 typedef struct {
-	void *instance;
-	crf_logging_callback func;
-	int percent;
+    void *instance;
+    crf_logging_callback func;
+    int percent;
 } logging_t;
 
 void logging(logging_t* lg, const char *format, ...);
