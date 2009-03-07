@@ -1,3 +1,13 @@
+2009-03-07  Naoaki Okazaki  <okazaki at chokkan org>
+	* CRFsuite 0.6
+	- A new training algorithm, Stochastic Gradient Descent (SGD).
+	- Updated the L-BFGS routine to liblbfgs 1.7.
+	- Reduced memory usage in training.
+	- Supported escape sequences in training/test data.
+	- Restructured the source code.
+	- Added a parameter to configure the number of trials for line search.
+
+	
 2008-11-19  Naoaki Okazaki  <okazaki at chokkan org>
 	* CRFsuite 0.5
 	- Updated the L-BFGS routine to liblbfgs 1.6.
