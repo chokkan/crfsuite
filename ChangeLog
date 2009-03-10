@@ -1,3 +1,8 @@
+2009-03-10  Naoaki Okazaki  <okazaki at chokkan org>
+	* CRFsuite 0.7
+	- Updated RumAVL library to 4.0.0; this fixes a crash problem occurring in feature generation on some machine architectures.
+
+	
 2009-03-07  Naoaki Okazaki  <okazaki at chokkan org>
 	* CRFsuite 0.6
 	- A new training algorithm, Stochastic Gradient Descent (SGD).
