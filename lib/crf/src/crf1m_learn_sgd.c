@@ -364,7 +364,7 @@ static int l2sgd(
             logging(crf1mt->lg, "Feature L2-norm: %f\n", sqrt(sgdi->norm2) * scale);
             logging(crf1mt->lg, "Learning rate (eta): %f\n", eta);
             logging(crf1mt->lg, "Total number of feature updates: %.0f\n", t);
-              logging(crf1mt->lg, "Seconds required for this iteration: %.3f\n", (clock() - clk_prev) / (double)CLOCKS_PER_SEC);
+            logging(crf1mt->lg, "Seconds required for this iteration: %.3f\n", (clock() - clk_prev) / (double)CLOCKS_PER_SEC);
 
             /* Send the tagger with the current parameters. */
             if (crf1mt->cbe_proc != NULL) {
