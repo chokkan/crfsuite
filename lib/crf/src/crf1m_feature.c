@@ -59,7 +59,7 @@ typedef struct {
 
 #define    COMP(a, b)    ((a)>(b))-((a)<(b))
 
-static int featureset_comp(const void *x, const void *y, size_t n)
+static int featureset_comp(const void *x, const void *y, size_t n, void *udata)
 {
     int ret = 0;
     const crf1ml_feature_t* f1 = (const crf1ml_feature_t*)x;
@@ -81,7 +81,8 @@ static featureset_t* featureset_new()
     set = (featureset_t*)calloc(1, sizeof(featureset_t));
     if (set != NULL) {
         set->num = 0;
-        set->avl = rumavl_new(sizeof(crf1ml_feature_t), featureset_comp);
+        set->avl = rumavl_new(
+            sizeof(crf1ml_feature_t), featureset_comp, NULL, NULL);
         if (set->avl == NULL) {
             free(set);
             set = NULL;

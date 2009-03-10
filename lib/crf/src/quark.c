@@ -49,21 +49,21 @@ struct tag_quark {
     char **id_to_string;
 };
 
-static int keycmp(const void *_x, const void *_y, size_t n)
+static int keycmp(const void *_x, const void *_y, size_t n, void *udata)
 {
     const record_t* x = (const record_t*)_x;
     const record_t* y = (const record_t*)_y;
     return strcmp(x->str, y->str);
 }
 
-static int owcb(RUMAVL *tree, void *_x, const void *_y, void *udata)
+static int owcb(RUMAVL *tree, RUMAVL_NODE *n, void *_x, const void *_y, void *udata)
 {
     record_t* x = (record_t*)_x;
     free(x->str);
     return 0;
 }
 
-static int delcb(RUMAVL *tree, void *_record, void *udata)
+static int delcb(RUMAVL *tree, RUMAVL_NODE *n, void *_record, void *udata)
 {
     record_t* record = (record_t*)_record;
     free(record->str);
@@ -76,10 +76,10 @@ quark_t* quark_new()
     if (qrk != NULL) {
         qrk->num = 0;
         qrk->max = 0;
-        qrk->string_to_id = rumavl_new(sizeof(record_t), keycmp);
+        qrk->string_to_id = rumavl_new(sizeof(record_t), keycmp, NULL, NULL);
         if (qrk->string_to_id != NULL) {
-            rumavl_cb(qrk->string_to_id)->del = delcb;
-            rumavl_cb(qrk->string_to_id)->ow = owcb;
+            *rumavl_delcb(qrk->string_to_id) = delcb;
+            *rumavl_owcb(qrk->string_to_id) = owcb;
         }
         qrk->id_to_string = NULL;
     }

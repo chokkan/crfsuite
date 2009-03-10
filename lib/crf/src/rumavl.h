@@ -1,7 +1,7 @@
 /*
  * RumAVL - Threaded AVL Tree Implementation
  *
- * Copyright (c) 2005,2006 Jesse Long <jpl@unknown.za.net>
+ * Copyright (c) 2005-2007 Jesse Long <jpl@unknown.za.net>
  * All rights reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -12,11 +12,11 @@
  * Software is furnished to do so, subject to the following conditions:
  *
  *   1. The above copyright notice and this permission notice shall be
- *      included in all copies or substantial portions of the Software.
+ *	included in all copies or substantial portions of the Software.
  *   2. The origin of the Software must not be misrepresented; you must not
- *      claim that you wrote the original Software.
+ *	claim that you wrote the original Software.
  *   3. Altered source versions of the Software must be plainly marked as
- *      such, and must not be misrepresented as being the original Software.
+ *	such, and must not be misrepresented as being the original Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -39,7 +39,7 @@
 extern "C" {
 #endif
 
-#include <stddef.h>     /* size_t */
+#include <stddef.h>	/* size_t */
 
 
 
@@ -54,9 +54,6 @@ typedef struct rumavl RUMAVL;
 /* Node type - used for iterating */
 typedef struct rumavl_node RUMAVL_NODE;
 
-/* Callback function type */
-typedef int (*RUMAVLCB)(RUMAVL *tree, void *record, void *udata);
-
 
 
 
@@ -66,12 +63,18 @@ typedef int (*RUMAVLCB)(RUMAVL *tree, void *record, void *udata);
 
 /* Create a new RumAVL tree */
 RUMAVL *rumavl_new (size_t reclen, 
-                    int (*cmp)(const void *, const void *, size_t));
+		    int (*cmp)(const void *, const void *, size_t, void *),
+		    void *(*alloc)(void *, size_t, void *),
+		    void *udata);
+
 /* Destroy a RumAVL tree */
 void rumavl_destroy (RUMAVL *tree);
 
 /* This function returns the size of each record in a tree */
 size_t rumavl_record_size (RUMAVL *tree);
+
+/* Get a pointer to the udata pointer */
+void **rumavl_udata  (RUMAVL *tree);
 
 /* Insert a record into a tree, overwriting an existing record necessary */
 int rumavl_set (RUMAVL *tree, const void *record);
@@ -97,16 +100,17 @@ RUMAVL_NODE *rumavl_node_find (RUMAVL *tree, const void *find, void **record);
 /* Get the next node in sequence after a specific node, in a specific
  * direction, or get the first node on either end of a tree */
 RUMAVL_NODE *rumavl_node_next (RUMAVL *tree, RUMAVL_NODE *node, int dir,
-                                    void **record);
+				    void **record);
 /* Possible directions */
 #define RUMAVL_DESC (-1)
-#define RUMAVL_ASC    (+1)
+#define RUMAVL_ASC  (+1)
 
 /* Get a record held by a specific node */
 void *rumavl_node_record (RUMAVL_NODE *node);
 
 /* Pass each record in a tree to a user defined callback function */
-extern int rumavl_foreach (RUMAVL *tree, int dir, RUMAVLCB cbfn, void *udata);
+extern int rumavl_foreach (RUMAVL *tree, int dir,
+	    int (*cbfn)(RUMAVL *, void *, void *), void *udata);
 
 
 
@@ -117,17 +121,9 @@ extern int rumavl_foreach (RUMAVL *tree, int dir, RUMAVLCB cbfn, void *udata);
  * Functions giving you more control over the actions of this library.
  *--------------------------------------------------------------------------*/
 
-/* Struct holding callback function infomation */
-struct rumavl_cbinfo {
-    /* callback function called before each delete operation */
-    int          (*del)(RUMAVL *tree, void *record, void *udata);
-    /* callback function called before each overwrite operation */
-    int          (*ow)(RUMAVL *tree, void *r1, const void *r2, void *udata);
-    void       *udata;      /* user data passed to cbfn. NOT COPIED. */
-};
-
-/* retrieve pointer to callback function information for a tree */
-struct rumavl_cbinfo *rumavl_cb (RUMAVL *tree);
+int (**rumavl_owcb(RUMAVL *tree))(RUMAVL *, RUMAVL_NODE *, void *, 
+	const void *, void *);
+int (**rumavl_delcb(RUMAVL *tree))(RUMAVL *, RUMAVL_NODE *, void *, void *);
 
 
 
@@ -138,15 +134,7 @@ struct rumavl_cbinfo *rumavl_cb (RUMAVL *tree);
  * The rumavl_mem struct is used to define how a RUMAVL object allocates
  * and frees memory.
  *--------------------------------------------------------------------------*/
-struct rumavl_mem {
-    /* realloc like fn, with extra userdata pointer */
-    void *(*alloc)(void *ptr, size_t size, void *udata);   
-    void *udata;    /* Opaque pointer */
-};
-
-/* get pointer to memory management setting for the tree */
-struct rumavl_mem *rumavl_memctl (RUMAVL *tree);
-
+void *(**rumavl_alloc(RUMAVL *tree))(void *ptr, size_t size, void *udata);
 
 
 
@@ -156,12 +144,11 @@ struct rumavl_mem *rumavl_memctl (RUMAVL *tree);
  * The functions returning int's will return these errors
  *--------------------------------------------------------------------------*/
 
-#define RUMAVL_ERR_INVAL  (-1)  /* Invalid argument */
-#define RUMAVL_ERR_NOMEM  (-2)  /* Insufficient memory */
-#define RUMAVL_ERR_NOENT  (-3)  /* Entry does not exist */
-#define RUMAVL_ERR_CANCL  (-4)  /* Operation cancelled by callback function */
-#define RUMAVL_ERR_EORNG  (-5)  /* No nodes left in range */
-#define RUMAVL_ERR_EXIST  (-6)  /* Entry already exists */
+#define RUMAVL_ERR_INVAL  (-1)	/* Invalid argument */
+#define RUMAVL_ERR_NOMEM  (-2)	/* Insufficient memory */
+#define RUMAVL_ERR_NOENT  (-3)	/* Entry does not exist */
+#define RUMAVL_ERR_EORNG  (-5)	/* No nodes left in range */
+#define RUMAVL_ERR_EXIST  (-6)	/* Entry already exists */
 
 /* returns static string describing error number */
 extern const char *rumavl_strerror (int errno);
