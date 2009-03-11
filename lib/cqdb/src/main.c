@@ -37,7 +37,7 @@
 #include "cqdb.h"
 
 //#define    TEST_WRITE    1
-//#define    CHECK_VALIDITY
+#define    CHECK_VALIDITY
 
 #define    DBNAME        "test.cqdb"
 #define    NUMELEMS    1000000

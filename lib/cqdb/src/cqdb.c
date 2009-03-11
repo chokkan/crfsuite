@@ -38,18 +38,18 @@
 
 #include <cqdb.h>
 
-#define    CHUNKID            "CQDB"
-#define    BYTEORDER_CHECK    (0x62445371)
-#define    NUM_TABLES        (256)
-#define    OFFSET_REFS        (0 + sizeof(header_t))
-#define    OFFSET_DATA        (OFFSET_REFS + sizeof(tableref_t) * NUM_TABLES)
+#define CHUNKID             "CQDB"
+#define BYTEORDER_CHECK     (0x62445371)
+#define NUM_TABLES          (256)
+#define OFFSET_REFS         (0 + sizeof(header_t))
+#define OFFSET_DATA         (OFFSET_REFS + sizeof(tableref_t) * NUM_TABLES)
 
 /**
  * An element of a hash table.
  */
 typedef struct {
-    uint32_t    hash;        /**< Hash value of the record. */
-    uint32_t    offset;        /**< Offset address to the actual record. */
+    uint32_t    hash;       /**< Hash value of the record. */
+    uint32_t    offset;     /**< Offset address to the actual record. */
 } bucket_t;
 
 /**
@@ -57,27 +57,27 @@ typedef struct {
  */
 typedef struct {
     uint32_t    num;        /**< Number of elements in the table. */
-    uint32_t    size;        /**< Maximum number of elements. */
-    bucket_t*    bucket;        /**< Bucket (array of bucket_t). */
+    uint32_t    size;       /**< Maximum number of elements. */
+    bucket_t*   bucket;     /**< Bucket (array of bucket_t). */
 } table_t;
 
 /**
  * CQDB chunk header.
  */
 typedef struct {
-    int8_t        chunkid[4];    /**< Chunk identifier, "CQDB". */
-    uint32_t    size;        /**< Chunk size including this header. */
-    uint32_t    flag;        /**< Global flags. */
-    uint32_t    byteorder;    /**< Byte-order indicator. */
-    uint32_t    bwd_size;    /**< Number of elements in the backward array. */
-    uint32_t    bwd_offset;    /**< Offset to the backward array. */
+    int8_t      chunkid[4]; /**< Chunk identifier, "CQDB". */
+    uint32_t    size;       /**< Chunk size including this header. */
+    uint32_t    flag;       /**< Global flags. */
+    uint32_t    byteorder;  /**< Byte-order indicator. */
+    uint32_t    bwd_size;   /**< Number of elements in the backward array. */
+    uint32_t    bwd_offset; /**< Offset to the backward array. */
 } header_t;
 
 /**
  * Reference to a hash table.
  */
 typedef struct {
-    uint32_t    offset;        /**< Offset to a hash table. */
+    uint32_t    offset;     /**< Offset to a hash table. */
     uint32_t    num;        /**< Number of elements in the hash table. */
 } tableref_t;
 
@@ -85,30 +85,30 @@ typedef struct {
  * Writer for a constant quark database.
  */
 struct tag_cqdb_writer {
-    uint32_t    flag;            /**< Operation flag. */
-    FILE*        fp;                /**< File pointer. */
-    uint32_t    begin;            /**< Offset address to the head of this database. */
+    uint32_t    flag;           /**< Operation flag. */
+    FILE*       fp;             /**< File pointer. */
+    uint32_t    begin;          /**< Offset address to the head of this database. */
     uint32_t    cur;            /**< Offset address to a new key/data pair. */
-    table_t        ht[NUM_TABLES];    /**< Hash tables (string -> id). */
+    table_t     ht[NUM_TABLES]; /**< Hash tables (string -> id). */
 
-    uint32_t*    bwd;            /**< Backlink array. */
+    uint32_t*   bwd;            /**< Backlink array. */
     uint32_t    bwd_num;        /**< */
-    uint32_t    bwd_size;        /**< Number of elements in the backlink array. */
+    uint32_t    bwd_size;       /**< Number of elements in the backlink array. */
 };
 
 /**
  * Constant quark database (CQDB).
  */
 struct tag_cqdb {
-    uint8_t*    buffer;            /**< Pointer to the memory block. */
-    size_t        size;            /**< Size of the memory block. */
+    uint8_t*    buffer;         /**< Pointer to the memory block. */
+    size_t      size;           /**< Size of the memory block. */
 
-    header_t    header;            /**< Chunk header. */
-    table_t        ht[NUM_TABLES];    /**< Hash tables (string -> id). */
+    header_t    header;         /**< Chunk header. */
+    table_t     ht[NUM_TABLES]; /**< Hash tables (string -> id). */
 
-    uint32_t*    bwd;            /**< Array for backward look-up (id -> string). */
+    uint32_t*   bwd;            /**< Array for backward look-up (id -> string). */
 
-    int            num;            /**< Number of key/data pairs. */
+    int         num;            /**< Number of key/data pairs. */
 };
 
 
@@ -119,7 +119,12 @@ uint32_t hashlittle(const void *key, size_t length, uint32_t initval);
 
 static size_t write_uint32(cqdb_writer_t* wt, uint32_t value)
 {
-    return fwrite(&value, 1, sizeof(value), wt->fp) / sizeof(value);
+    uint8_t buffer[4];
+    buffer[0] = (uint8_t)(value & 0xFF);
+    buffer[1] = (uint8_t)(value >> 8);
+    buffer[2] = (uint8_t)(value >> 16);
+    buffer[3] = (uint8_t)(value >> 24);
+    return fwrite(buffer, sizeof(uint8_t), 4, wt->fp) / sizeof(value);
 }
 
 static size_t write_data(cqdb_writer_t* wt, const void *data, size_t size)
@@ -192,7 +197,7 @@ int cqdb_writer_put(cqdb_writer_t* dbw, const char *str, int id)
     }
 
     /* Write out the current data. */
-    write_data(dbw, &id, sizeof(id));
+    write_uint32(dbw, (uint32_t)id);
     write_uint32(dbw, (uint32_t)ksize);
     write_data(dbw, key, ksize);
     if (ferror(dbw->fp)) {
@@ -240,7 +245,7 @@ int cqdb_writer_put(cqdb_writer_t* dbw, const char *str, int id)
     }
 
     /* Increment the current position. */
-    dbw->cur += sizeof(id) + sizeof(uint32_t) + ksize;
+    dbw->cur += sizeof(uint32_t) + sizeof(uint32_t) + ksize;
     return 0;
 
 error_exit:
@@ -394,7 +399,45 @@ error_exit:
 
 static uint32_t read_uint32(uint8_t* p)
 {
-    return *(uint32_t*)p;
+    uint32_t value;
+    value  = ((uint32_t)p[0]);
+    value |= ((uint32_t)p[1] << 8);
+    value |= ((uint32_t)p[2] << 16);
+    value |= ((uint32_t)p[3] << 24);
+    return value;
+}
+
+static uint8_t *read_tableref(tableref_t* ref, uint8_t *p)
+{
+    ref->offset = read_uint32(p);
+    p += sizeof(uint32_t);
+    ref->num = read_uint32(p);
+    p += sizeof(uint32_t);
+    return p;
+}
+
+static bucket_t* read_bucket(uint8_t* p, uint32_t num)
+{
+    uint32_t i;
+    bucket_t *bucket = (bucket_t*)calloc(num, sizeof(bucket_t));
+    for (i = 0;i < num;++i) {
+        bucket[i].hash = read_uint32(p);
+        p += sizeof(uint32_t);
+        bucket[i].offset = read_uint32(p);
+        p += sizeof(uint32_t);
+    }
+    return bucket;
+}
+
+static uint32_t* read_backward_links(uint8_t* p, uint32_t num)
+{
+    uint32_t i;
+    uint32_t *bwd = (uint32_t*)calloc(num, sizeof(uint32_t));
+    for (i = 0;i < num;++i) {
+        bwd[i] = read_uint32(p);
+        p += sizeof(uint32_t);
+    }
+    return bwd;
 }
 
 cqdb_t* cqdb_reader(void *buffer, size_t size)
@@ -415,7 +458,6 @@ cqdb_t* cqdb_reader(void *buffer, size_t size)
     db = (cqdb_t*)calloc(1, sizeof(cqdb_t));
     if (db != NULL) {
         uint8_t* p = NULL;
-        tableref_t* ref = NULL;
 
         /* Set memory block and size. */
         db->buffer = buffer;
@@ -450,12 +492,14 @@ cqdb_t* cqdb_reader(void *buffer, size_t size)
 
         /* Set pointers to the hash tables. */
         db->num = 0;    /* Number of records. */
-        ref = (tableref_t*)(db->buffer + OFFSET_REFS);
+        p = (db->buffer + OFFSET_REFS);
         for (i = 0;i < NUM_TABLES;++i) {
-            if (ref[i].offset) {
+            tableref_t ref;
+            p = read_tableref(&ref, p);
+            if (ref.offset) {
                 /* Set buckets. */
-                db->ht[i].bucket = (bucket_t*)(db->buffer + ref[i].offset);
-                db->ht[i].num = ref[i].num;
+                db->ht[i].bucket = read_bucket(db->buffer + ref.offset, ref.num);
+                db->ht[i].num = ref.num;
             } else {
                 /* An empty hash table. */
                 db->ht[i].bucket = NULL;
@@ -463,12 +507,12 @@ cqdb_t* cqdb_reader(void *buffer, size_t size)
             }
 
             /* The number of records is the half of the table size.*/
-            db->num += ref[i].num / 2;
+            db->num += ref.num / 2;
         }
 
         /* Set the pointer to the backlink array if any. */
         if (db->header.bwd_offset) {
-            db->bwd = (uint32_t*)(db->buffer + db->header.bwd_offset);
+            db->bwd = read_backward_links(db->buffer + db->header.bwd_offset, db->num);
         } else {
             db->bwd = NULL;
         }
@@ -479,7 +523,15 @@ cqdb_t* cqdb_reader(void *buffer, size_t size)
 
 void cqdb_delete(cqdb_t* db)
 {
-    free(db);
+    int i;
+
+    if (db != NULL) {
+        for (i = 0;i < NUM_TABLES;++i) {
+            free(db->ht[i].bucket);
+        }
+        free(db->bwd);
+        free(db);
+    }
 }
 
 int cqdb_to_id(cqdb_t* db, const char *str)
@@ -495,10 +547,13 @@ int cqdb_to_id(cqdb_t* db, const char *str)
 
         while (p = &ht->bucket[k], p->offset) {
             if (p->hash == hv) {
-                uint8_t *begin = db->buffer + p->offset;
-                uint32_t *q = (uint32_t*)begin;
-                int value = (int)*q++;
-                uint32_t ksize = *q++;
+                int value;
+                uint32_t ksize;
+                uint8_t *q = db->buffer + p->offset;
+                value = (int)read_uint32(q);
+                q += sizeof(uint32_t);
+                ksize = read_uint32(q);
+                q += sizeof(uint32_t);
                 if (strcmp(str, (const char *)q) == 0) {
                     return value;
                 }
@@ -516,9 +571,9 @@ const char* cqdb_to_string(cqdb_t* db, int id)
     if (db->bwd != NULL && (uint32_t)id < db->header.bwd_size) {
         uint32_t offset = db->bwd[id];
         if (offset) {
-            uint32_t *p = (uint32_t*)(db->buffer + offset);
-            ++p;    /* Skip key data. */
-            ++p;    /* Skip value size. */
+            uint8_t *p = db->buffer + offset;
+            p += sizeof(uint32_t);  /* Skip key data. */
+            p += sizeof(uint32_t);  /* Skip value size. */
             return (const char *)p;
         }
     }
