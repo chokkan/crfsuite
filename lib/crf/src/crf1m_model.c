@@ -42,12 +42,13 @@
 #include "crf.h"
 #include "crf1m.h"
 
-#define    FILEMAGIC        "lCRF"
-#define    MODELTYPE        "FOMC"
-#define    VERSION_NUMBER    (100)
-#define    CHUNK_LABELREF    "LFRF"
-#define    CHUNK_ATTRREF    "AFRF"
-#define    CHUNK_FEATURE    "FEAT"
+#define FILEMAGIC       "lCRF"
+#define MODELTYPE       "FOMC"
+#define VERSION_NUMBER  (100)
+#define CHUNK_LABELREF  "LFRF"
+#define CHUNK_ATTRREF   "AFRF"
+#define CHUNK_FEATURE   "FEAT"
+#define CHUNK_SIZE      12
 
 enum {
     WSTATE_NONE,
@@ -59,39 +60,39 @@ enum {
 };
 
 typedef struct {
-    uint8_t        magic[4];            /* File magic. */
-    uint32_t    size;                /* File size. */
-    uint8_t        type[4];            /* Model type */
-    uint32_t    version;            /* Version number. */
-    uint32_t    num_features;        /* Number of features. */
-    uint32_t    num_labels;            /* Number of labels. */
-    uint32_t    num_attrs;            /* Number of attributes. */
-    uint32_t    off_features;        /* Offset to features. */
-    uint32_t    off_labels;            /* Offset to label CQDB. */
-    uint32_t    off_attrs;            /* Offset to attribute CQDB. */
-    uint32_t    off_labelrefs;        /* Offset to label feature references. */
-    uint32_t    off_attrrefs;        /* Offset to attribute feature references. */
+    uint8_t     magic[4];       /* File magic. */
+    uint32_t    size;           /* File size. */
+    uint8_t     type[4];        /* Model type */
+    uint32_t    version;        /* Version number. */
+    uint32_t    num_features;   /* Number of features. */
+    uint32_t    num_labels;     /* Number of labels. */
+    uint32_t    num_attrs;      /* Number of attributes. */
+    uint32_t    off_features;   /* Offset to features. */
+    uint32_t    off_labels;     /* Offset to label CQDB. */
+    uint32_t    off_attrs;      /* Offset to attribute CQDB. */
+    uint32_t    off_labelrefs;  /* Offset to label feature references. */
+    uint32_t    off_attrrefs;   /* Offset to attribute feature references. */
 } header_t;
 
 typedef struct {
-    uint8_t        chunk[4];            /* Chunk id */
-    uint32_t    size;                /* Chunk size. */
-    uint32_t    num;                /* Number of items. */
-    uint32_t    offsets[1];            /* Offsets. */
+    uint8_t     chunk[4];       /* Chunk id */
+    uint32_t    size;           /* Chunk size. */
+    uint32_t    num;            /* Number of items. */
+    uint32_t    offsets[1];     /* Offsets. */
 } featureref_header_t;
 
 typedef struct {
-    uint8_t        chunk[4];            /* Chunk id */
-    uint32_t    size;                /* Chunk size. */
-    uint32_t    num;                /* Number of items. */
+    uint8_t     chunk[4];       /* Chunk id */
+    uint32_t    size;           /* Chunk size. */
+    uint32_t    num;            /* Number of items. */
 } feature_header_t;
 
 struct tag_crf1mm {
     uint8_t*    buffer;
     uint32_t    size;
-    header_t*    header;
-    cqdb_t*        labels;
-    cqdb_t*        attrs;
+    header_t*   header;
+    cqdb_t*     labels;
+    cqdb_t*     attrs;
 };
 
 struct tag_crf1mmw {
@@ -127,12 +128,20 @@ static int read_uint8(uint8_t* buffer, uint8_t* value)
 
 static int write_uint32(FILE *fp, uint32_t value)
 {
-    return fwrite(&value, sizeof(value), 1, fp) == 1 ? 0 : 1;
+    uint8_t buffer[4];
+    buffer[0] = (uint8_t)(value & 0xFF);
+    buffer[1] = (uint8_t)(value >> 8);
+    buffer[2] = (uint8_t)(value >> 16);
+    buffer[3] = (uint8_t)(value >> 24);
+    return fwrite(buffer, sizeof(uint8_t), 4, fp) == 4 ? 0 : 1;
 }
 
 static int read_uint32(uint8_t* buffer, uint32_t* value)
 {
-    *value = *(uint32_t*)buffer;
+    *value  = ((uint32_t)buffer[0]);
+    *value |= ((uint32_t)buffer[1] << 8);
+    *value |= ((uint32_t)buffer[2] << 16);
+    *value |= ((uint32_t)buffer[3] << 24);
     return sizeof(*value);
 }
 
@@ -160,12 +169,41 @@ static int read_uint8_array(uint8_t* buffer, uint8_t *array, size_t n)
 
 static void write_float(FILE *fp, floatval_t value)
 {
-    fwrite(&value, sizeof(value), 1, fp);
+    /*
+        We assume:
+            - sizeof(floatval_t) = sizeof(double) = sizeof(uint64_t)
+            - the byte order of floatval_t and uint64_t is the same
+            - ARM's mixed-endian is not supported
+    */
+    uint64_t iv;
+    uint8_t buffer[8];
+
+    /* Copy the memory image of floatval_t value to uint64_t. */
+    memcpy(&iv, &value, sizeof(iv));
+
+    buffer[0] = (uint8_t)(iv & 0xFF);
+    buffer[1] = (uint8_t)(iv >> 8);
+    buffer[2] = (uint8_t)(iv >> 16);
+    buffer[3] = (uint8_t)(iv >> 24);
+    buffer[4] = (uint8_t)(iv >> 32);
+    buffer[5] = (uint8_t)(iv >> 40);
+    buffer[6] = (uint8_t)(iv >> 48);
+    buffer[7] = (uint8_t)(iv >> 56);
+    fwrite(buffer, sizeof(uint8_t), 8, fp);
 }
 
 static int read_float(uint8_t* buffer, floatval_t* value)
 {
-    *value = *(floatval_t*)buffer;
+    uint64_t iv;
+    iv  = ((uint64_t)buffer[0]);
+    iv |= ((uint64_t)buffer[1] << 8);
+    iv |= ((uint64_t)buffer[2] << 16);
+    iv |= ((uint64_t)buffer[3] << 24);
+    iv |= ((uint64_t)buffer[4] << 32);
+    iv |= ((uint64_t)buffer[5] << 40);
+    iv |= ((uint64_t)buffer[6] << 48);
+    iv |= ((uint64_t)buffer[7] << 56);
+    memcpy(value, &iv, sizeof(*value));
     return sizeof(*value);
 }
 
@@ -366,6 +404,7 @@ int crf1mmw_put_attr(crf1mmw_t* writer, int aid, const char *value)
 
 int crf1mmw_open_labelrefs(crf1mmw_t* writer, int num_labels)
 {
+    uint32_t offset;
     FILE *fp = writer->fp;
     featureref_header_t* href = NULL;
     size_t size = sizeof(featureref_header_t) + sizeof(uint32_t) * (num_labels-1);
@@ -381,8 +420,16 @@ int crf1mmw_open_labelrefs(crf1mmw_t* writer, int num_labels)
         return CRFERR_OUTOFMEMORY;
     }
 
+    /* Align the offset to a DWORD boundary. */
+    offset = (uint32_t)ftell(fp);
+    while (offset % 4 != 0) {
+        uint8_t c = 0;
+        fwrite(&c, sizeof(uint8_t), 1, fp);
+        ++offset;
+    }
+
     /* Store the current offset position to the file header. */
-    writer->header.off_labelrefs = (uint32_t)ftell(fp);
+    writer->header.off_labelrefs = offset;
     fseek(fp, size, SEEK_CUR);
 
     /* Fill members in the feature reference header. */
@@ -397,6 +444,7 @@ int crf1mmw_open_labelrefs(crf1mmw_t* writer, int num_labels)
 
 int crf1mmw_close_labelrefs(crf1mmw_t* writer)
 {
+    uint32_t i;
     FILE *fp = writer->fp;
     featureref_header_t* href = writer->href;
     uint32_t begin = writer->header.off_labelrefs, end = 0;
@@ -414,7 +462,12 @@ int crf1mmw_close_labelrefs(crf1mmw_t* writer)
 
     /* Write the chunk header and offset array. */
     fseek(fp, begin, SEEK_SET);
-    fwrite(href, sizeof(featureref_header_t) + sizeof(uint32_t) * (href->num-1), 1, fp);
+    write_uint8_array(fp, href->chunk, 4);
+    write_uint32(fp, href->size);
+    write_uint32(fp, href->num);
+    for (i = 0;i < href->num;++i) {
+        write_uint32(fp, href->offsets[i]);
+    }
 
     /* Move the file pointer to the tail. */
     fseek(fp, end, SEEK_SET);
@@ -458,6 +511,7 @@ int crf1mmw_put_labelref(crf1mmw_t* writer, int lid, const feature_refs_t* ref, 
 
 int crf1mmw_open_attrrefs(crf1mmw_t* writer, int num_attrs)
 {
+    uint32_t offset;
     FILE *fp = writer->fp;
     featureref_header_t* href = NULL;
     size_t size = sizeof(featureref_header_t) + sizeof(uint32_t) * (num_attrs-1);
@@ -473,8 +527,16 @@ int crf1mmw_open_attrrefs(crf1mmw_t* writer, int num_attrs)
         return CRFERR_OUTOFMEMORY;
     }
 
+    /* Align the offset to a DWORD boundary. */
+    offset = (uint32_t)ftell(fp);
+    while (offset % 4 != 0) {
+        uint8_t c = 0;
+        fwrite(&c, sizeof(uint8_t), 1, fp);
+        ++offset;
+    }
+
     /* Store the current offset position to the file header. */
-    writer->header.off_attrrefs = (uint32_t)ftell(fp);
+    writer->header.off_attrrefs = offset;
     fseek(fp, size, SEEK_CUR);
 
     /* Fill members in the feature reference header. */
@@ -489,6 +551,7 @@ int crf1mmw_open_attrrefs(crf1mmw_t* writer, int num_attrs)
 
 int crf1mmw_close_attrrefs(crf1mmw_t* writer)
 {
+    uint32_t i;
     FILE *fp = writer->fp;
     featureref_header_t* href = writer->href;
     uint32_t begin = writer->header.off_attrrefs, end = 0;
@@ -506,7 +569,12 @@ int crf1mmw_close_attrrefs(crf1mmw_t* writer)
 
     /* Write the chunk header and offset array. */
     fseek(fp, begin, SEEK_SET);
-    fwrite(href, sizeof(featureref_header_t) + sizeof(uint32_t) * (href->num-1), 1, fp);
+    write_uint8_array(fp, href->chunk, 4);
+    write_uint32(fp, href->size);
+    write_uint32(fp, href->num);
+    for (i = 0;i < href->num;++i) {
+        write_uint32(fp, href->offsets[i]);
+    }
 
     /* Move the file pointer to the tail. */
     fseek(fp, end, SEEK_SET);
@@ -593,7 +661,9 @@ int crf1mmw_close_features(crf1mmw_t* writer)
 
     /* Write the chunk header and offset array. */
     fseek(fp, begin, SEEK_SET);
-    fwrite(hfeat, sizeof(feature_header_t), 1, fp);
+    write_uint8_array(fp, hfeat->chunk, 4);
+    write_uint32(fp, hfeat->size);
+    write_uint32(fp, hfeat->num);
 
     /* Move the file pointer to the tail. */
     fseek(fp, end, SEEK_SET);
@@ -649,7 +719,11 @@ crf1mm_t* crf1mm_new(const char *filename)
     model->size = (uint32_t)ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    model->buffer = (uint8_t*)malloc(model->size);
+    model->buffer = (uint8_t*)malloc(model->size + 16);
+    while ((uint32_t)model->buffer % 16 != 0) {
+        ++model->buffer;
+    }
+
     fread(model->buffer, 1, model->size, fp);
     fclose(fp);
 
@@ -752,21 +826,33 @@ const char *crf1mm_to_attr(crf1mm_t* model, int aid)
 
 int crf1mm_get_labelref(crf1mm_t* model, int lid, feature_refs_t* ref)
 {
-    uint32_t page = model->header->off_labelrefs;
-    featureref_header_t* href = (featureref_header_t*)(model->buffer + page);
-    uint32_t offset = href->offsets[lid];
-    ref->num_features = *(uint32_t*)(model->buffer + offset);
-    ref->fids = (int*)(model->buffer + offset + sizeof(uint32_t));
+    uint8_t *p = model->buffer;
+    uint32_t offset;
+
+    p += model->header->off_labelrefs;
+    p += CHUNK_SIZE;
+    p += sizeof(uint32_t) * lid;
+    read_uint32(p, &offset);
+
+    p = model->buffer + offset;
+    p += read_uint32(p, &ref->num_features);
+    ref->fids = (int*)p;
     return 0;
 }
 
 int crf1mm_get_attrref(crf1mm_t* model, int aid, feature_refs_t* ref)
 {
-    uint32_t page = model->header->off_attrrefs;
-    featureref_header_t* href = (featureref_header_t*)(model->buffer + page);
-    uint32_t offset = href->offsets[aid];
-    ref->num_features = *(uint32_t*)(model->buffer + offset);
-    ref->fids = (int*)(model->buffer + offset + sizeof(uint32_t));
+    uint8_t *p = model->buffer;
+    uint32_t offset;
+
+    p += model->header->off_attrrefs;
+    p += CHUNK_SIZE;
+    p += sizeof(uint32_t) * aid;
+    read_uint32(p, &offset);
+
+    p = model->buffer + offset;
+    p += read_uint32(p, &ref->num_features);
+    ref->fids = (int*)p;
     return 0;
 }
 
