@@ -48,7 +48,9 @@
 #define CHUNK_LABELREF  "LFRF"
 #define CHUNK_ATTRREF   "AFRF"
 #define CHUNK_FEATURE   "FEAT"
+#define HEADER_SIZE     48
 #define CHUNK_SIZE      12
+#define FEATURE_SIZE    20
 
 enum {
     WSTATE_NONE,
@@ -231,7 +233,7 @@ crf1mmw_t* crf1mmw(const char *filename)
     header->version = VERSION_NUMBER;
 
     /* Advance the file position to skip the file header. */
-    if (fseek(writer->fp, sizeof(header_t), SEEK_CUR) != 0) {
+    if (fseek(writer->fp, HEADER_SIZE, SEEK_CUR) != 0) {
         goto error_exit;
     }
 
@@ -407,7 +409,7 @@ int crf1mmw_open_labelrefs(crf1mmw_t* writer, int num_labels)
     uint32_t offset;
     FILE *fp = writer->fp;
     featureref_header_t* href = NULL;
-    size_t size = sizeof(featureref_header_t) + sizeof(uint32_t) * (num_labels-1);
+    size_t size = CHUNK_SIZE + sizeof(uint32_t) * num_labels;
 
     /* Check if we aren't writing anything at this moment. */
     if (writer->state != WSTATE_NONE) {
@@ -514,7 +516,7 @@ int crf1mmw_open_attrrefs(crf1mmw_t* writer, int num_attrs)
     uint32_t offset;
     FILE *fp = writer->fp;
     featureref_header_t* href = NULL;
-    size_t size = sizeof(featureref_header_t) + sizeof(uint32_t) * (num_attrs-1);
+    size_t size = CHUNK_SIZE + sizeof(uint32_t) * num_attrs;
 
     /* Check if we aren't writing anything at this moment. */
     if (writer->state != WSTATE_NONE) {
@@ -633,7 +635,7 @@ int crf1mmw_open_features(crf1mmw_t* writer)
     }
 
     writer->header.off_features = (uint32_t)ftell(fp);
-    fseek(fp, sizeof(feature_header_t), SEEK_CUR);
+    fseek(fp, CHUNK_SIZE, SEEK_CUR);
 
     strncpy(hfeat->chunk, CHUNK_FEATURE, 4);
     writer->hfeat = hfeat;
@@ -860,8 +862,8 @@ int crf1mm_get_feature(crf1mm_t* model, int fid, crf1mm_feature_t* f)
 {
     uint8_t *p = NULL;
     uint32_t val = 0;
-    uint32_t offset = model->header->off_features + sizeof(feature_header_t);
-    offset += (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(floatval_t)) * fid;
+    uint32_t offset = model->header->off_features + CHUNK_SIZE;
+    offset += FEATURE_SIZE * fid;
     p = model->buffer + offset;
     p += read_uint32(p, &val);
     f->type = val;
