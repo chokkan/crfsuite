@@ -27,7 +27,7 @@ AC_ISC_POSIX
 dnl ------------------------------------------------------------------
 dnl Initialization for automake
 dnl ------------------------------------------------------------------
-AM_INIT_AUTOMAKE(crfsuite, 0.7)
+AM_INIT_AUTOMAKE(crfsuite, 0.8)
 AC_CONFIG_HEADERS(config.h)
 AM_MAINTAINER_MODE
 AM_C_PROTOTYPES
