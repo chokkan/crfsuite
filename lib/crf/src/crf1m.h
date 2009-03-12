@@ -257,6 +257,7 @@ int crf1mm_to_aid(crf1mm_t* model, const char *value);
 const char *crf1mm_to_attr(crf1mm_t* model, int aid);
 int crf1mm_get_labelref(crf1mm_t* model, int lid, feature_refs_t* ref);
 int crf1mm_get_attrref(crf1mm_t* model, int aid, feature_refs_t* ref);
+int crf1mm_get_featureid(feature_refs_t* ref, int i);
 int crf1mm_get_feature(crf1mm_t* model, int fid, crf1mm_feature_t* f);
 void crf1mm_dump(crf1mm_t* model, FILE *fp);
 

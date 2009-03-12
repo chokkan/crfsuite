@@ -57,7 +57,7 @@ struct tag_crf1mt {
 
 static void state_score(crf1mt_t* tagger, const crf_sequence_t* seq)
 {
-    int a, i, l, t, r;
+    int a, i, l, t, r, fid;
     crf1mm_feature_t f;
     feature_refs_t attr;
     floatval_t scale, *state = NULL;
@@ -89,7 +89,8 @@ static void state_score(crf1mt_t* tagger, const crf_sequence_t* seq)
             for (r = 0;r < attr.num_features;++r) {
                 /* The state feature #(attr->fids[r]), which is represented by
                    the attribute #a, outputs the label #(f->dst). */
-                crf1mm_get_feature(model, attr.fids[r], &f);
+                fid = crf1mm_get_featureid(&attr, r);
+                crf1mm_get_feature(model, fid, &f);
                 l = f.dst;
                 state[l] += f.weight * scale;
             }
@@ -99,7 +100,7 @@ static void state_score(crf1mt_t* tagger, const crf_sequence_t* seq)
 
 static void transition_score(crf1mt_t* tagger)
 {
-    int i, j, r;
+    int i, j, r, fid;
     crf1mm_feature_t f;
     feature_refs_t edge;
     floatval_t *trans = NULL;
@@ -120,7 +121,8 @@ static void transition_score(crf1mt_t* tagger)
     crf1mm_get_labelref(model, L, &edge);
     for (r = 0;r < edge.num_features;++r) {
         /* Transition feature from BOS to #(f->dst). */
-        crf1mm_get_feature(model, edge.fids[r], &f);
+        fid = crf1mm_get_featureid(&edge, r);
+        crf1mm_get_feature(model, fid, &f);
         trans[f.dst] = f.weight;
     }
 
@@ -130,7 +132,8 @@ static void transition_score(crf1mt_t* tagger)
         crf1mm_get_labelref(model, i, &edge);
         for (r = 0;r < edge.num_features;++r) {
             /* Transition feature from #i to #(f->dst). */
-            crf1mm_get_feature(model, edge.fids[r], &f);
+            fid = crf1mm_get_featureid(&edge, r);
+            crf1mm_get_feature(model, fid, &f);
             trans[f.dst] = f.weight;
         }        
     }
@@ -139,7 +142,8 @@ static void transition_score(crf1mt_t* tagger)
     crf1mm_get_labelref(model, L+1, &edge);
     for (r = 0;r < edge.num_features;++r) {
         /* Transition feature from #(f->src) to EOS. */
-        crf1mm_get_feature(model, edge.fids[r], &f);
+        fid = crf1mm_get_featureid(&edge, r);
+        crf1mm_get_feature(model, fid, &f);
         trans[L] = f.weight;
     }
 }

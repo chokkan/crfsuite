@@ -858,6 +858,15 @@ int crf1mm_get_attrref(crf1mm_t* model, int aid, feature_refs_t* ref)
     return 0;
 }
 
+int crf1mm_get_featureid(feature_refs_t* ref, int i)
+{
+    uint32_t fid;
+    uint8_t* p = (uint8_t*)ref->fids;
+    p += sizeof(uint32_t) * i;
+    read_uint32(p, &fid);
+    return (int)fid;
+}
+
 int crf1mm_get_feature(crf1mm_t* model, int fid, crf1mm_feature_t* f)
 {
     uint8_t *p = NULL;
@@ -937,7 +946,7 @@ void crf1mm_dump(crf1mm_t* crf1mm, FILE *fp)
         crf1mm_get_labelref(crf1mm, i, &refs);
         for (j = 0;j < refs.num_features;++j) {
             crf1mm_feature_t f;
-            int fid = refs.fids[j];
+            int fid = crf1mm_get_featureid(&refs, j);
             const char *from = NULL, *to = NULL;
 
             crf1mm_get_feature(crf1mm, fid, &f);
@@ -954,7 +963,7 @@ void crf1mm_dump(crf1mm_t* crf1mm, FILE *fp)
     crf1mm_get_labelref(crf1mm, hfile->num_labels, &refs);
     for (j = 0;j < refs.num_features;++j) {
         crf1mm_feature_t f;
-        int fid = refs.fids[j];
+        int fid = crf1mm_get_featureid(&refs, j);
         const char *to = NULL;
 
         crf1mm_get_feature(crf1mm, fid, &f);
@@ -969,7 +978,7 @@ void crf1mm_dump(crf1mm_t* crf1mm, FILE *fp)
     crf1mm_get_labelref(crf1mm, hfile->num_labels+1, &refs);
     for (j = 0;j < refs.num_features;++j) {
         crf1mm_feature_t f;
-        int fid = refs.fids[j];
+        int fid = crf1mm_get_featureid(&refs, j);
         const char *from = NULL;
 
         crf1mm_get_feature(crf1mm, fid, &f);
@@ -985,7 +994,7 @@ void crf1mm_dump(crf1mm_t* crf1mm, FILE *fp)
         crf1mm_get_attrref(crf1mm, i, &refs);
         for (j = 0;j < refs.num_features;++j) {
             crf1mm_feature_t f;
-            int fid = refs.fids[j];
+            int fid = crf1mm_get_featureid(&refs, j);
             const char *attr = NULL, *to = NULL;
 
             crf1mm_get_feature(crf1mm, fid, &f);
