@@ -1,3 +1,8 @@
+2009-03-17  Naoaki Okazaki  <okazaki at chokkan org>
+	* CRFsuite 0.8
+	- Improved the portability of model files across different machine architectures with different byte order; this fixes a crash problem in tagging on some machine architectures.
+
+	
 2009-03-10  Naoaki Okazaki  <okazaki at chokkan org>
 	* CRFsuite 0.7
 	- Updated RumAVL library to 4.0.0; this fixes a crash problem occurring in feature generation on some machine architectures.
