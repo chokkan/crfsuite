@@ -292,7 +292,7 @@ int crf1ml_lbfgs(
     if (strcmp(lbfgsopt->linesearch, "Backtracking") == 0) {
         lbfgsparam.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
     } else if (strcmp(lbfgsopt->linesearch, "StrongBacktracking") == 0) {
-        lbfgsparam.linesearch = LBFGS_LINESEARCH_BACKTRACKING_STRONG;
+        lbfgsparam.linesearch = LBFGS_LINESEARCH_BACKTRACKING_STRONG_WOLFE;
     } else {
         lbfgsparam.linesearch = LBFGS_LINESEARCH_MORETHUENTE;
     }
