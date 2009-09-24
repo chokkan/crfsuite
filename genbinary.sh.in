@@ -1,0 +1,12 @@
+#!/bin/bash
+
+LIBLBFGS=$HOME/local
+BINDIR=$HOME/build/crfsuite
+TARGET=@PACKAGE@-@VERSION@-`/bin/arch`.tar.gz
+
+rm -rf $BINDIR
+./configure --prefix=$BINDIR --with-liblbfgs=$LIBLBFGS
+make LDFLAGS=-all-static
+make install
+tar cvzf $TARGET $BINDIR
+
