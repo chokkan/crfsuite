@@ -1,3 +1,8 @@
+2009-09-24  Naoaki Okazaki  <okazaki at chokkan org>
+	* CRFsuite 0.9
+	- Fixed a build problem with liblbfgs 1.8
+
+	
 2009-03-17  Naoaki Okazaki  <okazaki at chokkan org>
 	* CRFsuite 0.8
 	- Improved the portability of model files across different machine architectures with different byte order; this fixes a crash problem in tagging on some machine architectures.
