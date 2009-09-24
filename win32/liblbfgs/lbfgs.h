@@ -2,7 +2,7 @@
  *      C library of Limited memory BFGS (L-BFGS).
  *
  * Copyright (c) 1990, Jorge Nocedal
- * Copyright (c) 2007-2009,2009 Naoaki Okazaki
+ * Copyright (c) 2007,2008,2009 Naoaki Okazaki
  * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -107,6 +107,8 @@ enum {
     LBFGSERR_INVALID_MAXSTEP,
     /** Invalid parameter lbfgs_parameter_t::ftol specified. */
     LBFGSERR_INVALID_FTOL,
+    /** Invalid parameter lbfgs_parameter_t::wolfe specified. */
+    LBFGSERR_INVALID_WOLFE,
     /** Invalid parameter lbfgs_parameter_t::gtol specified. */
     LBFGSERR_INVALID_GTOL,
     /** Invalid parameter lbfgs_parameter_t::xtol specified. */
@@ -152,10 +154,40 @@ enum {
     LBFGS_LINESEARCH_DEFAULT = 0,
     /** MoreThuente method proposd by More and Thuente. */
     LBFGS_LINESEARCH_MORETHUENTE = 0,
-    /** Backtracking method with strong Wolfe condition. */
-    LBFGS_LINESEARCH_BACKTRACKING_STRONG,
-    /** Backtracking method with regular Wolfe condition. */
-    LBFGS_LINESEARCH_BACKTRACKING,
+    /**
+     * Backtracking method with the Armijo condition.
+     *  The backtracking method finds the step length such that it satisfies
+     *  the sufficient decrease (Armijo) condition,
+     *    - f(x + a * d) <= f(x) + lbfgs_parameter_t::ftol * a * g(x)^T d,
+     *
+     *  where x is the current point, d is the current search direction, and
+     *  a is the step length.
+     */
+    LBFGS_LINESEARCH_BACKTRACKING_ARMIJO = 1,
+    /** The backtracking method with the defualt (regular Wolfe) condition. */
+    LBFGS_LINESEARCH_BACKTRACKING = 2,
+    /**
+     * Backtracking method with regular Wolfe condition.
+     *  The backtracking method finds the step length such that it satisfies
+     *  both the Armijo condition (LBFGS_LINESEARCH_BACKTRACKING_ARMIJO)
+     *  and the curvature condition,
+     *    - g(x + a * d)^T d >= lbfgs_parameter_t::wolfe * g(x)^T d,
+     *
+     *  where x is the current point, d is the current search direction, and
+     *  a is the step length.
+     */
+    LBFGS_LINESEARCH_BACKTRACKING_WOLFE = 2,
+    /**
+     * Backtracking method with strong Wolfe condition.
+     *  The backtracking method finds the step length such that it satisfies
+     *  both the Armijo condition (LBFGS_LINESEARCH_BACKTRACKING_ARMIJO)
+     *  and the following condition,
+     *    - |g(x + a * d)^T d| <= lbfgs_parameter_t::wolfe * |g(x)^T d|,
+     *
+     *  where x is the current point, d is the current search direction, and
+     *  a is the step length.
+     */
+    LBFGS_LINESEARCH_BACKTRACKING_STRONG_WOLFE = 3,
 };
 
 /**
@@ -184,7 +216,25 @@ typedef struct {
      */
     lbfgsfloatval_t epsilon;
 
+    /**
+     * Distance for delta-based convergence test.
+     *  This parameter determines the distance, in iterations, to compute
+     *  the rate of decrease of the objective function. If the value of this
+     *  parameter is zero, the library does not perform the delta-based
+     *  convergence test. The default value is \c 0.
+     */
     int             past;
+
+    /**
+     * Delta for convergence test.
+     *  This parameter determines the minimum rate of decrease of the
+     *  objective function. The library stops iterations when the
+     *  following condition is met:
+     *      (f' - f) / f < \ref delta,
+     *  where f' is the objective value of \ref past iterations ago, and f is
+     *  the objective value of the current iteration.
+     *  The default value is \c 0.
+     */
     lbfgsfloatval_t delta;
 
     /**
@@ -235,6 +285,17 @@ typedef struct {
      *  than zero and smaller than \c 0.5.
      */
     lbfgsfloatval_t ftol;
+
+    /**
+     * A coefficient for the Wolfe condition.
+     *  This parameter is valid only when the backtracking line-search
+     *  algorithm is used with the Wolfe condition,
+     *  ::LBFGS_LINESEARCH_BACKTRACKING_STRONG_WOLFE or
+     *  ::LBFGS_LINESEARCH_BACKTRACKING_WOLFE .
+     *  The default value is \c 0.9. This parameter should be greater
+     *  the \ref ftol parameter and smaller than \c 1.0.
+     */
+    lbfgsfloatval_t wolfe;
 
     /**
      * A parameter to control the accuracy of the line search routine.
@@ -526,32 +587,44 @@ This library is used by:
 - <a href="http://www.public.iastate.edu/~gdancik/mlegp/">mlegp: an R package for maximum likelihood estimates for Gaussian processes</a>
 - <a href="http://infmath.uibk.ac.at/~matthiasf/imaging2/">imaging2: the imaging2 class library</a>
 - <a href="http://search.cpan.org/~laye/Algorithm-LBFGS-0.16/">Algorithm::LBFGS - Perl extension for L-BFGS</a>
+- <a href="http://www.cs.kuleuven.be/~bernd/yap-lbfgs/">YAP-LBFGS (an interface to call libLBFGS from YAP Prolog)</a>
 
 @section download Download
 
-- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.7.tar.gz">Source code</a>
+- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.8.tar.gz">Source code</a>
 
 libLBFGS is distributed under the term of the
 <a href="http://opensource.org/licenses/mit-license.php">MIT license</a>.
 
 @section changelog History
-- Version 1.7 (2009-02-23):
-    - Accurate calculation of the Armijo condition in the backtracking
-      algorithm for the OW-LQN method. This fix reduces the cases where
-      iteration processes stop before objective values are minimized well.
-    - Removed the support of OW-LQN method in MoreThuente algorithm because
-      the previous implementation did not calculate the Armijo condition
-      accurately. <b>The OW-LQN method must be used with the backtracking
-      algorithm (::LBFGS_LINESEARCH_BACKTRACKING).</b>
+- Version 1.8 (2009-07-13):
+    - Accepted the patch submitted by Takashi Imamichi;
+      the backtracking method now has three criteria for choosing the step
+      length:
+        - ::LBFGS_LINESEARCH_BACKTRACKING_ARMIJO: sufficient decrease (Armijo)
+          condition only
+        - ::LBFGS_LINESEARCH_BACKTRACKING_WOLFE: regular Wolfe condition
+          (sufficient decrease condition + curvature condition)
+        - ::LBFGS_LINESEARCH_BACKTRACKING_STRONG_WOLFE: strong Wolfe condition
+    - Updated the documentation to explain the above three criteria.
+- Version 1.7 (2009-02-28):
+    - Improved OWL-QN routines for stability.
+    - Removed the support of OWL-QN method in MoreThuente algorithm because
+      it accidentally fails in early stages of iterations for some objectives.
+      Because of this change, <b>the OW-LQN method must be used with the
+      backtracking algorithm (::LBFGS_LINESEARCH_BACKTRACKING)</b>, or the
+      library returns ::LBFGSERR_INVALID_LINESEARCH.
     - Renamed line search algorithms as follows:
         - ::LBFGS_LINESEARCH_BACKTRACKING: regular Wolfe condition.
+        - ::LBFGS_LINESEARCH_BACKTRACKING_LOOSE: regular Wolfe condition.
         - ::LBFGS_LINESEARCH_BACKTRACKING_STRONG: strong Wolfe condition.
+    - Source code clean-up.
 - Version 1.6 (2008-11-02):
     - Improved line-search algorithm with strong Wolfe condition, which was
       contributed by Takashi Imamichi. This routine is now default for
-      ::LBFGS_LINESEARCH_BACKTRACKING_STRONG. The previous line search algorithm
+      ::LBFGS_LINESEARCH_BACKTRACKING. The previous line search algorithm
       with regular Wolfe condition is still available as
-      ::LBFGS_LINESEARCH_BACKTRACKING.
+      ::LBFGS_LINESEARCH_BACKTRACKING_LOOSE.
     - Configurable stop index for L1-norm computation. A member variable
       ::lbfgs_parameter_t::orthantwise_end was added to specify the index
       number at which the library stops computing the L1 norm of the
@@ -563,7 +636,7 @@ libLBFGS is distributed under the term of the
       ::lbfgs_parameter_t::orthantwise_start was added to specify the index
       number from which the library computes the L1 norm of the variables.
       This is useful to prevent some variables from being regularized by the
-      OW-LQN method.
+      OWL-QN method.
     - Fixed a zero-division error when the initial variables have already
       been a minimizer (reported by Takashi Imamichi). In this case, the
       library returns ::LBFGS_ALREADY_MINIMIZED status code.
@@ -574,7 +647,7 @@ libLBFGS is distributed under the term of the
     - Configurable line search algorithms. A member variable
       ::lbfgs_parameter_t::linesearch was added to choose either MoreThuente
       method (::LBFGS_LINESEARCH_MORETHUENTE) or backtracking algorithm
-      (::LBFGS_LINESEARCH_BACKTRACKING_STRONG).
+      (::LBFGS_LINESEARCH_BACKTRACKING).
     - Fixed a bug: the previous version did not compute psuedo-gradients
       properly in the line search routines for OWL-QN. This bug might quit
       an iteration process too early when the OWL-QN routine was activated
@@ -636,6 +709,11 @@ method presented in:
       Scalable training of L1-regularized log-linear models.
       In <i>Proceedings of the 24th International Conference on Machine
       Learning (ICML 2007)</i>, pp. 33-40, 2007.
+
+Special thanks go to:
+    - Yoshimasa Tsuruoka and Daisuke Okanohara for technical information about
+      OWL-QN
+    - Takashi Imamichi for the useful enhancements of the backtracking method
 
 Finally I would like to thank the original author, Jorge Nocedal, who has been
 distributing the effieicnt and explanatory implementation in an open source
