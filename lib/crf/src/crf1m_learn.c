@@ -562,9 +562,6 @@ static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, i
             "feature.possible_transitions", opt->feature_possible_transitions, 0,
             "Force to generate possible transition features."
             )
-        DDX_PARAM_INT("feature.bos_eos", opt->feature_bos_eos, 1,
-            "Generate BOS/EOS features."
-            )
     END_PARAM_MAP()
 
     crf1ml_lbfgs_options(params, opt, mode);
@@ -698,7 +695,6 @@ static int crf_train_train(
     logging(crf1mt->lg, "feature.minfreq: %f\n", opt->feature_minfreq);
     logging(crf1mt->lg, "feature.possible_states: %d\n", opt->feature_possible_states);
     logging(crf1mt->lg, "feature.possible_transitions: %d\n", opt->feature_possible_transitions);
-    logging(crf1mt->lg, "feature.bos_eos: %d\n", opt->feature_bos_eos);
     crf1mt->clk_begin = clock();
     features = crf1ml_generate_features(
         seqs,

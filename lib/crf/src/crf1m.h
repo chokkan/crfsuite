@@ -291,7 +291,6 @@ typedef struct {
     floatval_t    feature_minfreq;
     int            feature_possible_states;
     int            feature_possible_transitions;
-    int            feature_bos_eos;
 
     crf1ml_lbfgs_option_t   lbfgs;
     crf1ml_sgd_option_t     sgd;
