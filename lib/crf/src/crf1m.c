@@ -196,6 +196,7 @@ static int model_release(crf_model_t* model)
     if (count == 0) {
         /* This instance is being destroyed. */
         model_internal_t* internal = (model_internal_t*)model->internal;
+        crf1mt_delete((crf1mt_t*)internal->tagger->internal);
         free(internal->tagger);
         free(internal->labels);
         free(internal->attrs);
@@ -331,6 +332,7 @@ int crf1m_model_create(const char *filename, crf_model_t** ptr_model)
         goto error_exit;
     }
     model->internal = internal;
+    model->nref = 1;
     model->addref = model_addref;
     model->release = model_release;
     model->get_attrs = model_get_attrs;

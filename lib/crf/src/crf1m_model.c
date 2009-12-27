@@ -89,6 +89,7 @@ typedef struct {
 } feature_header_t;
 
 struct tag_crf1mm {
+    uint8_t*    buffer_orig;
     uint8_t*    buffer;
     uint32_t    size;
     header_t*   header;
@@ -720,7 +721,7 @@ crf1mm_t* crf1mm_new(const char *filename)
     model->size = (uint32_t)ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    model->buffer = (uint8_t*)malloc(model->size + 16);
+    model->buffer = model->buffer_orig = (uint8_t*)malloc(model->size + 16);
     while ((uint32_t)model->buffer % 16 != 0) {
         ++model->buffer;
     }
@@ -775,6 +776,14 @@ void crf1mm_close(crf1mm_t* model)
     }
     if (model->attrs != NULL) {
         cqdb_delete(model->attrs);
+    }
+    if (model->header != NULL) {
+        free(model->header);
+        model->header = NULL;
+    }
+    if (model->buffer_orig != NULL) {
+        free(model->buffer_orig);
+        model->buffer_orig = model->buffer = NULL;
     }
     free(model);
 }
