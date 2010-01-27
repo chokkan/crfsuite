@@ -48,6 +48,7 @@ typedef struct {
     char *model;
     int evaluate;
     int quiet;
+    int reference;
     int help;
 
     int num_params;
@@ -97,6 +98,9 @@ BEGIN_OPTION_MAP(parse_tagger_options, tagger_option_t)
     ON_OPTION(SHORTOPT('t') || LONGOPT("test"))
         opt->evaluate = 1;
 
+    ON_OPTION(SHORTOPT('r') || LONGOPT("reference"))
+        opt->reference = 1;
+
     ON_OPTION(SHORTOPT('q') || LONGOPT("quiet"))
         opt->quiet = 1;
 
@@ -120,6 +124,7 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
     fprintf(fp, "OPTIONS:\n");
     fprintf(fp, "    -m, --model=MODEL   Read a model from a file (MODEL)\n");
     fprintf(fp, "    -t, --test          Report the performance of the model on the data\n");
+    fprintf(fp, "    -r, --reference     Output the reference labels in the input data\n");
     fprintf(fp, "    -q, --quiet         Suppress tagging results (useful for test mode)\n");
     fprintf(fp, "    -h, --help          Show the usage of this command and exit\n");
 }
@@ -173,14 +178,24 @@ static int comments_append(comments_t* comments, const char *value)
 static void
 output_result(
     FILE *fpo,
+    const crf_sequence_t *inst,
     crf_output_t *output,
     crf_dictionary_t *labels,
-    comments_t* comments)
+    comments_t* comments,
+    const tagger_option_t* opt
+    )
 {
     int i;
 
     for (i = 0;i < output->num_labels;++i) {
         const char *label = NULL;
+
+        if (opt->reference) {
+            labels->to_string(labels, inst->items[i].label, &label);
+            fprintf(fpo, "%s\t", label);
+            labels->free(labels, label);
+        }
+
         labels->to_string(labels, output->labels[i], &label);
         fprintf(fpo, "%s", label);
         labels->free(labels, label);
@@ -334,7 +349,7 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
                 }
 
                 if (!opt->quiet) {
-                    output_result(fpo, &output, labels, &comments);
+                    output_result(fpo, &inst, &output, labels, &comments, opt);
                 }
 
                 crf_output_finish(&output);
