@@ -1,3 +1,9 @@
+2010-01-29  Naoaki Okazaki  <okazaki at chokkan org>
+	* CRFsuite 0.10
+	- A patch submitted by Hiroshi Manabe (at Kodensha Co., Ltd.) to fix memory leak problems in the tagger.
+	- Added a new option -r (--reference) for the tagger to output reference labels in parallel with predicted labels.
+
+	
 2009-09-24  Naoaki Okazaki  <okazaki at chokkan org>
 	* CRFsuite 0.9
 	- Fixed a build problem with liblbfgs 1.8

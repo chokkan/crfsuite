@@ -1,7 +1,7 @@
 /*
  *        CRFsuite frontend.
  *
- * Copyright (c) 2007-2009, Naoaki Okazaki
+ * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,8 +38,8 @@
 #include "option.h"
 
 #define    APPLICATION_S    "CRFsuite"
-#define    VERSION_S        "0.9"
-#define    COPYRIGHT_S      "Copyright (c) 2007-2009 Naoaki Okazaki"
+#define    VERSION_S        "0.10"
+#define    COPYRIGHT_S      "Copyright (c) 2007-2010 Naoaki Okazaki"
 
 
 
