@@ -2,7 +2,7 @@
  *      C library of Limited memory BFGS (L-BFGS).
  *
  * Copyright (c) 1990, Jorge Nocedal
- * Copyright (c) 2007,2008,2009 Naoaki Okazaki
+ * Copyright (c) 2007-2010 Naoaki Okazaki
  * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -584,6 +584,7 @@ Among the various ports of L-BFGS, this library provides several features:
 
 This library is used by:
 - <a href="http://www.chokkan.org/software/crfsuite/">CRFsuite: A fast implementation of Conditional Random Fields (CRFs)</a>
+- <a href="http://www.chokkan.org/software/classias/">Classias: A collection of machine-learning algorithms for classification</a>
 - <a href="http://www.public.iastate.edu/~gdancik/mlegp/">mlegp: an R package for maximum likelihood estimates for Gaussian processes</a>
 - <a href="http://infmath.uibk.ac.at/~matthiasf/imaging2/">imaging2: the imaging2 class library</a>
 - <a href="http://search.cpan.org/~laye/Algorithm-LBFGS-0.16/">Algorithm::LBFGS - Perl extension for L-BFGS</a>
@@ -591,12 +592,15 @@ This library is used by:
 
 @section download Download
 
-- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.8.tar.gz">Source code</a>
+- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.9.tar.gz">Source code</a>
 
 libLBFGS is distributed under the term of the
 <a href="http://opensource.org/licenses/mit-license.php">MIT license</a>.
 
 @section changelog History
+- Version 1.9 (2010-01-29):
+    - Fixed a mistake in checking the validity of the parameters "ftol" and
+      "wolfe"; this was discovered by Kevin S. Van Horn.
 - Version 1.8 (2009-07-13):
     - Accepted the patch submitted by Takashi Imamichi;
       the backtracking method now has three criteria for choosing the step
