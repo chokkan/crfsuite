@@ -38,7 +38,7 @@
 #include "option.h"
 
 #define    APPLICATION_S    "CRFsuite"
-#define    VERSION_S        "0.10"
+#define    VERSION_S        "0.11"
 #define    COPYRIGHT_S      "Copyright (c) 2007-2010 Naoaki Okazaki"
 
 
