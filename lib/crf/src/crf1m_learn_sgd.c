@@ -103,7 +103,7 @@
 #include <time.h>
 #include <math.h>
 
-#include <crf.h>
+#include <crfsuite.h>
 
 #include "logging.h"
 #include "params.h"

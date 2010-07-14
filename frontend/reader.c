@@ -35,7 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <crf.h>
+#include <crfsuite.h>
 #include "iwa.h"
 
 static int progress(FILE *fpo, int prev, int current)

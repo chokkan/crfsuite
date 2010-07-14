@@ -40,7 +40,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <crf.h>
+#include <crfsuite.h>
 #include "params.h"
 
 #include "logging.h"

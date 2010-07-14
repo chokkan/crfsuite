@@ -37,7 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <crf.h>
+#include <crfsuite.h>
 
 int crf1ml_create_instance(const char *iid, void **ptr);
 int crf_dictionary_create_instance(const char *interface, void **ptr);

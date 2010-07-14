@@ -41,7 +41,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <crf.h>
+#include <crfsuite.h>
 
 #include "crf1m.h"
 

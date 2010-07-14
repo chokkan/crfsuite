@@ -37,7 +37,7 @@
 #include <string.h>
 #include <time.h>
 
-#include <crf.h>
+#include <crfsuite.h>
 #include "logging.h"
 
 void logging(logging_t* lg, const char *format, ...)

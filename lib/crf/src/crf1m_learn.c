@@ -44,7 +44,7 @@
 #include <limits.h>
 #include <time.h>
 
-#include <crf.h>
+#include <crfsuite.h>
 #include "params.h"
 #include "mt19937ar.h"
 

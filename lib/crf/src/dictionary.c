@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <crf.h>
+#include <crfsuite.h>
 #include "quark.h"
 
 static int dictionary_addref(crf_dictionary_t* dic)

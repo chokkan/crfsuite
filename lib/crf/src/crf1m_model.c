@@ -38,7 +38,7 @@
 #include <string.h>
 #include <cqdb.h>
 
-#include "crf.h"
+#include <crfsuite.h>
 #include "crf1m.h"
 
 #define FILEMAGIC       "lCRF"

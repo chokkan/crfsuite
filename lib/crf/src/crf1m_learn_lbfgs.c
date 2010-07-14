@@ -42,7 +42,7 @@
 #include <limits.h>
 #include <time.h>
 
-#include <crf.h>
+#include <crfsuite.h>
 #include "crf1m.h"
 
 #include "logging.h"

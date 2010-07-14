@@ -30,8 +30,8 @@
 
 /* $Id$ */
 
-#ifndef    __CRF_H__
-#define    __CRF_H__
+#ifndef    __CRFSUITE_H__
+#define    __CRFSUITE_H__
 
 #ifdef    __cplusplus
 extern "C" {
@@ -361,4 +361,4 @@ int crf_interlocked_decrement(int *count);
 }
 #endif/*__cplusplus*/
 
-#endif/*__CRF_H__*/
+#endif/*__CRFSUITE_H__*/
