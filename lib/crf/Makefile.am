@@ -26,9 +26,10 @@ libcrf_la_SOURCES = \
 	src/crf1m_learn_sgd.c \
 	src/crf1m_model.c \
 	src/crf1m_tag.c \
-	include/crf.h \
 	src/crf.c
 
+libcrf_la_INCLUDES = \
+	include/crf.h
 
 libcrf_la_CFLAGS = -I./include -I$(top_builddir)/lib/cqdb/include 
 

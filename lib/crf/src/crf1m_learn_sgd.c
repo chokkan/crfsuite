@@ -76,11 +76,11 @@
         gain = (eta / k) / scale
     2) Updating feature weights
         Updating feature weights from observation expectation:
-            delta = gain * (-1.0) * f(x,y)
+            delta = gain * (1.0) * f(x,y)
             norm2 += delta * (delta + w + w);
             w += delta
         Updating feature weights from model expectation:
-            delta = gain * P(y|x) * f(x,y)
+            delta = gain * (-P(y|x)) * f(x,y)
             norm2 += delta * (delta + w + w);
             w += delta
     3) Projecting feature weights within an L2-ball
@@ -158,7 +158,7 @@ inline static void update_feature_weights(
     floatval_t *w = trainer->w;
     sgd_internal_t* sgdi = SGD_INTERNAL(trainer);
 
-    /* Subtract the observation expectation from the weight. */
+    /* Subtract the model expectation from the weight. */
     update_weight(sgdi, w, fid, -sgdi->gain * prob * scale);
 
     switch (f->type) {
