@@ -1,3 +1,9 @@
+2010-07-16  Naoaki Okazaki  <okazaki at chokkan org>
+	* CRFsuite 0.11
+	- Renamed crf.h into crfsuite.h to avoid possible conflects in include directories
+	- Install crfsuite.h to the include directory (suggested by Ingo Glöckner)
+
+	
 2010-01-29  Naoaki Okazaki  <okazaki at chokkan org>
 	* CRFsuite 0.10
 	- A patch submitted by Hiroshi Manabe (at Kodensha Co., Ltd.) to fix memory leak problems in the tagger.
