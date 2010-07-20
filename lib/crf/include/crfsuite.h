@@ -40,6 +40,9 @@ extern "C" {
 #include <stdio.h>
 #include <stdarg.h>
 
+typedef double floatval_t;
+#define    FLOAT_MAX    DBL_MAX
+
 /* Forward declarations */
 struct tag_crf_model;
 typedef struct tag_crf_model crf_model_t;

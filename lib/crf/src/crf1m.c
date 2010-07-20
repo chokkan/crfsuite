@@ -347,8 +347,12 @@ error_exit:
     free(tagger);
     free(labels);
     free(attrs);
-    crf1mt_delete(crf1mt);
-    crf1mm_close(crf1mm);
+    if (crf1mt != NULL) {
+        crf1mt_delete(crf1mt);
+    }
+    if (crf1mm != NULL) {
+        crf1mm_close(crf1mm);
+    }
     free(internal);
     free(model);
     return ret;

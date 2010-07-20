@@ -34,10 +34,6 @@
 #define    __OS_H__
 
 
-typedef double floatval_t;
-#define    FLOAT_MAX    DBL_MAX
-
-
 //#define    __SSE__ 1
 #define    LBFGS_FLOAT        64
 
