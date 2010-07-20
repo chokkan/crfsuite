@@ -191,14 +191,14 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
     /*
         (i) Calculate the probabilities at (0, i):
             p(0,i) = fwd[0][i] * bwd[0][i] / norm
-                   = (fwd'[0][i] / C[0]) * (bwd'[0][i] / (C[0] * ... C[T-1])) * (C[0] * ... * C[T])
-                   = (C[T] / C[0]) * fwd'[0][i] * bwd'[0][i]
+                   = (fwd'[0][i] / C[0]) * (bwd'[0][i] / (C[0] * ... C[T-1])) * (C[0] * ... * C[T-1])
+                   = (1. / C[0]) * fwd'[0][i] * bwd'[0][i]
         to compute expectations of transition features from BOS
         and state features at position #0.
      */
     fwd = FORWARD_SCORE_AT(ctx, 0);
     bwd = BACKWARD_SCORE_AT(ctx, 0);
-    coeff = ctx->scale_factor[T] / ctx->scale_factor[0];
+    coeff = 1. / ctx->scale_factor[0];
     for (i = 0;i < L;++i) {
         prob[i] = fwd[i] * bwd[i] * coeff;
     }
@@ -223,13 +223,13 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
     /*
         (ii) Calculate the probabilities at (T-1, i):
             p(T-1,i) = fwd[T-1][i] bwd[T-1][i] / norm
-                     = (C[T] / C[T-1]) * fwd'[T-1][i] * bwd'[T-1][i]
+                     = (1. / C[T-1]) * fwd'[T-1][i] * bwd'[T-1][i]
         to compute expectations of transition features to EOS
         and state features at position #(T-1).
      */
     fwd = FORWARD_SCORE_AT(ctx, T-1);
     bwd = BACKWARD_SCORE_AT(ctx, T-1);
-    coeff = ctx->scale_factor[T] / ctx->scale_factor[T-1];
+    coeff = 1. / ctx->scale_factor[T-1];
     for (i = 0;i < L;++i) {
         prob[i] = fwd[i] * bwd[i] * coeff;
     }
@@ -254,13 +254,13 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
     /*
         (iii) For 0 < t < T-1, calculate the probabilities at (t, i):
             p(t,i) = fwd[t][i] * bwd[t][i] / norm
-                   = (C[T] / C[t]) * fwd'[t][i] * bwd'[t][i]
+                   = (1. / C[t]) * fwd'[t][i] * bwd'[t][i]
         to compute expectations of state features at position #t.
      */
     for (t = 1;t < T-1;++t) {
         fwd = FORWARD_SCORE_AT(ctx, t);
         bwd = BACKWARD_SCORE_AT(ctx, t);
-        coeff = ctx->scale_factor[T] / ctx->scale_factor[t];
+        coeff = 1. / ctx->scale_factor[t];
 
         /* Initialize the probabilities as -1, which means 'unfilled'.  */
         for (i = 0;i < L;++i) prob[i] = -1;
@@ -293,15 +293,14 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
         (iv) Calculate the probabilities of the path (t, i) -> (t+1, j)
             p(t+1,j|t,i)
                 = fwd[t][i] * edge[i][j] * state[t+1][j] * bwd[t+1][j] / norm
-                = (fwd'[t][i] / (C[0] ... C[t])) * edge[i][j] * state[t+1][j] * (bwd'[t+1][j] / (C[t+1] ... C[T-1])) * (C[0] * ... * C[T])
-                = fwd'[t][i] * edge[i][j] * state[t+1][j] * bwd'[t+1][j] * C[T]
+                = (fwd'[t][i] / (C[0] ... C[t])) * edge[i][j] * state[t+1][j] * (bwd'[t+1][j] / (C[t+1] ... C[T-1])) * (C[0] * ... * C[T-1])
+                = fwd'[t][i] * edge[i][j] * state[t+1][j] * bwd'[t+1][j]
         to compute expectations of transition features.
      */
     for (t = 0;t < T-1;++t) {
         fwd = FORWARD_SCORE_AT(ctx, t);
         state = STATE_SCORE_AT(ctx, t+1);
         bwd = BACKWARD_SCORE_AT(ctx, t+1);
-        coeff = ctx->scale_factor[T];
 
         /* Loop over the labels (t, i) */
         for (i = 0;i < L;++i) {
@@ -311,7 +310,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
                 fid = trans->fids[r];
                 f = FEATURE(trainer, fid);
                 j = f->dst;
-                func(f, fid, fwd[i] * edge[j] * state[j] * bwd[j] * coeff, 1., trainer, seq, t);
+                func(f, fid, fwd[i] * edge[j] * state[j] * bwd[j], 1., trainer, seq, t);
             }
         }
     }

@@ -332,100 +332,18 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
     return max_score;
 }
 
-void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp)
-{
-    int i, j, t;
-    floatval_t scale;
-    const floatval_t *fwd = NULL, *bwd = NULL;
-    const floatval_t *state = NULL, *trans = NULL;
-    const int T = ctx->num_items;
-    const int L = ctx->num_labels;
-
-    /* Output state score. */
-    fprintf(fp, "# ===== State matrix =====\n");
-    for (t = 0;t < T;++t) {
-        state = STATE_SCORE_AT(ctx, t);
-
-        /* Print the item position. */
-        if (t == T) {
-            fprintf(fp, "BOS/EOS");
-        } else {
-            fprintf(fp, "%d", t);
-        }
-
-        /* Print the forward/backward scores at the current position. */
-        for (i = 0;i < L;++i) {
-            printf("\t%1.3e", state[i]);
-        }
-
-        printf("\n");
-    }
-    fprintf(fp, "\n");
-
-    /* Output transition score. */
-    fprintf(fp, "# ===== Transition matrix =====\n");
-    for (i = 0;i < L;++i) {
-        trans = TRANS_SCORE_FROM(ctx, i);
-
-        /* Print the item position. */
-        fprintf(fp, "%d", i);
-
-        /* Print the forward/backward scores at the current position. */
-        for (j = 0;j < L;++j) {
-            printf("\t%1.3e", trans[j]);
-        }
-
-        printf("\n");
-    }
-    fprintf(fp, "\n");
-
-    /* Output forward score. */
-    scale = 1.;
-    fprintf(fp, "# ===== Forward matrix =====\n");
-    for (t = 0;t < T;++t) {
-        fwd = FORWARD_SCORE_AT(ctx, t);
-        scale *= ctx->scale_factor[t];
-
-        /* Print the item position. */
-        fprintf(fp, "%d", t);
-
-        /* Print the forward/backward scores at the current position. */
-        for (i = 0;i < L;++i) {
-            printf("\t%1.3e", fwd[i] / scale);
-        }
-
-        printf("\n");
-    }
-    fprintf(fp, "\n");
-
-    /* Output forward score. */
-    scale = 1.;
-    fprintf(fp, "# ===== Backward matrix =====\n");
-    for (t = T-1;0 <= t;--t) {
-        bwd = BACKWARD_SCORE_AT(ctx, t);
-        scale *= ctx->scale_factor[t];
-
-        /* Print the item position. */
-        fprintf(fp, "%d", t);
-
-        /* Print the forward/backward scores at the current position. */
-        for (i = 0;i < L;++i) {
-            printf("\t%1.3e", bwd[i] / scale);
-        }
-
-        printf("\n");
-    }
-    fprintf(fp, "\n");
-
-    fprintf(fp, "# ===== Information =====\n");
-    fprintf(fp, "NORM\t%f\n", exp(ctx->log_norm));
-}
-
 void crf1mc_test_context(FILE *fp)
 {
-    crf1m_context_t *ctx = crf1mc_new(3, 3);
+    int y1, y2, y3;
+    floatval_t norm = 0;
+    const int L = 3;
+    const int T = 3;
+    const floatval_t eps = 1e-9;
+    crf1m_context_t *ctx = crf1mc_new(L, T);
     floatval_t *trans = NULL, *state = NULL;
+    floatval_t scores[3][3][3];
     
+    /* Initialize the state scores. */
     state = STATE_SCORE_AT(ctx, 0);
     state[0] = .4;    state[1] = .5;    state[2] = .1;
     state = STATE_SCORE_AT(ctx, 1);
@@ -433,6 +351,7 @@ void crf1mc_test_context(FILE *fp)
     state = STATE_SCORE_AT(ctx, 2);
     state[0] = .4;    state[1] = .1;    state[2] = .5;
 
+    /* Initialize the transition scores. */
     trans = TRANS_SCORE_FROM(ctx, 0);
     trans[0] = .3;    trans[1] = .1;    trans[2] = .4;
     trans = TRANS_SCORE_FROM(ctx, 1);
@@ -443,8 +362,153 @@ void crf1mc_test_context(FILE *fp)
     ctx->num_items = ctx->max_items;
     crf1mc_forward_score(ctx);
     crf1mc_backward_score(ctx);
-    crf1mc_debug_context(ctx, fp);
+    /*crf1mc_debug_context(ctx, fp);*/
 
-    ctx->labels[0] = 0;    ctx->labels[1] = 2;    ctx->labels[2] = 0;
-    printf("PROB\t%f\n", crf1mc_logprob(ctx));
+    /* Compute the score of every label sequence. */
+    for (y1 = 0;y1 < L;++y1) {
+        floatval_t s1 = STATE_SCORE_AT(ctx, 0)[y1];
+        for (y2 = 0;y2 < L;++y2) {
+            floatval_t s2 = s1;
+            s2 *= TRANS_SCORE_FROM(ctx, y1)[y2];
+            s2 *= STATE_SCORE_AT(ctx, 1)[y2];
+            for (y3 = 0;y3 < L;++y3) {
+                floatval_t s3 = s2;
+                s3 *= TRANS_SCORE_FROM(ctx, y2)[y3];
+                s3 *= STATE_SCORE_AT(ctx, 2)[y3];
+                scores[y1][y2][y3] = s3;
+            }
+        }
+    }
+
+    /* Compute the partition factor. */
+    norm = 0.;
+    for (y1 = 0;y1 < L;++y1) {
+        for (y2 = 0;y2 < L;++y2) {
+            for (y3 = 0;y3 < L;++y3) {
+                norm += scores[y1][y2][y3];
+            }
+        }
+    }
+
+    /* Check the partition factor. */
+    fprintf(fp, "Check for the partition factor... ");
+    if (fabs(norm - exp(ctx->log_norm)) < eps) {
+        fprintf(fp, "OK (%f)\n", exp(ctx->log_norm));
+    } else {
+        fprintf(fp, "FAIL: %f (%f)\n", exp(ctx->log_norm), norm);
+    }
+
+    /* Compute the sequence probabilities. */
+    for (y1 = 0;y1 < L;++y1) {
+        for (y2 = 0;y2 < L;++y2) {
+            for (y3 = 0;y3 < L;++y3) {
+                floatval_t logp;
+                
+                ctx->labels[0] = y1;
+                ctx->labels[1] = y2;
+                ctx->labels[2] = y3;
+                logp = crf1mc_logprob(ctx);
+
+                fprintf(fp, "Check for the sequence %d-%d-%d... ", y1, y2, y3);
+                if (fabs(scores[y1][y2][y3] / norm - exp(logp)) < eps) {
+                    fprintf(fp, "OK (%f)\n", exp(logp));
+                } else {
+                    fprintf(fp, "FAIL: %f (%f)\n", exp(logp), scores[y1][y2][y3] / norm);
+                }
+            }
+        }
+    }
+
+    /* Compute the marginal probability at t=0 */
+    for (y1 = 0;y1 < L;++y1) {
+        floatval_t a, b, c, p, q = 0.;
+        for (y2 = 0;y2 < L;++y2) {
+            for (y3 = 0;y3 < L;++y3) {
+                q += scores[y1][y2][y3];
+            }
+        }
+        q /= norm;
+
+        a = FORWARD_SCORE_AT(ctx, 0)[y1];
+        b = BACKWARD_SCORE_AT(ctx, 0)[y1];
+        c = 1. / ctx->scale_factor[0];
+        p = a * b * c;
+        
+        fprintf(fp, "Check for the marginal probability (0,%d)... ", y1);
+        if (fabs(p - q) < eps) {
+            fprintf(fp, "OK (%f)\n", p);
+        } else {
+            fprintf(fp, "FAIL: %f (%f)\n", p, q);
+        }
+    }
+
+    /* Compute the marginal probability at t=1 */
+    for (y2 = 0;y2 < L;++y2) {
+        floatval_t a, b, c, p, q = 0.;
+        for (y1 = 0;y1 < L;++y1) {
+            for (y3 = 0;y3 < L;++y3) {
+                q += scores[y1][y2][y3];
+            }
+        }
+        q /= norm;
+
+        a = FORWARD_SCORE_AT(ctx, 1)[y2];
+        b = BACKWARD_SCORE_AT(ctx, 1)[y2];
+        c = 1. / ctx->scale_factor[1];
+        p = a * b * c;
+        
+        fprintf(fp, "Check for the marginal probability (1,%d)... ", y2);
+        if (fabs(p - q) < eps) {
+            fprintf(fp, "OK (%f)\n", p);
+        } else {
+            fprintf(fp, "FAIL: %f (%f)\n", p, q);
+        }
+    }
+
+    /* Compute the marginal probability at t=2 */
+    for (y3 = 0;y3 < L;++y3) {
+        floatval_t a, b, c, p, q = 0.;
+        for (y1 = 0;y1 < L;++y1) {
+            for (y2 = 0;y2 < L;++y2) {
+                q += scores[y1][y2][y3];
+            }
+        }
+        q /= norm;
+
+        a = FORWARD_SCORE_AT(ctx, 2)[y3];
+        b = BACKWARD_SCORE_AT(ctx, 2)[y3];
+        c = 1. / ctx->scale_factor[2];
+        p = a * b * c;
+        
+        fprintf(fp, "Check for the marginal probability (2,%d)... ", y3);
+        if (fabs(p - q) < eps) {
+            fprintf(fp, "OK (%f)\n", p);
+        } else {
+            fprintf(fp, "FAIL: %f (%f)\n", p, q);
+        }
+    }
+
+    /* Compute the marginal probabilities of transitions. */
+    for (y1 = 0;y1 < L;++y1) {
+        for (y2 = 0;y2 < L;++y2) {
+            floatval_t a, b, s, t, p, q = 0.;
+            for (y3 = 0;y3 < L;++y3) {
+                q += scores[y1][y2][y3];
+            }
+            q /= norm;
+
+            a = FORWARD_SCORE_AT(ctx, 0)[y1];
+            b = BACKWARD_SCORE_AT(ctx, 1)[y2];
+            s = STATE_SCORE_AT(ctx, 1)[y2];
+            t = TRANS_SCORE_FROM(ctx, y1)[y2];
+            p = a * t * s * b;
+
+            fprintf(fp, "Check for the marginal probability (0,%d)-(1,%d)... ", y1, y2);
+            if (fabs(p - q) < eps) {
+                fprintf(fp, "OK (%f)\n", p);
+            } else {
+                fprintf(fp, "FAIL: %f (%f)\n", p, q);
+            }
+        }
+    }
 }
