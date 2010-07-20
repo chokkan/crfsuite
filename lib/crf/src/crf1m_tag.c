@@ -108,21 +108,11 @@ static void transition_score(crf1mt_t* tagger)
     const int L = tagger->num_labels;
 
     /* Initialize all transition scores as zero. */
-    for (i = 0;i <= L;++i) {
+    for (i = 0;i < L;++i) {
         trans = TRANS_SCORE_FROM(ctx, i);
-        for (j = 0;j <= L;++j) {
+        for (j = 0;j < L;++j) {
             trans[j] = 0;
         }
-    }
-
-    /* Compute transition scores from BOS to labels. */
-    trans = TRANS_SCORE_FROM(ctx, L);
-    crf1mm_get_labelref(model, L, &edge);
-    for (r = 0;r < edge.num_features;++r) {
-        /* Transition feature from BOS to #(f->dst). */
-        fid = crf1mm_get_featureid(&edge, r);
-        crf1mm_get_feature(model, fid, &f);
-        trans[f.dst] = f.weight;
     }
 
     /* Compute transition scores between two labels. */
@@ -135,15 +125,6 @@ static void transition_score(crf1mt_t* tagger)
             crf1mm_get_feature(model, fid, &f);
             trans[f.dst] = f.weight;
         }        
-    }
-
-    /* Compute transition scores from labels to EOS. */
-    crf1mm_get_labelref(model, L+1, &edge);
-    for (r = 0;r < edge.num_features;++r) {
-        /* Transition feature from #(f->src) to EOS. */
-        fid = crf1mm_get_featureid(&edge, r);
-        crf1mm_get_feature(model, fid, &f);
-        trans[L] = f.weight;
     }
 }
 

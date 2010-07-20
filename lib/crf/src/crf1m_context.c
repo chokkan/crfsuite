@@ -54,7 +54,7 @@ crf1m_context_t* crf1mc_new(int L, int T)
     if (ctx != NULL) {
         ctx->num_labels = L;
         ctx->log_norm = 0;
-        ctx->trans_score = (floatval_t*)calloc((L+1) * (L+1), sizeof(floatval_t));
+        ctx->trans_score = (floatval_t*)calloc(L * L, sizeof(floatval_t));
         if (ctx->trans_score == NULL) goto error_exit;
 
         if (ret = crf1mc_set_num_items(ctx, T)) {
@@ -137,9 +137,9 @@ void crf1mc_exp_transition(crf1m_context_t* ctx)
     floatval_t *trans = NULL;
     const int L = ctx->num_labels;
 
-    for (i = 0;i <= L;++i) {
+    for (i = 0;i < L;++i) {
         trans = TRANS_SCORE_FROM(ctx, i);
-        for (j = 0;j <= L;++j) {
+        for (j = 0;j < L;++j) {
             trans[j] = (trans[j] == 0. ? 1. : exp(trans[j]));
         }
     }
@@ -153,34 +153,30 @@ void crf1mc_forward_score(crf1m_context_t* ctx)
     const int T = ctx->num_items;
     const int L = ctx->num_labels;
 
-    /* Compute the score to stay on labels at position #0. */
-    sum = 0.;
+    /* Compute the alpha scores on nodes (0, *). */
     cur = FORWARD_SCORE_AT(ctx, 0);
     state = STATE_SCORE_AT(ctx, 0);
-    trans = TRANS_SCORE_FROM(ctx, L);
-    for (j = 0;j < L;++j) {
-        /* Transit from BOS to #j. */
-        sum += cur[j] = trans[j] * state[j];
+    for (sum = 0., j = 0;j < L;++j) {
+        /* The alpha score of the node (0, j). */
+        sum += cur[j] = state[j];
     }
     ctx->scale_factor[0] = (sum != 0.) ? 1. / sum : 1.;
     for (j = 0;j < L;++j) cur[j] *= ctx->scale_factor[0];
 
-    /* Compute the scores at position #t. */
+    /* Compute the alpha scores on nodes (t, *). */
     for (t = 1;t < T;++t) {
-        sum = 0.;
         prev = FORWARD_SCORE_AT(ctx, t-1);
         cur = FORWARD_SCORE_AT(ctx, t);
         state = STATE_SCORE_AT(ctx, t);
 
-        /* Compute the score to stay on label #j at position #t. */
-        for (j = 0;j < L;++j) {
-            score = 0;
-            for (i = 0;i < L;++i) {
-                /* Transit from #i at #(t-1) to #j at #t. */
+        /* Compute the alpha score of the node (t, j). */
+        for (sum = 0., j = 0;j < L;++j) {
+            for (score = 0., i = 0;i < L;++i) {
+                /* Transit from (t-1, i) to (t, j). */
                 trans = TRANS_SCORE_FROM(ctx, i);
                 score += prev[i] * trans[j];
             }
-            /* Add the state score on label #j at #t. */
+            /* Add the state score on (t, j). */
             sum += cur[j] = score * state[j];
         }
 
@@ -190,21 +186,12 @@ void crf1mc_forward_score(crf1m_context_t* ctx)
         for (j = 0;j < L;++j) cur[j] *= ctx->scale_factor[t];
     }
 
-    /* Compute the scores to reach EOS. */
-    sum = 0.;
-    cur = FORWARD_SCORE_AT(ctx, T-1);
-    for (i = 0;i < L;++i) {
-        trans = TRANS_SCORE_FROM(ctx, i);
-        sum += cur[i] * trans[L];
-    }
-    ctx->scale_factor[T] = (sum != 0.) ? 1. / sum : 1.;
-
     /* Compute the logarithm of the normalization factor here.
-        norm = sum / (C[0] * C[1] ... * C[T-1]) = 1 / (C[0] * ... * C[T])
-        log(norm) = - \sum_{t = 0}^{T} log(C[t]).
+        norm = 1. / (C[0] * C[1] ... * C[T-1])
+        log(norm) = - \sum_{t = 0}^{T-1} log(C[t]).
      */
     ctx->log_norm = 0.;
-    for (t = 0;t <= T;++t) {
+    for (t = 0;t < T;++t) {
         ctx->log_norm -= log(ctx->scale_factor[t]);
     }
 }
@@ -217,28 +204,27 @@ void crf1mc_backward_score(crf1m_context_t* ctx)
     const int T = ctx->num_items;
     const int L = ctx->num_labels;
 
-    /* Compute the score to reach EOS from the label #i at position #T-1. */
+    /* Compute the beta scores at (T-1, *). */
     cur = BACKWARD_SCORE_AT(ctx, T-1);
     scale = ctx->scale_factor[T-1];
     for (i = 0;i < L;++i) {
-        /* Transit from label #i at position #(T-1) to EOS. */
-        trans = TRANS_SCORE_FROM(ctx, i);
-        cur[i] = trans[L] * scale;
+        /* The beta scores at (T-1, i). */
+        cur[i] = scale;
     }
 
-    /* Compute the scores from position #t. */
+    /* Compute the beta scores at (t, *). */
     for (t = T-2;0 <= t;--t) {
         cur = BACKWARD_SCORE_AT(ctx, t);
         next = BACKWARD_SCORE_AT(ctx, t+1);
         state = STATE_SCORE_AT(ctx, t+1);
         scale = ctx->scale_factor[t];
 
-        /* Compute the score to reach EOS from label #i at position #t. */
+        /* Compute the beta score at (t, i). */
         for (i = 0;i < L;++i) {
             score = 0.;
             trans = TRANS_SCORE_FROM(ctx, i);
             for (j = 0;j < L;++j) {
-                /* Transit from labels #i to #j at position #(t+1). */
+                /* Transit from (t, i) to (t+1, j). */
                 score += trans[j] * state[j] * next[j];
             }
             cur[i] = score * scale;
@@ -255,7 +241,7 @@ floatval_t crf1mc_logprob(crf1m_context_t* ctx)
     const int L = ctx->num_labels;
     const int *labels = ctx->labels;
 
-    /* Transit from BOS to (0, labels[0]). */
+    /* Stay at (0, labels[0]). */
     i = labels[0];
     cur = FORWARD_SCORE_AT(ctx, 0);
     ret = log(cur[i]) - log(ctx->scale_factor[0]);
@@ -271,10 +257,6 @@ floatval_t crf1mc_logprob(crf1m_context_t* ctx)
         ret += log(state[j]);
         i = j;
     }
-
-    /* Transit from (T-1, i) to EOS. */
-    cur = BACKWARD_SCORE_AT(ctx, T-1);
-    ret += log(cur[i]) - log(ctx->scale_factor[T-1]);
 
     /* Subtract the logarithm of the normalization factor. */
     ret -= ctx->log_norm;
@@ -295,29 +277,26 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
         This function assumes state and trans scores to be in the logarithm domain.
      */
 
-    /* Compute the score to stay on labels at position #0. */
+    /* Compute the scores at (0, *). */
     cur = FORWARD_SCORE_AT(ctx, 0);
     state = STATE_SCORE_AT(ctx, 0);
-    trans = TRANS_SCORE_FROM(ctx, L);
     for (j = 0;j < L;++j) {
-        /* Transit from BOS to #j. */
-        /* exp(cur[j]) = exp(trans[j]) * exp(state[j]) */
-        cur[j] = trans[j] + state[j];
+        cur[j] = state[j];
     }
 
-    /* Compute the scores at position #t. */
+    /* Compute the scores at (t, *). */
     for (t = 1;t < T;++t) {
         prev = FORWARD_SCORE_AT(ctx, t-1);
         cur = FORWARD_SCORE_AT(ctx, t);
         state = STATE_SCORE_AT(ctx, t);
         back = BACKWARD_EDGE_AT(ctx, t);
 
-        /* Compute the score to stay on label #j at position #t. */
+        /* Compute the score of (t, j). */
         for (j = 0;j < L;++j) {
             max_score = -FLOAT_MAX;
 
             for (i = 0;i < L;++i) {
-                /* Transit from #i at #(t-1) to #j at #t. */
+                /* Transit from (t-1, i) to (t, j). */
                 trans = TRANS_SCORE_FROM(ctx, i);
                 score = prev[i] + trans[j];
 
@@ -328,7 +307,7 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
                     back[j] = i;
                 }
             }
-            /* Add the state score on label #j at #t. */
+            /* Add the state score on (t, j). */
             cur[j] = max_score + state[j];
         }
     }
@@ -337,10 +316,8 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
     max_score = -FLOAT_MAX;
     prev = FORWARD_SCORE_AT(ctx, T-1);
     for (i = 0;i < L;++i) {
-        trans = TRANS_SCORE_FROM(ctx, i);
-        score = prev[i] + trans[L];
-        if (max_score < score) {
-            max_score = score;
+        if (max_score < prev[i]) {
+            max_score = prev[i];
             labels[T-1] = i;        /* Tag the item #T. */
         }
     }
@@ -387,18 +364,14 @@ void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp)
 
     /* Output transition score. */
     fprintf(fp, "# ===== Transition matrix =====\n");
-    for (i = 0;i <= L;++i) {
+    for (i = 0;i < L;++i) {
         trans = TRANS_SCORE_FROM(ctx, i);
 
         /* Print the item position. */
-        if (i == L) {
-            fprintf(fp, "BOS");
-        } else {
-            fprintf(fp, "%d", i);
-        }
+        fprintf(fp, "%d", i);
 
         /* Print the forward/backward scores at the current position. */
-        for (j = 0;j <= L;++j) {
+        for (j = 0;j < L;++j) {
             printf("\t%1.3e", trans[j]);
         }
 
@@ -461,13 +434,11 @@ void crf1mc_test_context(FILE *fp)
     state[0] = .4;    state[1] = .1;    state[2] = .5;
 
     trans = TRANS_SCORE_FROM(ctx, 0);
-    trans[0] = .3;    trans[1] = .1;    trans[2] = .4;    trans[3] = .2;
+    trans[0] = .3;    trans[1] = .1;    trans[2] = .4;
     trans = TRANS_SCORE_FROM(ctx, 1);
-    trans[0] = .6;    trans[1] = .2;    trans[2] = .1;    trans[3] = .1;
+    trans[0] = .6;    trans[1] = .2;    trans[2] = .1;
     trans = TRANS_SCORE_FROM(ctx, 2);
-    trans[0] = .5;    trans[1] = .2;    trans[2] = .1;    trans[3] = .2;
-    trans = TRANS_SCORE_FROM(ctx, 3);
-    trans[0] = .5;    trans[1] = .3;    trans[2] = .2;    trans[3] = .0;
+    trans[0] = .5;    trans[1] = .2;    trans[2] = .1;
 
     ctx->num_items = ctx->max_items;
     crf1mc_forward_score(ctx);

@@ -173,16 +173,6 @@ inline static void update_feature_weights(
             update_weight(sgdi, w, fid, sgdi->gain * scale);
         }
         break;
-    case FT_TRANS_BOS:  /**< BOS transition features. */
-        if (f->dst == seq->items[t].label) {
-            update_weight(sgdi, w, fid, sgdi->gain * scale);
-        }
-        break;
-    case FT_TRANS_EOS:  /**< EOS transition features. */
-        if (f->src == seq->items[t].label) {
-            update_weight(sgdi, w, fid, sgdi->gain * scale);
-        }
-        break;
     }
 }
 

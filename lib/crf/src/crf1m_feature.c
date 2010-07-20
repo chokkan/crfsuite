@@ -188,11 +188,13 @@ crf1ml_features_t* crf1ml_generate_features(
 
             /* Transition feature: label #prev -> label #(item->yid).
                Features with previous label #L are transition BOS. */
-            f.type = (prev == L) ? FT_TRANS_BOS : FT_TRANS;
-            f.src = prev;
-            f.dst = cur;
-            f.freq = 1;
-            featureset_add(set, &f);
+            if (prev != L) {
+                f.type = FT_TRANS;
+                f.src = prev;
+                f.dst = cur;
+                f.freq = 1;
+                featureset_add(set, &f);
+            }
 
             for (c = 0;c < item->num_contents;++c) {
                 /* State feature: attribute #a -> state #(item->yid). */
@@ -219,32 +221,9 @@ crf1ml_features_t* crf1ml_generate_features(
             prev = cur;
         }
 
-        /* Transition EOS feature: label #(item->yid) -> EOS. */
-        item = &seq->items[T-1];
-        f.type = FT_TRANS_EOS;
-        f.src = cur;
-        f.dst = L;
-        f.freq = 1;
-        featureset_add(set, &f);
-
         logging_progress(&lg, s * 100 / N);
     }
     logging_progress_end(&lg);
-
-    /* Make sure to generate all possible BOS and EOS features. */
-    for (i = 0;i < L;++i) {
-        f.type = FT_TRANS_BOS;
-        f.src = L;
-        f.dst = i;
-        f.freq = 0;
-        featureset_add(set, &f);
-
-        f.type = FT_TRANS_EOS;
-        f.src = i;
-        f.dst = L;
-        f.freq = 0;
-        featureset_add(set, &f);
-    }
 
     /* Generate edge features representing all pairs of labels.
        These features are not unobserved in the training data

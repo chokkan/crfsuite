@@ -967,36 +967,6 @@ void crf1mm_dump(crf1mm_t* crf1mm, FILE *fp)
     fprintf(fp, "\n");
 
     /* Dump the transition features. */
-    fprintf(fp, "TRANSITIONS_FROM_BOS = {\n");
-    crf1mm_get_labelref(crf1mm, hfile->num_labels, &refs);
-    for (j = 0;j < refs.num_features;++j) {
-        crf1mm_feature_t f;
-        int fid = crf1mm_get_featureid(&refs, j);
-        const char *to = NULL;
-
-        crf1mm_get_feature(crf1mm, fid, &f);
-        to = crf1mm_to_label(crf1mm, f.dst);
-        fprintf(fp, "  (%d) BOS --> %s: %f\n", f.type, to, f.weight);
-    }
-    fprintf(fp, "}\n");
-    fprintf(fp, "\n");
-
-    /* Dump the transition features. */
-    fprintf(fp, "TRANSITIONS_TO_EOS = {\n");
-    crf1mm_get_labelref(crf1mm, hfile->num_labels+1, &refs);
-    for (j = 0;j < refs.num_features;++j) {
-        crf1mm_feature_t f;
-        int fid = crf1mm_get_featureid(&refs, j);
-        const char *from = NULL;
-
-        crf1mm_get_feature(crf1mm, fid, &f);
-        from = crf1mm_to_label(crf1mm, f.src);
-        fprintf(fp, "  (%d) %s --> EOS: %f\n", f.type, from, f.weight);
-    }
-    fprintf(fp, "}\n");
-    fprintf(fp, "\n");
-
-    /* Dump the transition features. */
     fprintf(fp, "STATE_FEATURES = {\n");
     for (i = 0;i < hfile->num_attrs;++i) {
         crf1mm_get_attrref(crf1mm, i, &refs);

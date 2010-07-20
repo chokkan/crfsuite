@@ -59,10 +59,6 @@
     (&(trainer)->forward_trans[(i)])
 #define    TRANSITION_TO(trainer, j) \
     (&(trainer)->backward_trans[(j)])
-#define    TRANSITION_BOS(trainer) \
-    (&(trainer)->bos_trans)
-#define    TRANSITION_EOS(trainer) \
-    (&(trainer)->eos_trans)
 
 void crf1ml_set_labels(crf1ml_t* trainer, const crf_sequence_t* seq)
 {
@@ -142,21 +138,11 @@ void crf1ml_transition_score(
     const int L = trainer->num_labels;
 
     /* Initialize all transition scores as zero. */
-    for (i = 0;i <= L;++i) {
+    for (i = 0;i < L;++i) {
         trans = TRANS_SCORE_FROM(ctx, i);
-        for (j = 0;j <= L;++j) {
+        for (j = 0;j < L;++j) {
             trans[j] = 0. * dummy;
         }
-    }
-
-    /* Compute transition scores from BOS to labels. */
-    trans = TRANS_SCORE_FROM(ctx, L);
-    edge = TRANSITION_BOS(trainer);
-    for (r = 0;r < edge->num_features;++r) {
-        /* Transition feature from BOS to #(f->dst). */
-        fid = edge->fids[r];
-        f = FEATURE(trainer, fid);
-        trans[f->dst] = w[fid] * dummy;
     }
 
     /* Compute transition scores between two labels. */
@@ -170,16 +156,6 @@ void crf1ml_transition_score(
             trans[f->dst] = w[fid] * dummy;
         }        
     }
-
-    /* Compute transition scores from labels to EOS. */
-    edge = TRANSITION_EOS(trainer);
-    for (r = 0;r < edge->num_features;++r) {
-        /* Transition feature from #(f->src) to EOS. */
-        fid = edge->fids[r];
-        f = FEATURE(trainer, fid);
-        trans = TRANS_SCORE_FROM(ctx, f->src);
-        trans[L] = w[fid] * dummy;
-    }    
 }
 
 #define OEXP    1
@@ -203,13 +179,13 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
         its beauty. This routine calculates model expectations of features
         in four steps:
 
-        (i)   state features at position #0 and BOS transition features
-        (ii)  state features at position #T-1 and EOS transition features
+        (i)   state features at position #0
+        (ii)  state features at position #T-1
         (iii) state features at position #t (0 < t < T-1)
         (iv)  transition features.
 
         Notice that the partition factor (norm) is computed as:
-            norm = 1 / (C[0] * ... * C[T]).
+            norm = 1 / (C[0] * ... * C[T-1]).
      */
 
     /*
@@ -225,14 +201,6 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
     coeff = ctx->scale_factor[T] / ctx->scale_factor[0];
     for (i = 0;i < L;++i) {
         prob[i] = fwd[i] * bwd[i] * coeff;
-    }
-
-    /* Compute expectations for transition features from BOS. */
-    trans = TRANSITION_BOS(trainer);
-    for (r = 0;r < trans->num_features;++r) {
-        fid = trans->fids[r];
-        f = FEATURE(trainer, fid);
-        func(f, fid, prob[f->dst], 1., trainer, seq, 0);
     }
 
     /* Compute expectations for state features at position #0. */
@@ -264,14 +232,6 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
     coeff = ctx->scale_factor[T] / ctx->scale_factor[T-1];
     for (i = 0;i < L;++i) {
         prob[i] = fwd[i] * bwd[i] * coeff;
-    }
-
-    /* Compute expectations for transition features to EOS. */
-    trans = TRANSITION_EOS(trainer);
-    for (r = 0;r < trans->num_features;++r) {
-        fid = trans->fids[r];
-        f = FEATURE(trainer, fid);
-        func(f, fid, prob[f->src], 1., trainer, seq, T-1);
     }
 
     /* Compute expectations for state features at position #(T-1). */
@@ -369,8 +329,6 @@ static int init_feature_references(crf1ml_t* trainer, const int A, const int L)
         - state features fired by each attribute (trainer->attributes)
         - transition features pointing from each label (trainer->forward_trans)
         - transition features pointing to each label (trainer->backward_trans)
-        - BOS features (trainer->bos_trans)
-        - EOS features (trainer->eos_trans).
     */
 
     /* Initialize. */
@@ -385,8 +343,6 @@ static int init_feature_references(crf1ml_t* trainer, const int A, const int L)
     if (trainer->forward_trans == NULL) goto error_exit;
     trainer->backward_trans = (feature_refs_t*)calloc(L, sizeof(feature_refs_t));
     if (trainer->backward_trans == NULL) goto error_exit;
-    memset(&trainer->bos_trans, 0, sizeof(feature_refs_t));
-    memset(&trainer->eos_trans, 0, sizeof(feature_refs_t));
 
     /*
         Firstly, loop over the features to count the number of references.
@@ -401,12 +357,6 @@ static int init_feature_references(crf1ml_t* trainer, const int A, const int L)
         case FT_TRANS:
             trainer->forward_trans[f->src].num_features++;
             trainer->backward_trans[f->dst].num_features++;
-            break;
-        case FT_TRANS_BOS:
-            trainer->bos_trans.num_features++;
-            break;
-        case FT_TRANS_EOS:
-            trainer->eos_trans.num_features++;
             break;
         }
     }
@@ -432,14 +382,6 @@ static int init_feature_references(crf1ml_t* trainer, const int A, const int L)
         if (fl->fids == NULL) goto error_exit;
         fl->num_features = 0;
     }
-    fl = &trainer->bos_trans;
-    fl->fids = (int*)calloc(fl->num_features, sizeof(int));
-    if (fl->fids == NULL) goto error_exit;
-    fl->num_features = 0;
-    fl = &trainer->eos_trans;
-    fl->fids = (int*)calloc(fl->num_features, sizeof(int));
-    if (fl->fids == NULL) goto error_exit;
-    fl->num_features = 0;
 
     /*
         At last, store the feature indices.
@@ -455,14 +397,6 @@ static int init_feature_references(crf1ml_t* trainer, const int A, const int L)
             fl = &trainer->forward_trans[f->src];
             fl->fids[fl->num_features++] = k;
             fl = &trainer->backward_trans[f->dst];
-            fl->fids[fl->num_features++] = k;
-            break;
-        case FT_TRANS_BOS:
-            fl = &trainer->bos_trans;
-            fl->fids[fl->num_features++] = k;
-            break;
-        case FT_TRANS_EOS:
-            fl = &trainer->eos_trans;
             fl->fids[fl->num_features++] = k;
             break;
         }
@@ -881,14 +815,6 @@ static int crf_train_save(crf_trainer_t* trainer, const char *filename, crf_dict
         if (ret = crf1mmw_put_labelref(writer, l, edge, fmap)) {
             goto error_exit;
         }
-    }
-    edge = TRANSITION_BOS(crf1mt);
-    if (ret = crf1mmw_put_labelref(writer, L, edge, fmap)) {
-        goto error_exit;
-    }
-    edge = TRANSITION_EOS(crf1mt);
-    if (ret = crf1mmw_put_labelref(writer, L+1, edge, fmap)) {
-        goto error_exit;
     }
     if (ret = crf1mmw_close_labelrefs(writer)) {
         goto error_exit;

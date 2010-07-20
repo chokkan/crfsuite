@@ -146,8 +146,6 @@ void crf1mc_test_context(FILE *fp);
 enum {
     FT_STATE = 0,    /**< State features. */
     FT_TRANS,        /**< Transition features. */
-    FT_TRANS_BOS,    /**< BOS transition features. */
-    FT_TRANS_EOS,    /**< EOS transition features. */
 };
 
 /**
@@ -159,8 +157,6 @@ typedef struct {
      *    Possible values are:
      *    - FT_STATE (0) for state features.
      *    - FT_TRANS (1) for transition features.
-     *    - FT_TRANS_BOS (2) for BOS transition features.
-     *    - FT_TRANS_EOS (3) for EOS transition features.
      */
     int        type;
 
@@ -320,8 +316,6 @@ struct tag_crf1ml {
     feature_refs_t* attributes;
     feature_refs_t* forward_trans;
     feature_refs_t* backward_trans;
-    feature_refs_t    bos_trans;
-    feature_refs_t    eos_trans;
 
     int num_features;            /**< Number of distinct features (K). */
 
