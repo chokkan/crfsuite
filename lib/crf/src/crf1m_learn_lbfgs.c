@@ -106,9 +106,6 @@ static lbfgsfloatval_t lbfgs_evaluate(
     crf1ml_transition_score(crf1mt, x, n, 1.0);
     crf1mc_exp_transition(crf1mt->ctx);
 
-    crf1mc_test_context(stdout);
-    return 0;
-
     /*
         Compute model expectations.
      */

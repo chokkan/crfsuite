@@ -332,13 +332,21 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
     return max_score;
 }
 
+static void check_values(FILE *fp, floatval_t cv, floatval_t tv)
+{
+    if (fabs(cv - tv) < 1e-9) {
+        fprintf(fp, "OK (%f)\n", cv);
+    } else {
+        fprintf(fp, "FAIL: %f (%f)\n", cv, tv);
+    }
+}
+
 void crf1mc_test_context(FILE *fp)
 {
     int y1, y2, y3;
     floatval_t norm = 0;
     const int L = 3;
     const int T = 3;
-    const floatval_t eps = 1e-9;
     crf1m_context_t *ctx = crf1mc_new(L, T);
     floatval_t *trans = NULL, *state = NULL;
     floatval_t scores[3][3][3];
@@ -362,7 +370,6 @@ void crf1mc_test_context(FILE *fp)
     ctx->num_items = ctx->max_items;
     crf1mc_forward_score(ctx);
     crf1mc_backward_score(ctx);
-    /*crf1mc_debug_context(ctx, fp);*/
 
     /* Compute the score of every label sequence. */
     for (y1 = 0;y1 < L;++y1) {
@@ -392,11 +399,7 @@ void crf1mc_test_context(FILE *fp)
 
     /* Check the partition factor. */
     fprintf(fp, "Check for the partition factor... ");
-    if (fabs(norm - exp(ctx->log_norm)) < eps) {
-        fprintf(fp, "OK (%f)\n", exp(ctx->log_norm));
-    } else {
-        fprintf(fp, "FAIL: %f (%f)\n", exp(ctx->log_norm), norm);
-    }
+    check_values(fp, exp(ctx->log_norm), norm);
 
     /* Compute the sequence probabilities. */
     for (y1 = 0;y1 < L;++y1) {
@@ -410,105 +413,94 @@ void crf1mc_test_context(FILE *fp)
                 logp = crf1mc_logprob(ctx);
 
                 fprintf(fp, "Check for the sequence %d-%d-%d... ", y1, y2, y3);
-                if (fabs(scores[y1][y2][y3] / norm - exp(logp)) < eps) {
-                    fprintf(fp, "OK (%f)\n", exp(logp));
-                } else {
-                    fprintf(fp, "FAIL: %f (%f)\n", exp(logp), scores[y1][y2][y3] / norm);
-                }
+                check_values(fp, exp(logp), scores[y1][y2][y3] / norm);
             }
         }
     }
 
     /* Compute the marginal probability at t=0 */
     for (y1 = 0;y1 < L;++y1) {
-        floatval_t a, b, c, p, q = 0.;
+        floatval_t a, b, c, s = 0.;
         for (y2 = 0;y2 < L;++y2) {
             for (y3 = 0;y3 < L;++y3) {
-                q += scores[y1][y2][y3];
+                s += scores[y1][y2][y3];
             }
         }
-        q /= norm;
 
         a = FORWARD_SCORE_AT(ctx, 0)[y1];
         b = BACKWARD_SCORE_AT(ctx, 0)[y1];
         c = 1. / ctx->scale_factor[0];
-        p = a * b * c;
         
         fprintf(fp, "Check for the marginal probability (0,%d)... ", y1);
-        if (fabs(p - q) < eps) {
-            fprintf(fp, "OK (%f)\n", p);
-        } else {
-            fprintf(fp, "FAIL: %f (%f)\n", p, q);
-        }
+        check_values(fp, a * b * c, s / norm);
     }
 
     /* Compute the marginal probability at t=1 */
     for (y2 = 0;y2 < L;++y2) {
-        floatval_t a, b, c, p, q = 0.;
+        floatval_t a, b, c, s = 0.;
         for (y1 = 0;y1 < L;++y1) {
             for (y3 = 0;y3 < L;++y3) {
-                q += scores[y1][y2][y3];
+                s += scores[y1][y2][y3];
             }
         }
-        q /= norm;
 
         a = FORWARD_SCORE_AT(ctx, 1)[y2];
         b = BACKWARD_SCORE_AT(ctx, 1)[y2];
         c = 1. / ctx->scale_factor[1];
-        p = a * b * c;
         
         fprintf(fp, "Check for the marginal probability (1,%d)... ", y2);
-        if (fabs(p - q) < eps) {
-            fprintf(fp, "OK (%f)\n", p);
-        } else {
-            fprintf(fp, "FAIL: %f (%f)\n", p, q);
-        }
+        check_values(fp, a * b * c, s / norm);
     }
 
     /* Compute the marginal probability at t=2 */
     for (y3 = 0;y3 < L;++y3) {
-        floatval_t a, b, c, p, q = 0.;
+        floatval_t a, b, c, s = 0.;
         for (y1 = 0;y1 < L;++y1) {
             for (y2 = 0;y2 < L;++y2) {
-                q += scores[y1][y2][y3];
+                s += scores[y1][y2][y3];
             }
         }
-        q /= norm;
 
         a = FORWARD_SCORE_AT(ctx, 2)[y3];
         b = BACKWARD_SCORE_AT(ctx, 2)[y3];
         c = 1. / ctx->scale_factor[2];
-        p = a * b * c;
         
         fprintf(fp, "Check for the marginal probability (2,%d)... ", y3);
-        if (fabs(p - q) < eps) {
-            fprintf(fp, "OK (%f)\n", p);
-        } else {
-            fprintf(fp, "FAIL: %f (%f)\n", p, q);
-        }
+        check_values(fp, a * b * c, s / norm);
     }
 
     /* Compute the marginal probabilities of transitions. */
     for (y1 = 0;y1 < L;++y1) {
         for (y2 = 0;y2 < L;++y2) {
-            floatval_t a, b, s, t, p, q = 0.;
+            floatval_t a, b, s, t, p = 0.;
             for (y3 = 0;y3 < L;++y3) {
-                q += scores[y1][y2][y3];
+                p += scores[y1][y2][y3];
             }
-            q /= norm;
 
             a = FORWARD_SCORE_AT(ctx, 0)[y1];
             b = BACKWARD_SCORE_AT(ctx, 1)[y2];
             s = STATE_SCORE_AT(ctx, 1)[y2];
             t = TRANS_SCORE_FROM(ctx, y1)[y2];
-            p = a * t * s * b;
 
             fprintf(fp, "Check for the marginal probability (0,%d)-(1,%d)... ", y1, y2);
-            if (fabs(p - q) < eps) {
-                fprintf(fp, "OK (%f)\n", p);
-            } else {
-                fprintf(fp, "FAIL: %f (%f)\n", p, q);
+            check_values(fp, a * t * s * b, p / norm);
+        }
+    }
+
+    for (y2 = 0;y2 < L;++y2) {
+        for (y3 = 0;y3 < L;++y3) {
+            floatval_t a, b, s, t, p = 0.;
+            for (y1 = 0;y1 < L;++y1) {
+                p += scores[y1][y2][y3];
             }
+
+            a = FORWARD_SCORE_AT(ctx, 1)[y2];
+            b = BACKWARD_SCORE_AT(ctx, 2)[y3];
+            s = STATE_SCORE_AT(ctx, 2)[y3];
+            t = TRANS_SCORE_FROM(ctx, y2)[y3];
+
+            fprintf(fp, "Check for the marginal probability (1,%d)-(2,%d)... ", y2, y3);
+            check_values(fp, a * t * s * b, p / norm);
         }
     }
 }
