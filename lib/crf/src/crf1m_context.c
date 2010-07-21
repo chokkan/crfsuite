@@ -85,11 +85,11 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
 
         ctx->labels = (int*)calloc(T, sizeof(int));
         if (ctx->labels == NULL) return CRFERR_OUTOFMEMORY;
-        ctx->forward_score = (floatval_t*)calloc((T+1) * L, sizeof(floatval_t));
+        ctx->forward_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
         if (ctx->forward_score == NULL) return CRFERR_OUTOFMEMORY;
-        ctx->scale_factor = (floatval_t*)calloc((T+1), sizeof(floatval_t));
+        ctx->scale_factor = (floatval_t*)calloc(T, sizeof(floatval_t));
         if (ctx->scale_factor == NULL) return CRFERR_OUTOFMEMORY;
-        ctx->backward_score = (floatval_t*)calloc((T+1) * L, sizeof(floatval_t));
+        ctx->backward_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
         if (ctx->backward_score == NULL) return CRFERR_OUTOFMEMORY;
         ctx->state_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
         if (ctx->state_score == NULL) return CRFERR_OUTOFMEMORY;
