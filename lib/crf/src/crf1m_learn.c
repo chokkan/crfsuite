@@ -189,75 +189,12 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
      */
 
     /*
-        (i) Calculate the probabilities at (0, i):
-            p(0,i) = fwd[0][i] * bwd[0][i] / norm
-                   = (fwd'[0][i] / C[0]) * (bwd'[0][i] / (C[0] * ... C[T-1])) * (C[0] * ... * C[T-1])
-                   = (1. / C[0]) * fwd'[0][i] * bwd'[0][i]
-        to compute expectations of transition features from BOS
-        and state features at position #0.
-     */
-    fwd = FORWARD_SCORE_AT(ctx, 0);
-    bwd = BACKWARD_SCORE_AT(ctx, 0);
-    coeff = 1. / ctx->scale_factor[0];
-    for (i = 0;i < L;++i) {
-        prob[i] = fwd[i] * bwd[i] * coeff;
-    }
-
-    /* Compute expectations for state features at position #0. */
-    item = &seq->items[0];
-    for (c = 0;c < item->num_contents;++c) {
-        /* Access the attribute. */
-        scale = item->contents[c].scale;
-        a = item->contents[c].aid;
-        attr = ATTRIBUTE(trainer, a);
-
-        /* Loop over state features for the attribute. */
-        for (r = 0;r < attr->num_features;++r) {
-            /* Reuse the probability prob[f->dst]. */
-            fid = attr->fids[r];
-            f = FEATURE(trainer, fid);
-            func(f, fid, prob[f->dst], scale, trainer, seq, 0);
-        }
-    }
-
-    /*
-        (ii) Calculate the probabilities at (T-1, i):
-            p(T-1,i) = fwd[T-1][i] bwd[T-1][i] / norm
-                     = (1. / C[T-1]) * fwd'[T-1][i] * bwd'[T-1][i]
-        to compute expectations of transition features to EOS
-        and state features at position #(T-1).
-     */
-    fwd = FORWARD_SCORE_AT(ctx, T-1);
-    bwd = BACKWARD_SCORE_AT(ctx, T-1);
-    coeff = 1. / ctx->scale_factor[T-1];
-    for (i = 0;i < L;++i) {
-        prob[i] = fwd[i] * bwd[i] * coeff;
-    }
-
-    /* Compute expectations for state features at position #(T-1). */
-    item = &seq->items[T-1];
-    for (c = 0;c < item->num_contents;++c) {
-        /* Access the attribute. */
-        scale = item->contents[c].scale;
-        a = item->contents[c].aid;
-        attr = ATTRIBUTE(trainer, a);
-
-        /* Loop over state features for the attribute. */
-        for (r = 0;r < attr->num_features;++r) {
-            /* Reuse the probability prob[f->dst]. */
-            fid = attr->fids[r];
-            f = FEATURE(trainer, fid);
-            func(f, fid, prob[f->dst], scale, trainer, seq, T-1);
-        }
-    }
-
-    /*
         (iii) For 0 < t < T-1, calculate the probabilities at (t, i):
             p(t,i) = fwd[t][i] * bwd[t][i] / norm
                    = (1. / C[t]) * fwd'[t][i] * bwd'[t][i]
         to compute expectations of state features at position #t.
      */
-    for (t = 1;t < T-1;++t) {
+    for (t = 0;t < T;++t) {
         fwd = FORWARD_SCORE_AT(ctx, t);
         bwd = BACKWARD_SCORE_AT(ctx, t);
         coeff = 1. / ctx->scale_factor[t];
