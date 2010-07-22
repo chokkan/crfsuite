@@ -121,7 +121,7 @@ typedef struct {
 #define    STATE_SCORE_AT(ctx, i) \
     (&MATRIX(ctx->state_score, ctx->num_labels, 0, i))
 #define    TRANS_SCORE_FROM(ctx, i) \
-    (&MATRIX(ctx->trans_score, ctx->num_labels+1, 0, i))
+    (&MATRIX(ctx->trans_score, ctx->num_labels, 0, i))
 #define    BACKWARD_EDGE_AT(ctx, t) \
     (&MATRIX(ctx->backward_edge, ctx->num_labels, 0, t))
 
