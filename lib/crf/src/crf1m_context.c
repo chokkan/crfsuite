@@ -342,8 +342,8 @@ floatval_t crf1mc_logprob(crf1m_context_t* ctx)
 
     /* Stay at (0, labels[0]). */
     i = labels[0];
-    cur = ALPHA_SCORE_AT(ctx, 0);
-    ret = log(cur[i]) - log(ctx->scale_factor[0]);
+    state = STATE_SCORE_AT(ctx, 0);
+    ret = log(state[i]);
 
     /* Loop over the rest of items. */
     for (t = 1;t < T;++t) {
