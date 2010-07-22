@@ -133,6 +133,14 @@ inline static floatval_t vecsum(floatval_t* x, const int n)
     return s;
 }
 
+inline static void vecexp(floatval_t* x, const int n)
+{
+    int i;
+    for (i = 0;i < n;++i) {
+        x[i] = (x[i] == 0. ? 1. : exp(x[i]));
+    }
+}
+
 inline static floatval_t vecsumlog(floatval_t* x, const int n)
 {
     int i;
@@ -229,35 +237,19 @@ void crf1mc_delete(crf1m_context_t* ctx)
 
 void crf1mc_exp_state(crf1m_context_t* ctx)
 {
-    int i, t;
-    floatval_t *state = NULL;
     const int T = ctx->num_items;
     const int L = ctx->num_labels;
 
     veccopy(ctx->exp_state, ctx->state, L * T);
-
-    for (t = 0;t < T;++t) {
-        state = EXP_STATE_SCORE(ctx, t);
-        for (i = 0;i < L;++i) {
-            state[i] = (state[i] == 0. ? 1. : exp(state[i]));
-        }
-    }
+    vecexp(ctx->exp_state, L * T);
 }
 
 void crf1mc_exp_transition(crf1m_context_t* ctx)
 {
-    int i, j;
-    floatval_t *trans = NULL;
     const int L = ctx->num_labels;
 
     veccopy(ctx->exp_trans, ctx->trans, L * L);
-
-    for (i = 0;i < L;++i) {
-        trans = EXP_TRANS_SCORE(ctx, i);
-        for (j = 0;j < L;++j) {
-            trans[j] = (trans[j] == 0. ? 1. : exp(trans[j]));
-        }
-    }
+    vecexp(ctx->exp_trans, L * L);
 }
 
 void crf1mc_alpha_score(crf1m_context_t* ctx)
