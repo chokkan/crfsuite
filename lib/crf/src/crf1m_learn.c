@@ -95,7 +95,7 @@ crf1ml_state_score(
     /* Loop over the items in the sequence. */
     for (t = 0;t < T;++t) {
         item = &seq->items[t];
-        state = STATE_SCORE_AT(ctx, t);
+        state = STATE_SCORE(ctx, t);
 
         /* Initialize the state scores at position #t as zero. */
         for (i = 0;i < L;++i) {
@@ -139,7 +139,7 @@ void crf1ml_transition_score(
 
     /* Initialize all transition scores as zero. */
     for (i = 0;i < L;++i) {
-        trans = TRANS_SCORE_FROM(ctx, i);
+        trans = TRANS_SCORE(ctx, i);
         for (j = 0;j < L;++j) {
             trans[j] = 0. * dummy;
         }
@@ -147,7 +147,7 @@ void crf1ml_transition_score(
 
     /* Compute transition scores between two labels. */
     for (i = 0;i < L;++i) {
-        trans = TRANS_SCORE_FROM(ctx, i);
+        trans = TRANS_SCORE(ctx, i);
         edge = TRANSITION_FROM(trainer, i);
         for (r = 0;r < edge->num_features;++r) {
             /* Transition feature from #i to #(f->dst). */
@@ -236,12 +236,12 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
      */
     for (t = 0;t < T-1;++t) {
         fwd = ALPHA_SCORE_AT(ctx, t);
-        state = STATE_SCORE_AT(ctx, t+1);
+        state = EXP_STATE_SCORE(ctx, t+1);
         bwd = BACKWARD_SCORE_AT(ctx, t+1);
 
         /* Loop over the labels (t, i) */
         for (i = 0;i < L;++i) {
-            edge = TRANS_SCORE_FROM(ctx, i);
+            edge = EXP_TRANS_SCORE(ctx, i);
             trans = TRANSITION_FROM(trainer, i);
             for (r = 0;r < trans->num_features;++r) {
                 fid = trans->fids[r];

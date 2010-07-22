@@ -54,7 +54,7 @@ struct tag_crf1mt {
 };
 
 
-static void state_score(crf1mt_t* tagger, const crf_sequence_t* seq)
+static void exp_state(crf1mt_t* tagger, const crf_sequence_t* seq)
 {
     int a, i, l, t, r, fid;
     crf1mm_feature_t f;
@@ -69,7 +69,7 @@ static void state_score(crf1mt_t* tagger, const crf_sequence_t* seq)
     /* Loop over the items in the sequence. */
     for (t = 0;t < T;++t) {
         item = &seq->items[t];
-        state = STATE_SCORE_AT(ctx, t);
+        state = EXP_STATE_SCORE(ctx, t);
 
         /* Initialize the state scores at position #t as zero. */
         for (i = 0;i < L;++i) {
@@ -109,7 +109,7 @@ static void transition_score(crf1mt_t* tagger)
 
     /* Initialize all transition scores as zero. */
     for (i = 0;i < L;++i) {
-        trans = TRANS_SCORE_FROM(ctx, i);
+        trans = EXP_TRANS_SCORE(ctx, i);
         for (j = 0;j < L;++j) {
             trans[j] = 0;
         }
@@ -117,7 +117,7 @@ static void transition_score(crf1mt_t* tagger)
 
     /* Compute transition scores between two labels. */
     for (i = 0;i < L;++i) {
-        trans = TRANS_SCORE_FROM(ctx, i);
+        trans = EXP_TRANS_SCORE(ctx, i);
         crf1mm_get_labelref(model, i, &edge);
         for (r = 0;r < edge.num_features;++r) {
             /* Transition feature from #i to #(f->dst). */
@@ -156,7 +156,7 @@ int crf1mt_tag(crf1mt_t* crf1mt, crf_sequence_t *inst, crf_output_t* output)
 
     crf1mc_set_num_items(ctx, inst->num_items);
 
-    state_score(crf1mt, inst);
+    exp_state(crf1mt, inst);
     score = crf1mc_viterbi(ctx);
 
     crf_output_init_n(output, inst->num_items);

@@ -88,12 +88,15 @@ typedef struct {
     floatval_t *scale_factor;
     floatval_t *row;
 
+    floatval_t *state;
+    floatval_t *trans;
+
     /**
      * State score matrix.
      *    This is a [T][L] matrix whose element [t][l] presents the total
      *    score when state features output label #l at position #i.
      */
-    floatval_t *state_score;
+    floatval_t *exp_state;
 
     /**
      * Transition score matrix.
@@ -101,7 +104,7 @@ typedef struct {
      *    score when a transition feature moves a label #i of the previous
      *    item to #j.
      */
-    floatval_t *trans_score;
+    floatval_t *exp_trans;
 
     /**
      * Backward edges.
@@ -118,10 +121,14 @@ typedef struct {
     (&MATRIX(ctx->forward_score, ctx->num_labels, 0, t))
 #define    BACKWARD_SCORE_AT(ctx, t) \
     (&MATRIX(ctx->backward_score, ctx->num_labels, 0, t))
-#define    STATE_SCORE_AT(ctx, i) \
-    (&MATRIX(ctx->state_score, ctx->num_labels, 0, i))
-#define    TRANS_SCORE_FROM(ctx, i) \
-    (&MATRIX(ctx->trans_score, ctx->num_labels, 0, i))
+#define    STATE_SCORE(ctx, i) \
+    (&MATRIX(ctx->state, ctx->num_labels, 0, i))
+#define    EXP_STATE_SCORE(ctx, i) \
+    (&MATRIX(ctx->exp_state, ctx->num_labels, 0, i))
+#define    TRANS_SCORE(ctx, i) \
+    (&MATRIX(ctx->trans, ctx->num_labels, 0, i))
+#define    EXP_TRANS_SCORE(ctx, i) \
+    (&MATRIX(ctx->exp_trans, ctx->num_labels, 0, i))
 #define    BACKWARD_EDGE_AT(ctx, t) \
     (&MATRIX(ctx->backward_edge, ctx->num_labels, 0, t))
 
