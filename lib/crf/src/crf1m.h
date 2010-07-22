@@ -42,7 +42,6 @@
 typedef struct {
     /**
      * The total number of distinct output labels.
-     *    The label number #num_labels represents BOS/EOS.
      */
     int num_labels;
 
@@ -65,8 +64,8 @@ typedef struct {
 
     /**
      * Logarithm of the normalize factor for the input sequence.
-     *    This is equivalent to the total scores of all paths from BOS to
-     *    EOS, given an input sequence.
+     *    This is equivalent to the total scores of all paths,
+     *    given an input sequence.
      */
     floatval_t log_norm;
 
@@ -87,6 +86,7 @@ typedef struct {
     floatval_t *backward_score;
 
     floatval_t *scale_factor;
+    floatval_t *row;
 
     /**
      * State score matrix.
@@ -114,7 +114,7 @@ typedef struct {
 
 #define    MATRIX(p, xl, x, y)        ((p)[(xl) * (y) + (x)])
 
-#define    FORWARD_SCORE_AT(ctx, t) \
+#define    ALPHA_SCORE_AT(ctx, t) \
     (&MATRIX(ctx->forward_score, ctx->num_labels, 0, t))
 #define    BACKWARD_SCORE_AT(ctx, t) \
     (&MATRIX(ctx->backward_score, ctx->num_labels, 0, t))
@@ -132,8 +132,8 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T);
 void crf1mc_delete(crf1m_context_t* ctx);
 void crf1mc_exp_state(crf1m_context_t* ctx);
 void crf1mc_exp_transition(crf1m_context_t* ctx);
-void crf1mc_forward_score(crf1m_context_t* ctx);
-void crf1mc_backward_score(crf1m_context_t* ctx);
+void crf1mc_alpha_score(crf1m_context_t* ctx);
+void crf1mc_beta_score(crf1m_context_t* ctx);
 floatval_t crf1mc_logprob(crf1m_context_t* ctx);
 floatval_t crf1mc_viterbi(crf1m_context_t* ctx);
 void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp);

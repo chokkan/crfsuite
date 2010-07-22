@@ -40,10 +40,111 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <memory.h>
 
 #include <crfsuite.h>
 
 #include "crf1m.h"
+
+inline static void veczero(floatval_t *x, const int n)
+{
+    memset(x, 0, sizeof(floatval_t) * n);
+}
+
+inline static void vecset(floatval_t *x, const floatval_t a, const int n)
+{
+    int i;
+    for (i = 0;i < n;++i) {
+        x[i] = a;
+    }
+}
+
+inline static void veccopy(floatval_t *y, const floatval_t *x, const int n)
+{
+    memcpy(y, x, sizeof(floatval_t) * n);
+}
+
+inline static void vecadd(floatval_t *y, const floatval_t *x, const int n)
+{
+    int i;
+    for (i = 0;i < n;++i) {
+        y[i] += x[i];
+    }
+}
+
+inline static void vecaadd(floatval_t *y, const floatval_t a, const floatval_t *x, const int n)
+{
+    int i;
+    for (i = 0;i < n;++i) {
+        y[i] += a * x[i];
+    }
+}
+
+inline static void vecsub(floatval_t *y, const floatval_t *x, const int n)
+{
+    int i;
+    for (i = 0;i < n;++i) {
+        y[i] -= x[i];
+    }
+}
+
+inline static void vecasub(floatval_t *y, const floatval_t a, const floatval_t *x, const int n)
+{
+    int i;
+    for (i = 0;i < n;++i) {
+        y[i] -= a * x[i];
+    }
+}
+
+inline static void vecmul(floatval_t *y, const floatval_t *x, const int n)
+{
+    int i;
+    for (i = 0;i < n;++i) {
+        y[i] *= x[i];
+    }
+}
+
+inline static void vecscale(floatval_t *y, const floatval_t a, const int n)
+{
+    int i;
+    for (i = 0;i < n;++i) {
+        y[i] *= a;
+    }
+}
+
+inline static floatval_t vecdot(const floatval_t *x, const floatval_t *y, const int n)
+{
+    int i;
+    floatval_t s = 0;
+    for (i = 0;i < n;++i) {
+        s += x[i] * y[i];
+    }
+    return s;
+}
+
+inline static floatval_t vecsum(floatval_t* x, const int n)
+{
+    int i;
+    floatval_t s = 0.;
+
+    for (i = 0;i < n;++i) {
+        s += x[i];
+    }
+    return s;
+}
+
+inline static floatval_t vecsumlog(floatval_t* x, const int n)
+{
+    int i;
+    floatval_t s = 0.;
+    for (i = 0;i < n;++i) {
+        s += log(x[i]);
+    }
+    return s;
+}
+
+
+
 
 crf1m_context_t* crf1mc_new(int L, int T)
 {
@@ -79,6 +180,7 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
         free(ctx->backward_edge);
         free(ctx->state_score);
         free(ctx->scale_factor);
+        free(ctx->row);
         free(ctx->backward_score);
         free(ctx->forward_score);
         free(ctx->labels);
@@ -89,6 +191,8 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
         if (ctx->forward_score == NULL) return CRFERR_OUTOFMEMORY;
         ctx->scale_factor = (floatval_t*)calloc(T, sizeof(floatval_t));
         if (ctx->scale_factor == NULL) return CRFERR_OUTOFMEMORY;
+        ctx->row = (floatval_t*)calloc(L, sizeof(floatval_t));
+        if (ctx->row == NULL) return CRFERR_OUTOFMEMORY;
         ctx->backward_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
         if (ctx->backward_score == NULL) return CRFERR_OUTOFMEMORY;
         ctx->state_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
@@ -108,6 +212,7 @@ void crf1mc_delete(crf1m_context_t* ctx)
         free(ctx->backward_edge);
         free(ctx->state_score);
         free(ctx->scale_factor);
+        free(ctx->row);
         free(ctx->backward_score);
         free(ctx->forward_score);
         free(ctx->labels);
@@ -145,90 +250,84 @@ void crf1mc_exp_transition(crf1m_context_t* ctx)
     }
 }
 
-void crf1mc_forward_score(crf1m_context_t* ctx)
+void crf1mc_alpha_score(crf1m_context_t* ctx)
 {
     int i, j, t;
-    floatval_t score, sum, *cur = NULL;
+    floatval_t sum, *cur = NULL;
+    floatval_t *scale = &ctx->scale_factor[0];
     const floatval_t *prev = NULL, *trans = NULL, *state = NULL;
     const int T = ctx->num_items;
     const int L = ctx->num_labels;
 
-    /* Compute the alpha scores on nodes (0, *). */
-    cur = FORWARD_SCORE_AT(ctx, 0);
+    /* Compute the alpha scores on nodes (0, *).
+        alpha[0][j] = state[0][j]
+     */
+    cur = ALPHA_SCORE_AT(ctx, 0);
     state = STATE_SCORE_AT(ctx, 0);
-    for (sum = 0., j = 0;j < L;++j) {
-        /* The alpha score of the node (0, j). */
-        sum += cur[j] = state[j];
-    }
-    ctx->scale_factor[0] = (sum != 0.) ? 1. / sum : 1.;
-    for (j = 0;j < L;++j) cur[j] *= ctx->scale_factor[0];
+    veccopy(cur, state, L);
+    sum = vecsum(cur, L);
+    *scale = (sum != 0.) ? 1. / sum : 1.;
+    vecscale(cur, *scale, L);
+    ++scale;
 
-    /* Compute the alpha scores on nodes (t, *). */
+    /* Compute the alpha scores on nodes (t, *).
+        alpha[t][j] = state[t][j] * \sum_{i} alpha[t-1][i] * trans[i][j]
+     */
     for (t = 1;t < T;++t) {
-        prev = FORWARD_SCORE_AT(ctx, t-1);
-        cur = FORWARD_SCORE_AT(ctx, t);
+        prev = ALPHA_SCORE_AT(ctx, t-1);
+        cur = ALPHA_SCORE_AT(ctx, t);
         state = STATE_SCORE_AT(ctx, t);
 
-        /* Compute the alpha score of the node (t, j). */
-        for (sum = 0., j = 0;j < L;++j) {
-            for (score = 0., i = 0;i < L;++i) {
-                /* Transit from (t-1, i) to (t, j). */
-                trans = TRANS_SCORE_FROM(ctx, i);
-                score += prev[i] * trans[j];
-            }
-            /* Add the state score on (t, j). */
-            sum += cur[j] = score * state[j];
+        veczero(cur, L);
+        for (i = 0;i < L;++i) {
+            trans = TRANS_SCORE_FROM(ctx, i);
+            vecaadd(cur, prev[i], trans, L);
         }
-
-        /* Compute the scale factor. */
-        ctx->scale_factor[t] = (sum != 0.) ? 1. / sum : 1.;
-        /* Apply the scaling factor. */
-        for (j = 0;j < L;++j) cur[j] *= ctx->scale_factor[t];
+        vecmul(cur, state, L);
+        sum = vecsum(cur, L);
+        *scale = (sum != 0.) ? 1. / sum : 1.;
+        vecscale(cur, *scale, L);
+        ++scale;
     }
 
     /* Compute the logarithm of the normalization factor here.
         norm = 1. / (C[0] * C[1] ... * C[T-1])
         log(norm) = - \sum_{t = 0}^{T-1} log(C[t]).
      */
-    ctx->log_norm = 0.;
-    for (t = 0;t < T;++t) {
-        ctx->log_norm -= log(ctx->scale_factor[t]);
-    }
+    ctx->log_norm = -vecsumlog(ctx->scale_factor, T);
 }
 
-void crf1mc_backward_score(crf1m_context_t* ctx)
+void crf1mc_beta_score(crf1m_context_t* ctx)
 {
     int i, j, t;
-    floatval_t score, scale, *cur = NULL;
+    floatval_t score, *cur = NULL;
+    floatval_t *row = ctx->row;
     const floatval_t *next = NULL, *state = NULL, *trans = NULL;
     const int T = ctx->num_items;
     const int L = ctx->num_labels;
+    const floatval_t *scale = &ctx->scale_factor[T-1];
 
     /* Compute the beta scores at (T-1, *). */
     cur = BACKWARD_SCORE_AT(ctx, T-1);
-    scale = ctx->scale_factor[T-1];
-    for (i = 0;i < L;++i) {
-        /* The beta scores at (T-1, i). */
-        cur[i] = scale;
-    }
+    vecset(cur, *scale, L);
+    --scale;
 
     /* Compute the beta scores at (t, *). */
     for (t = T-2;0 <= t;--t) {
         cur = BACKWARD_SCORE_AT(ctx, t);
         next = BACKWARD_SCORE_AT(ctx, t+1);
         state = STATE_SCORE_AT(ctx, t+1);
-        scale = ctx->scale_factor[t];
+
+        veccopy(row, next, L);
+        vecmul(row, state, L);
 
         /* Compute the beta score at (t, i). */
         for (i = 0;i < L;++i) {
-            score = 0.;
             trans = TRANS_SCORE_FROM(ctx, i);
-            for (j = 0;j < L;++j) {
-                /* Transit from (t, i) to (t+1, j). */
-                score += trans[j] * state[j] * next[j];
-            }
-            cur[i] = score * scale;
+            cur[i] = vecdot(trans, row, L);
         }
+        vecscale(cur, *scale, L);
+        --scale;
     }
 }
 
@@ -243,7 +342,7 @@ floatval_t crf1mc_logprob(crf1m_context_t* ctx)
 
     /* Stay at (0, labels[0]). */
     i = labels[0];
-    cur = FORWARD_SCORE_AT(ctx, 0);
+    cur = ALPHA_SCORE_AT(ctx, 0);
     ret = log(cur[i]) - log(ctx->scale_factor[0]);
 
     /* Loop over the rest of items. */
@@ -278,7 +377,7 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
      */
 
     /* Compute the scores at (0, *). */
-    cur = FORWARD_SCORE_AT(ctx, 0);
+    cur = ALPHA_SCORE_AT(ctx, 0);
     state = STATE_SCORE_AT(ctx, 0);
     for (j = 0;j < L;++j) {
         cur[j] = state[j];
@@ -286,8 +385,8 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
 
     /* Compute the scores at (t, *). */
     for (t = 1;t < T;++t) {
-        prev = FORWARD_SCORE_AT(ctx, t-1);
-        cur = FORWARD_SCORE_AT(ctx, t);
+        prev = ALPHA_SCORE_AT(ctx, t-1);
+        cur = ALPHA_SCORE_AT(ctx, t);
         state = STATE_SCORE_AT(ctx, t);
         back = BACKWARD_EDGE_AT(ctx, t);
 
@@ -314,7 +413,7 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
 
     /* Find the node (#T, #i) that reaches EOS with the maximum score. */
     max_score = -FLOAT_MAX;
-    prev = FORWARD_SCORE_AT(ctx, T-1);
+    prev = ALPHA_SCORE_AT(ctx, T-1);
     for (i = 0;i < L;++i) {
         if (max_score < prev[i]) {
             max_score = prev[i];
@@ -368,8 +467,8 @@ void crf1mc_test_context(FILE *fp)
     trans[0] = .5;    trans[1] = .2;    trans[2] = .1;
 
     ctx->num_items = ctx->max_items;
-    crf1mc_forward_score(ctx);
-    crf1mc_backward_score(ctx);
+    crf1mc_alpha_score(ctx);
+    crf1mc_beta_score(ctx);
 
     /* Compute the score of every label sequence. */
     for (y1 = 0;y1 < L;++y1) {
@@ -427,7 +526,7 @@ void crf1mc_test_context(FILE *fp)
             }
         }
 
-        a = FORWARD_SCORE_AT(ctx, 0)[y1];
+        a = ALPHA_SCORE_AT(ctx, 0)[y1];
         b = BACKWARD_SCORE_AT(ctx, 0)[y1];
         c = 1. / ctx->scale_factor[0];
         
@@ -444,7 +543,7 @@ void crf1mc_test_context(FILE *fp)
             }
         }
 
-        a = FORWARD_SCORE_AT(ctx, 1)[y2];
+        a = ALPHA_SCORE_AT(ctx, 1)[y2];
         b = BACKWARD_SCORE_AT(ctx, 1)[y2];
         c = 1. / ctx->scale_factor[1];
         
@@ -461,7 +560,7 @@ void crf1mc_test_context(FILE *fp)
             }
         }
 
-        a = FORWARD_SCORE_AT(ctx, 2)[y3];
+        a = ALPHA_SCORE_AT(ctx, 2)[y3];
         b = BACKWARD_SCORE_AT(ctx, 2)[y3];
         c = 1. / ctx->scale_factor[2];
         
@@ -477,7 +576,7 @@ void crf1mc_test_context(FILE *fp)
                 p += scores[y1][y2][y3];
             }
 
-            a = FORWARD_SCORE_AT(ctx, 0)[y1];
+            a = ALPHA_SCORE_AT(ctx, 0)[y1];
             b = BACKWARD_SCORE_AT(ctx, 1)[y2];
             s = STATE_SCORE_AT(ctx, 1)[y2];
             t = TRANS_SCORE_FROM(ctx, y1)[y2];
@@ -494,7 +593,7 @@ void crf1mc_test_context(FILE *fp)
                 p += scores[y1][y2][y3];
             }
 
-            a = FORWARD_SCORE_AT(ctx, 1)[y2];
+            a = ALPHA_SCORE_AT(ctx, 1)[y2];
             b = BACKWARD_SCORE_AT(ctx, 2)[y3];
             s = STATE_SCORE_AT(ctx, 2)[y3];
             t = TRANS_SCORE_FROM(ctx, y2)[y3];

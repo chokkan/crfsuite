@@ -106,6 +106,9 @@ static lbfgsfloatval_t lbfgs_evaluate(
     crf1ml_transition_score(crf1mt, x, n, 1.0);
     crf1mc_exp_transition(crf1mt->ctx);
 
+    //crf1mc_test_context(stdout);
+    //return 0;
+
     /*
         Compute model expectations.
      */
@@ -116,8 +119,8 @@ static lbfgsfloatval_t lbfgs_evaluate(
         crf1mc_exp_state(crf1mt->ctx);
 
         /* Compute forward/backward scores. */
-        crf1mc_forward_score(crf1mt->ctx);
-        crf1mc_backward_score(crf1mt->ctx);
+        crf1mc_alpha_score(crf1mt->ctx);
+        crf1mc_beta_score(crf1mt->ctx);
 
         /*crf1mc_debug_context(crf1mt->ctx, stdout);*/
         /*printf("lognorm = %f\n", crf1mt->ctx->log_norm);*/

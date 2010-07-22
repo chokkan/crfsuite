@@ -51,7 +51,7 @@
 #ifndef    __cplusplus
 /* Microsoft Visual C specific */
 
-#define    inline    __inline
+#define    inline    __forceinline
 
 #endif/*__cplusplus*/
 

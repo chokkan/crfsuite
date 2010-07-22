@@ -195,7 +195,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
         to compute expectations of state features at position #t.
      */
     for (t = 0;t < T;++t) {
-        fwd = FORWARD_SCORE_AT(ctx, t);
+        fwd = ALPHA_SCORE_AT(ctx, t);
         bwd = BACKWARD_SCORE_AT(ctx, t);
         coeff = 1. / ctx->scale_factor[t];
 
@@ -235,7 +235,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
         to compute expectations of transition features.
      */
     for (t = 0;t < T-1;++t) {
-        fwd = FORWARD_SCORE_AT(ctx, t);
+        fwd = ALPHA_SCORE_AT(ctx, t);
         state = STATE_SCORE_AT(ctx, t+1);
         bwd = BACKWARD_SCORE_AT(ctx, t+1);
 

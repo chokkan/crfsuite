@@ -203,8 +203,8 @@ compute_loglikelihood(
         crf1mc_exp_state(crf1mt->ctx);
 
         /* Compute forward/backward scores. */
-        crf1mc_forward_score(crf1mt->ctx);
-        crf1mc_backward_score(crf1mt->ctx);
+        crf1mc_alpha_score(crf1mt->ctx);
+        crf1mc_beta_score(crf1mt->ctx);
 
         /* Compute the probability of the input sequence on the model. */
         logp += crf1mc_logprob(crf1mt->ctx);
@@ -289,8 +289,8 @@ static int l2sgd(
             crf1mc_exp_state(crf1mt->ctx);
 
             /* Compute forward/backward scores. */
-            crf1mc_forward_score(crf1mt->ctx);
-            crf1mc_backward_score(crf1mt->ctx);
+            crf1mc_alpha_score(crf1mt->ctx);
+            crf1mc_beta_score(crf1mt->ctx);
 
             /* Compute the probability of the input sequence on the model. */
             logp += crf1mc_logprob(crf1mt->ctx);

@@ -108,12 +108,15 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="3"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="$(SolutionDir)include;$(SolutionDir)win32;$(SolutionDir)lib\crf\include;$(SolutionDir)win32\liblbfgs;$(SolutionDir)lib\cqdb\include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="2"
 				FloatingPointExceptions="true"
 				UsePrecompiledHeader="0"
-				WarningLevel="3"
+				WarningLevel="1"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
 			/>
