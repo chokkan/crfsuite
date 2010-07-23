@@ -192,7 +192,7 @@ compute_loglikelihood(
 
     /* Set transition scores. */
     crf1mc_reset(crf1mt->ctx, RF_TRANS);
-    crf1ml_transition_score(crf1mt, w, K, 1.);
+    crf1ml_transition_score(crf1mt, w, K);
     crf1mc_exp_transition(crf1mt->ctx);
 
     for (i = 0;i < N;++i) {
@@ -201,7 +201,7 @@ compute_loglikelihood(
         /* Set label sequences and state scores. */
         crf1ml_set_labels(crf1mt, seq);
         crf1mc_reset(crf1mt->ctx, RF_STATE);
-        crf1ml_state_score(crf1mt, seq, w, K, 1.);
+        crf1ml_state_score(crf1mt, seq, w, K);
         crf1mc_exp_state(crf1mt->ctx);
 
         /* Compute forward/backward scores. */
@@ -283,13 +283,13 @@ static int l2sgd(
 
             /* Set transition scores. */
             crf1mc_reset(crf1mt->ctx, RF_TRANS);
-            crf1ml_transition_score(crf1mt, w, K, scale);
+            crf1ml_transition_score_scaled(crf1mt, w, K, scale);
             crf1mc_exp_transition(crf1mt->ctx);
 
             /* Set label sequences and state scores. */
             crf1ml_set_labels(crf1mt, seq);
             crf1mc_reset(crf1mt->ctx, RF_STATE);
-            crf1ml_state_score(crf1mt, seq, w, K, scale);
+            crf1ml_state_score_scaled(crf1mt, seq, w, K, scale);
             crf1mc_exp_state(crf1mt->ctx);
 
             /* Compute forward/backward scores. */

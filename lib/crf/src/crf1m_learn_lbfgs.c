@@ -104,7 +104,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
         these are independent of input label sequences.
      */
     crf1mc_reset(crf1mt->ctx, RF_TRANS);
-    crf1ml_transition_score(crf1mt, x, n, 1.0);
+    crf1ml_transition_score(crf1mt, x, n);
     crf1mc_exp_transition(crf1mt->ctx);
 
     //crf1mc_test_context(stdout);
@@ -117,7 +117,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
         /* Set label sequences and state scores. */
         crf1ml_set_labels(crf1mt, &seqs[i]);
         crf1mc_reset(crf1mt->ctx, RF_STATE);
-        crf1ml_state_score(crf1mt, &seqs[i], x, n, 1.0);
+        crf1ml_state_score(crf1mt, &seqs[i], x, n);
         crf1mc_exp_state(crf1mt->ctx);
 
         /* Compute forward/backward scores. */

@@ -79,40 +79,69 @@ crf1ml_state_score(
     crf1ml_t* trainer,
     const crf_sequence_t* seq,
     const floatval_t* w,
-    const int K,
-    floatval_t dummy
+    const int K
     )
 {
-    int a, i, l, t, r, fid;
-    floatval_t scale, *state = NULL;
+    int i, t, r;
     crf1m_context_t* ctx = trainer->ctx;
-    const crf_item_t* item = NULL;
-    const crf1ml_feature_t* f = NULL;
-    const feature_refs_t* attr = NULL;
     const int T = seq->num_items;
     const int L = trainer->num_labels;
 
     /* Loop over the items in the sequence. */
     for (t = 0;t < T;++t) {
-        item = &seq->items[t];
-        state = STATE_SCORE(ctx, t);
+        const crf_item_t *item = &seq->items[t];
+        floatval_t *state = STATE_SCORE(ctx, t);
 
         /* Loop over the contents (attributes) attached to the item. */
         for (i = 0;i < item->num_contents;++i) {
             /* Access the list of state features associated with the attribute. */
-            a = item->contents[i].aid;
-            attr = ATTRIBUTE(trainer, a);
-            /* A scale usually represents the atrribute frequency in the item. */
-            scale = item->contents[i].scale * dummy;
+            int a = item->contents[i].aid;
+            const feature_refs_t *attr = ATTRIBUTE(trainer, a);
+            floatval_t value = item->contents[i].scale;
 
             /* Loop over the state features associated with the attribute. */
             for (r = 0;r < attr->num_features;++r) {
-                /* The state feature #(attr->fids[r]), which is represented by
-                   the attribute #a, outputs the label #(f->dst). */
-                fid = attr->fids[r];
-                f = FEATURE(trainer, fid);
-                l = f->dst;
-                state[l] += w[fid] * scale;
+                /* State feature associates the attribute #a with the label #(f->dst). */
+                int fid = attr->fids[r];
+                const crf1ml_feature_t *f = FEATURE(trainer, fid);
+                state[f->dst] += w[fid] * value;
+            }
+        }
+    }
+}
+
+void
+crf1ml_state_score_scaled(
+    crf1ml_t* trainer,
+    const crf_sequence_t* seq,
+    const floatval_t* w,
+    const int K,
+    floatval_t scale
+    )
+{
+    int i, t, r;
+    crf1m_context_t* ctx = trainer->ctx;
+    const int T = seq->num_items;
+    const int L = trainer->num_labels;
+
+    /* Loop over the items in the sequence. */
+    for (t = 0;t < T;++t) {
+        const crf_item_t *item = &seq->items[t];
+        floatval_t *state = STATE_SCORE(ctx, t);
+
+        /* Loop over the contents (attributes) attached to the item. */
+        for (i = 0;i < item->num_contents;++i) {
+            /* Access the list of state features associated with the attribute. */
+            int a = item->contents[i].aid;
+            const feature_refs_t *attr = ATTRIBUTE(trainer, a);
+            floatval_t value = item->contents[i].scale * scale;
+
+            /* Loop over the state features associated with the attribute. */
+            for (r = 0;r < attr->num_features;++r) {
+                /* State feature associates the attribute #a with the label #(f->dst). */
+                int fid = attr->fids[r];
+                const crf1ml_feature_t *f = FEATURE(trainer, fid);
+                state[f->dst] += w[fid] * value;
             }
         }
     }
@@ -121,26 +150,46 @@ crf1ml_state_score(
 void crf1ml_transition_score(
     crf1ml_t* trainer,
     const floatval_t* w,
-    const int K,
-    floatval_t dummy
+    const int K
     )
 {
-    int i, j, r, fid;
-    floatval_t *trans = NULL;
+    int i, j, r;
     crf1m_context_t* ctx = trainer->ctx;
-    const crf1ml_feature_t* f = NULL;
-    const feature_refs_t* edge = NULL;
     const int L = trainer->num_labels;
 
     /* Compute transition scores between two labels. */
     for (i = 0;i < L;++i) {
-        trans = TRANS_SCORE(ctx, i);
-        edge = TRANSITION_FROM(trainer, i);
+        floatval_t *trans = TRANS_SCORE(ctx, i);
+        const feature_refs_t *edge = TRANSITION_FROM(trainer, i);
         for (r = 0;r < edge->num_features;++r) {
             /* Transition feature from #i to #(f->dst). */
-            fid = edge->fids[r];
-            f = FEATURE(trainer, fid);
-            trans[f->dst] = w[fid] * dummy;
+            int fid = edge->fids[r];
+            const crf1ml_feature_t *f = FEATURE(trainer, fid);
+            trans[f->dst] = w[fid];
+        }        
+    }
+}
+
+void crf1ml_transition_score_scaled(
+    crf1ml_t* trainer,
+    const floatval_t* w,
+    const int K,
+    floatval_t scale
+    )
+{
+    int i, j, r;
+    crf1m_context_t* ctx = trainer->ctx;
+    const int L = trainer->num_labels;
+
+    /* Compute transition scores between two labels. */
+    for (i = 0;i < L;++i) {
+        floatval_t *trans = TRANS_SCORE(ctx, i);
+        const feature_refs_t *edge = TRANSITION_FROM(trainer, i);
+        for (r = 0;r < edge->num_features;++r) {
+            /* Transition feature from #i to #(f->dst). */
+            int fid = edge->fids[r];
+            const crf1ml_feature_t *f = FEATURE(trainer, fid);
+            trans[f->dst] = w[fid] * scale;
         }        
     }
 }
@@ -482,9 +531,9 @@ int crf_train_tag(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* outp
 
     crf1mc_set_num_items(ctx, inst->num_items);
 
-    crf1ml_transition_score(crf1mt, w, K, 1.0);
+    crf1ml_transition_score(crf1mt, w, K);
     crf1ml_set_labels(crf1mt, inst);
-    crf1ml_state_score(crf1mt, inst, w, K, 1.0);
+    crf1ml_state_score(crf1mt, inst, w, K);
     logscore = crf1mc_viterbi(crf1mt->ctx);
 
     crf_output_init_n(output, inst->num_items);

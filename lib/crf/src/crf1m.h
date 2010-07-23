@@ -368,15 +368,28 @@ crf1ml_state_score(
     crf1ml_t* trainer,
     const crf_sequence_t* seq,
     const floatval_t* w,
-    const int K,
-    floatval_t dummy
+    const int K
     );
 void crf1ml_transition_score(
     crf1ml_t* trainer,
     const floatval_t* w,
-    const int K,
-    floatval_t dummy
+    const int K
     );
+void
+crf1ml_state_score_scaled(
+    crf1ml_t* trainer,
+    const crf_sequence_t* seq,
+    const floatval_t* w,
+    const int K,
+    floatval_t scale
+    );
+void crf1ml_transition_score_scaled(
+    crf1ml_t* trainer,
+    const floatval_t* w,
+    const int K,
+    floatval_t scale
+    );
+
 void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_feature_t func);
 void crf1ml_shuffle(int *perm, int N, int init);
 
