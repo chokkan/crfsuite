@@ -370,10 +370,9 @@ void crf1mc_marginal(crf1m_context_t* ctx)
         floatval_t *fwd = ALPHA_SCORE_AT(ctx, t);
         floatval_t *bwd = BACKWARD_SCORE_AT(ctx, t);
         floatval_t *prob = PROB_STATE(ctx, t);
-        floatval_t coeff = 1. / ctx->scale_factor[t];
-        for (i = 0;i < L;++i) {
-            prob[i] = fwd[i] * bwd[i] * coeff;
-        }
+        veccopy(prob, fwd, L);
+        vecmul(prob, bwd, L);
+        vecscale(prob, 1. / ctx->scale_factor[t], L);
     }
 
     /*
@@ -389,12 +388,16 @@ void crf1mc_marginal(crf1m_context_t* ctx)
         floatval_t *fwd = ALPHA_SCORE_AT(ctx, t);
         floatval_t *state = EXP_STATE_SCORE(ctx, t+1);
         floatval_t *bwd = BACKWARD_SCORE_AT(ctx, t+1);
+        floatval_t *row = ctx->row;
+
+        veccopy(row, bwd, L);
+        vecmul(row, state, L);
 
         for (i = 0;i < L;++i) {
             floatval_t *edge = EXP_TRANS_SCORE(ctx, i);
             floatval_t *prob = PROB_TRANS(ctx, i);
             for (j = 0;j < L;++j) {
-                prob[j] += fwd[i] * edge[j] * state[j] * bwd[j];
+                prob[j] += fwd[i] * edge[j] * row[j];
             }
         }
     }
