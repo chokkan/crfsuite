@@ -177,8 +177,6 @@ crf1m_context_t* crf1mc_new(int L, int T)
         if (ctx->exp_trans == NULL) goto error_exit;
         ctx->prob_trans = (floatval_t*)calloc(L * L, sizeof(floatval_t));
         if (ctx->prob_trans == NULL) goto error_exit;
-        ctx->adj = (floatval_t*)calloc(L * L, sizeof(floatval_t));
-        if (ctx->adj == NULL) goto error_exit;
 
         if (ret = crf1mc_set_num_items(ctx, T)) {
             goto error_exit;
@@ -247,7 +245,6 @@ void crf1mc_delete(crf1m_context_t* ctx)
         free(ctx->labels);
         free(ctx->prob_trans);
         free(ctx->exp_trans);
-        free(ctx->adj);
         free(ctx->trans);
     }
     free(ctx);
@@ -415,7 +412,13 @@ void crf1mc_marginal(crf1m_context_t* ctx)
     }
 }
 
-void crf1mc_marginal2(crf1m_context_t* ctx)
+#if 0
+/* Sigh, this found to be slower than the forward-backward algorithm. */
+
+#define    ADJACENCY(ctx, i) \
+    (&MATRIX(ctx->adj, ctx->num_labels, 0, i))
+
+void crf1mc_marginal_without_beta(crf1m_context_t* ctx)
 {
     int i, j, t;
     floatval_t *prob = NULL;
@@ -492,6 +495,7 @@ void crf1mc_marginal2(crf1m_context_t* ctx)
         }
     }
 }
+#endif
 
 floatval_t crf1mc_logprob(crf1m_context_t* ctx)
 {
