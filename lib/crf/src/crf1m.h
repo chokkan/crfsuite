@@ -399,6 +399,7 @@ void crf1ml_transition_score_scaled(
     );
 
 void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_feature_t func);
+void crf1ml_model_expectation(crf1ml_t* trainer, const crf_sequence_t* seq, floatval_t *w);
 void crf1ml_shuffle(int *perm, int N, int init);
 
 /* crf1m_learn_lbfgs.c */

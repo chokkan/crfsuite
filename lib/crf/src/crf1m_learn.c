@@ -196,6 +196,48 @@ void crf1ml_transition_score_scaled(
 
 #define OEXP    1
 
+void crf1ml_model_expectation(crf1ml_t* trainer, const crf_sequence_t* seq, floatval_t *w)
+{
+    int a, c, i, j, t, r;
+    crf1m_context_t* ctx = trainer->ctx;
+    const feature_refs_t *attr = NULL, *trans = NULL;
+    const crf_item_t* item = NULL;
+    const int T = seq->num_items;
+    const int L = trainer->num_labels;
+
+    for (t = 0;t < T;++t) {
+        floatval_t *prob = PROB_STATE(ctx, t);
+
+        /* Compute expectations for state features at position #t. */
+        item = &seq->items[t];
+        for (c = 0;c < item->num_contents;++c) {
+            /* Access the attribute. */
+            floatval_t scale = item->contents[c].scale;
+            a = item->contents[c].aid;
+            attr = ATTRIBUTE(trainer, a);
+
+            /* Loop over state features for the attribute. */
+            for (r = 0;r < attr->num_features;++r) {
+                int fid = attr->fids[r];
+                crf1ml_feature_t *f = FEATURE(trainer, fid);
+                w[fid] += prob[f->dst] * scale;
+            }
+        }
+    }
+
+    /* Loop over the labels (t, i) */
+    for (i = 0;i < L;++i) {
+        const floatval_t *prob = PROB_TRANS(ctx, i);
+        const feature_refs_t *edge = TRANSITION_FROM(trainer, i);
+        for (r = 0;r < edge->num_features;++r) {
+            /* Transition feature from #i to #(f->dst). */
+            int fid = edge->fids[r];
+            crf1ml_feature_t *f = FEATURE(trainer, fid);
+            w[fid] += prob[f->dst];
+        }
+    }
+}
+
 void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_feature_t func)
 {
     int a, c, i, j, t, r;
@@ -205,27 +247,6 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
     const int T = seq->num_items;
     const int L = trainer->num_labels;
 
-    /*
-        This code prioritizes the computation speed over the simplicity:
-        it reduces the number of repeated calculations at the expense of
-        its beauty. This routine calculates model expectations of features
-        in four steps:
-
-        (i)   state features at position #0
-        (ii)  state features at position #T-1
-        (iii) state features at position #t (0 < t < T-1)
-        (iv)  transition features.
-
-        Notice that the partition factor (norm) is computed as:
-            norm = 1 / (C[0] * ... * C[T-1]).
-     */
-
-    /*
-        (iii) For 0 < t < T-1, calculate the probabilities at (t, i):
-            p(t,i) = fwd[t][i] * bwd[t][i] / norm
-                   = (1. / C[t]) * fwd'[t][i] * bwd'[t][i]
-        to compute expectations of state features at position #t.
-     */
     for (t = 0;t < T;++t) {
         floatval_t *prob = PROB_STATE(ctx, t);
 
@@ -246,7 +267,6 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
             }
         }
     }
-
 
     /* Loop over the labels (t, i) */
     for (i = 0;i < L;++i) {

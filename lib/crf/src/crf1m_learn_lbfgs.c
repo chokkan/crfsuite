@@ -87,9 +87,6 @@ static lbfgsfloatval_t lbfgs_evaluate(
     const int N = crf1mt->num_sequences;
     lbfgs_internal_t *lbfgsi = LBFGS_INTERNAL(crf1mt);
 
-    /* Set the gradient vector. */
-    lbfgsi->g = g;
-
     /*
         Set feature weights from the L-BFGS solver. Initialize model
         expectations as zero.
@@ -134,7 +131,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
         logl += logp;
 
         /* Update the model expectations of features. */
-        crf1ml_enum_features(crf1mt, &seqs[i], update_model_expectations);
+        crf1ml_model_expectation(crf1mt, &seqs[i], g);
     }
 
     /*

@@ -362,12 +362,10 @@ void crf1mc_marginal(crf1m_context_t* ctx)
     const int L = ctx->num_labels;
 
     /*
-        (iii) For 0 < t < T-1, calculate the probabilities at (t, i):
+        Compute the model expectations of states.
             p(t,i) = fwd[t][i] * bwd[t][i] / norm
                    = (1. / C[t]) * fwd'[t][i] * bwd'[t][i]
-        to compute expectations of state features at position #t.
      */
-
     for (t = 0;t < T;++t) {
         floatval_t *fwd = ALPHA_SCORE_AT(ctx, t);
         floatval_t *bwd = BACKWARD_SCORE_AT(ctx, t);
@@ -378,14 +376,14 @@ void crf1mc_marginal(crf1m_context_t* ctx)
         }
     }
 
-
     /*
-        (iv) Calculate the probabilities of the path (t, i) -> (t+1, j)
-            p(t+1,j|t,i)
+        Compute the model expectations of transitions.
+            p(t,i,t+1,j)
                 = fwd[t][i] * edge[i][j] * state[t+1][j] * bwd[t+1][j] / norm
                 = (fwd'[t][i] / (C[0] ... C[t])) * edge[i][j] * state[t+1][j] * (bwd'[t+1][j] / (C[t+1] ... C[T-1])) * (C[0] * ... * C[T-1])
                 = fwd'[t][i] * edge[i][j] * state[t+1][j] * bwd'[t+1][j]
-        to compute expectations of transition features.
+        The model expectation of a transition (i -> j) is the sum of the marginal
+        probabilities p(t,i,t+1,j) over t.
      */
     for (t = 0;t < T-1;++t) {
         floatval_t *fwd = ALPHA_SCORE_AT(ctx, t);
