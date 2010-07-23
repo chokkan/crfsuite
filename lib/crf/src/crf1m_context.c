@@ -104,6 +104,14 @@ inline static void vecmul(floatval_t *y, const floatval_t *x, const int n)
     }
 }
 
+inline static void vecinv(floatval_t *y, const int n)
+{
+    int i;
+    for (i = 0;i < n;++i) {
+        y[i] = 1. / y[i];
+    }
+}
+
 inline static void vecscale(floatval_t *y, const floatval_t a, const int n)
 {
     int i;
@@ -169,6 +177,8 @@ crf1m_context_t* crf1mc_new(int L, int T)
         if (ctx->exp_trans == NULL) goto error_exit;
         ctx->prob_trans = (floatval_t*)calloc(L * L, sizeof(floatval_t));
         if (ctx->prob_trans == NULL) goto error_exit;
+        ctx->adj = (floatval_t*)calloc(L * L, sizeof(floatval_t));
+        if (ctx->adj == NULL) goto error_exit;
 
         if (ret = crf1mc_set_num_items(ctx, T)) {
             goto error_exit;
@@ -237,6 +247,7 @@ void crf1mc_delete(crf1m_context_t* ctx)
         free(ctx->labels);
         free(ctx->prob_trans);
         free(ctx->exp_trans);
+        free(ctx->adj);
         free(ctx->trans);
     }
     free(ctx);
@@ -390,6 +401,7 @@ void crf1mc_marginal(crf1m_context_t* ctx)
         floatval_t *bwd = BACKWARD_SCORE_AT(ctx, t+1);
         floatval_t *row = ctx->row;
 
+        /* row[j] = state[t+1][j] * bwd'[t+1][j] */
         veccopy(row, bwd, L);
         vecmul(row, state, L);
 
@@ -399,6 +411,84 @@ void crf1mc_marginal(crf1m_context_t* ctx)
             for (j = 0;j < L;++j) {
                 prob[j] += fwd[i] * edge[j] * row[j];
             }
+        }
+    }
+}
+
+void crf1mc_marginal2(crf1m_context_t* ctx)
+{
+    int i, j, t;
+    floatval_t *prob = NULL;
+    floatval_t *row = ctx->row;
+    const floatval_t *fwd = NULL;
+    const int T = ctx->num_items;
+    const int L = ctx->num_labels;
+
+    /*
+        Compute marginal probabilities of states at T-1
+            p(T-1,j) = fwd'[T-1][j]
+     */
+    fwd = ALPHA_SCORE_AT(ctx, T-1);
+    prob = PROB_STATE(ctx, T-1);
+    veccopy(prob, fwd, L);
+    
+    /*
+        Repeat the following computation for t = T-1,T-2, ..., 1.
+            1) Compute p(t-1,i,t,j) using p(t,j)
+            2) Compute p(t,i) using p(t-1,i,t,j)
+     */
+    for (t = T-1;0 < t;--t) {
+        fwd = ALPHA_SCORE_AT(ctx, t-1);
+        prob = PROB_STATE(ctx, t);
+
+        veczero(ctx->adj, L*L);
+        veczero(row, L);
+
+        /*
+            Compute adj[i][j] and row[j].
+                adj[i][j] = fwd'[t-1][i] * edge[i][j]
+                row[j] = \sum_{i} adj[i][j]
+         */
+        for (i = 0;i < L;++i) {
+            floatval_t *adj = ADJACENCY(ctx, i);
+            floatval_t *edge = EXP_TRANS_SCORE(ctx, i);
+            vecaadd(adj, fwd[i], edge, L);
+            vecadd(row, adj, L);
+        }
+
+        /*
+            Find z such that z * \sum_{i] adj[i][j] = p(t,j).
+            Thus, z = p(t,j) / row[j]; we overwrite row with z.
+         */
+        vecinv(row, L);
+        vecmul(row, prob, L);
+
+        /*
+            Apply the partition factor z (row[j]) to adj[i][j].
+         */
+        for (i = 0;i < L;++i) {
+            floatval_t *adj = ADJACENCY(ctx, i);
+            vecmul(adj, row, L);
+        }
+
+        /*
+            Now that adj[i][j] presents p(t-1,i,t,j),
+            accumulate model expectations of transitions.
+         */
+        for (i = 0;i < L;++i) {
+            floatval_t *adj = ADJACENCY(ctx, i);
+            floatval_t *prob = PROB_TRANS(ctx, i);
+            vecadd(prob, adj, L);
+        }
+
+        /*
+            Compute the marginal probability of states at t-1.
+                p(t-1,i) = \sum_{j} p(t-1,i,t,j)
+         */
+        prob = PROB_STATE(ctx, t-1);
+        for (i = 0;i < L;++i) {
+            floatval_t *adj = ADJACENCY(ctx, i);
+            prob[i] = vecsum(adj, L);
         }
     }
 }

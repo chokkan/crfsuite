@@ -91,6 +91,8 @@ typedef struct {
     floatval_t *state;
     floatval_t *trans;
 
+    floatval_t *adj;
+
     /**
      * State score matrix.
      *    This is a [T][L] matrix whose element [t][l] presents the total
@@ -138,6 +140,8 @@ typedef struct {
     (&MATRIX(ctx->prob_trans, ctx->num_labels, 0, i))
 #define    BACKWARD_EDGE_AT(ctx, t) \
     (&MATRIX(ctx->backward_edge, ctx->num_labels, 0, t))
+#define    ADJACENCY(ctx, i) \
+    (&MATRIX(ctx->adj, ctx->num_labels, 0, i))
 
 
 /* crf1m_common.c */
@@ -160,6 +164,7 @@ floatval_t crf1mc_viterbi(crf1m_context_t* ctx);
 void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp);
 void crf1mc_test_context(FILE *fp);
 void crf1mc_marginal(crf1m_context_t* ctx);
+void crf1mc_marginal2(crf1m_context_t* ctx);
 
 
 /**
