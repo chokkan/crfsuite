@@ -235,6 +235,19 @@ void crf1mc_delete(crf1m_context_t* ctx)
     free(ctx);
 }
 
+void crf1mc_reset(crf1m_context_t* ctx, int flag)
+{
+    const int T = ctx->num_items;
+    const int L = ctx->num_labels;
+
+    if (flag & RF_STATE) {
+        veczero(ctx->state, T * L);
+    }
+    if (flag & RF_TRANS) {
+        veczero(ctx->trans, L * L);
+    }
+}
+
 void crf1mc_exp_state(crf1m_context_t* ctx)
 {
     const int T = ctx->num_items;

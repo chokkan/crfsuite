@@ -97,11 +97,6 @@ crf1ml_state_score(
         item = &seq->items[t];
         state = STATE_SCORE(ctx, t);
 
-        /* Initialize the state scores at position #t as zero. */
-        for (i = 0;i < L;++i) {
-            state[i] = 0;
-        }
-
         /* Loop over the contents (attributes) attached to the item. */
         for (i = 0;i < item->num_contents;++i) {
             /* Access the list of state features associated with the attribute. */
@@ -136,14 +131,6 @@ void crf1ml_transition_score(
     const crf1ml_feature_t* f = NULL;
     const feature_refs_t* edge = NULL;
     const int L = trainer->num_labels;
-
-    /* Initialize all transition scores as zero. */
-    for (i = 0;i < L;++i) {
-        trans = TRANS_SCORE(ctx, i);
-        for (j = 0;j < L;++j) {
-            trans[j] = 0. * dummy;
-        }
-    }
 
     /* Compute transition scores between two labels. */
     for (i = 0;i < L;++i) {

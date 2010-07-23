@@ -134,8 +134,15 @@ typedef struct {
 
 
 /* crf1m_common.c */
+enum {
+    RF_NONE     = 0x00,
+    RF_STATE    = 0x01,
+    RF_TRANS    = 0x02,
+};
+
 crf1m_context_t* crf1mc_new(int L, int T);
 int crf1mc_set_num_items(crf1m_context_t* ctx, int T);
+void crf1mc_reset(crf1m_context_t* ctx, int flag);
 void crf1mc_delete(crf1m_context_t* ctx);
 void crf1mc_exp_state(crf1m_context_t* ctx);
 void crf1mc_exp_transition(crf1m_context_t* ctx);
