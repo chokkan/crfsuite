@@ -153,7 +153,7 @@ void crf1ml_transition_score(
     const int K
     )
 {
-    int i, j, r;
+    int i, r;
     crf1m_context_t* ctx = trainer->ctx;
     const int L = trainer->num_labels;
 
@@ -177,7 +177,7 @@ void crf1ml_transition_score_scaled(
     floatval_t scale
     )
 {
-    int i, j, r;
+    int i, r;
     crf1m_context_t* ctx = trainer->ctx;
     const int L = trainer->num_labels;
 
@@ -198,12 +198,8 @@ void crf1ml_transition_score_scaled(
 
 void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_feature_t func)
 {
-    int a, c, i, j, t, r, fid;
-    floatval_t coeff, scale, *prob = trainer->prob;
+    int a, c, i, j, t, r;
     crf1m_context_t* ctx = trainer->ctx;
-    const floatval_t lognorm = ctx->log_norm;
-    const floatval_t *fwd = NULL, *bwd = NULL, *state = NULL, *edge = NULL;
-    crf1ml_feature_t* f = NULL;
     const feature_refs_t *attr = NULL, *trans = NULL;
     const crf_item_t* item = NULL;
     const int T = seq->num_items;
@@ -231,60 +227,36 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
         to compute expectations of state features at position #t.
      */
     for (t = 0;t < T;++t) {
-        fwd = ALPHA_SCORE_AT(ctx, t);
-        bwd = BACKWARD_SCORE_AT(ctx, t);
-        coeff = 1. / ctx->scale_factor[t];
-
-        /* Initialize the probabilities as -1, which means 'unfilled'.  */
-        for (i = 0;i < L;++i) prob[i] = -1;
+        floatval_t *prob = PROB_STATE(ctx, t);
 
         /* Compute expectations for state features at position #t. */
         item = &seq->items[t];
         for (c = 0;c < item->num_contents;++c) {
             /* Access the attribute. */
-            scale = item->contents[c].scale;
+            floatval_t scale = item->contents[c].scale;
             a = item->contents[c].aid;
             attr = ATTRIBUTE(trainer, a);
 
             /* Loop over state features for the attribute. */
             for (r = 0;r < attr->num_features;++r) {
-                fid = attr->fids[r];
-                f = FEATURE(trainer, fid);
+                int fid = attr->fids[r];
+                crf1ml_feature_t *f = FEATURE(trainer, fid);
                 i = f->dst;
-
-                /* Reuse the probability prob[i] if it has been calculated. */
-                if (prob[i] == -1) {
-                    /* Unfilled: calculate the probability. */
-                    prob[i] = fwd[i] * bwd[i] * coeff;
-                }
                 func(f, fid, prob[i], scale, trainer, seq, t);
             }
         }
     }
 
-    /*
-        (iv) Calculate the probabilities of the path (t, i) -> (t+1, j)
-            p(t+1,j|t,i)
-                = fwd[t][i] * edge[i][j] * state[t+1][j] * bwd[t+1][j] / norm
-                = (fwd'[t][i] / (C[0] ... C[t])) * edge[i][j] * state[t+1][j] * (bwd'[t+1][j] / (C[t+1] ... C[T-1])) * (C[0] * ... * C[T-1])
-                = fwd'[t][i] * edge[i][j] * state[t+1][j] * bwd'[t+1][j]
-        to compute expectations of transition features.
-     */
-    for (t = 0;t < T-1;++t) {
-        fwd = ALPHA_SCORE_AT(ctx, t);
-        state = EXP_STATE_SCORE(ctx, t+1);
-        bwd = BACKWARD_SCORE_AT(ctx, t+1);
 
-        /* Loop over the labels (t, i) */
-        for (i = 0;i < L;++i) {
-            edge = EXP_TRANS_SCORE(ctx, i);
-            trans = TRANSITION_FROM(trainer, i);
-            for (r = 0;r < trans->num_features;++r) {
-                fid = trans->fids[r];
-                f = FEATURE(trainer, fid);
-                j = f->dst;
-                func(f, fid, fwd[i] * edge[j] * state[j] * bwd[j], 1., trainer, seq, t);
-            }
+    /* Loop over the labels (t, i) */
+    for (i = 0;i < L;++i) {
+        const floatval_t *prob = PROB_TRANS(ctx, i);
+        const feature_refs_t *edge = TRANSITION_FROM(trainer, i);
+        for (r = 0;r < edge->num_features;++r) {
+            /* Transition feature from #i to #(f->dst). */
+            int fid = edge->fids[r];
+            crf1ml_feature_t *f = FEATURE(trainer, fid);
+            func(f, fid, prob[f->dst], 1., trainer, seq, t);
         }
     }
 }

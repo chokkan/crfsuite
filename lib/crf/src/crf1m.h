@@ -106,6 +106,9 @@ typedef struct {
      */
     floatval_t *exp_trans;
 
+    floatval_t *prob_state;
+    floatval_t *prob_trans;
+
     /**
      * Backward edges.
      *    This is a [T][L] matrix whose element [t][j] represents the label
@@ -125,10 +128,14 @@ typedef struct {
     (&MATRIX(ctx->state, ctx->num_labels, 0, i))
 #define    EXP_STATE_SCORE(ctx, i) \
     (&MATRIX(ctx->exp_state, ctx->num_labels, 0, i))
+#define    PROB_STATE(ctx, i) \
+    (&MATRIX(ctx->prob_state, ctx->num_labels, 0, i))
 #define    TRANS_SCORE(ctx, i) \
     (&MATRIX(ctx->trans, ctx->num_labels, 0, i))
 #define    EXP_TRANS_SCORE(ctx, i) \
     (&MATRIX(ctx->exp_trans, ctx->num_labels, 0, i))
+#define    PROB_TRANS(ctx, i) \
+    (&MATRIX(ctx->prob_trans, ctx->num_labels, 0, i))
 #define    BACKWARD_EDGE_AT(ctx, t) \
     (&MATRIX(ctx->backward_edge, ctx->num_labels, 0, t))
 
@@ -152,6 +159,7 @@ floatval_t crf1mc_logprob(crf1m_context_t* ctx);
 floatval_t crf1mc_viterbi(crf1m_context_t* ctx);
 void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp);
 void crf1mc_test_context(FILE *fp);
+void crf1mc_marginal(crf1m_context_t* ctx);
 
 
 /**

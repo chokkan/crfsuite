@@ -123,6 +123,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
         /* Compute forward/backward scores. */
         crf1mc_alpha_score(crf1mt->ctx);
         crf1mc_beta_score(crf1mt->ctx);
+        crf1mc_marginal(crf1mt->ctx);
 
         /*crf1mc_debug_context(crf1mt->ctx, stdout);*/
         /*printf("lognorm = %f\n", crf1mt->ctx->log_norm);*/

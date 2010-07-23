@@ -167,6 +167,8 @@ crf1m_context_t* crf1mc_new(int L, int T)
         if (ctx->trans == NULL) goto error_exit;
         ctx->exp_trans = (floatval_t*)calloc(L * L, sizeof(floatval_t));
         if (ctx->exp_trans == NULL) goto error_exit;
+        ctx->prob_trans = (floatval_t*)calloc(L * L, sizeof(floatval_t));
+        if (ctx->prob_trans == NULL) goto error_exit;
 
         if (ret = crf1mc_set_num_items(ctx, T)) {
             goto error_exit;
@@ -188,6 +190,7 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
 
     if (ctx->max_items < T) {
         free(ctx->backward_edge);
+        free(ctx->prob_state);
         free(ctx->exp_state);
         free(ctx->scale_factor);
         free(ctx->row);
@@ -209,6 +212,8 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
         if (ctx->state == NULL) return CRFERR_OUTOFMEMORY;
         ctx->exp_state = (floatval_t*)calloc(T * L, sizeof(floatval_t));
         if (ctx->exp_state == NULL) return CRFERR_OUTOFMEMORY;
+        ctx->prob_state = (floatval_t*)calloc(T * L, sizeof(floatval_t));
+        if (ctx->prob_state == NULL) return CRFERR_OUTOFMEMORY;
         ctx->backward_edge = (int*)calloc(T * L, sizeof(int));
         if (ctx->backward_edge == NULL) return CRFERR_OUTOFMEMORY;
 
@@ -222,6 +227,7 @@ void crf1mc_delete(crf1m_context_t* ctx)
 {
     if (ctx != NULL) {
         free(ctx->backward_edge);
+        free(ctx->prob_state);
         free(ctx->exp_state);
         free(ctx->state);
         free(ctx->scale_factor);
@@ -229,6 +235,7 @@ void crf1mc_delete(crf1m_context_t* ctx)
         free(ctx->backward_score);
         free(ctx->forward_score);
         free(ctx->labels);
+        free(ctx->prob_trans);
         free(ctx->exp_trans);
         free(ctx->trans);
     }
@@ -241,11 +248,13 @@ void crf1mc_reset(crf1m_context_t* ctx, int flag)
     const int L = ctx->num_labels;
 
     if (flag & RF_STATE) {
-        veczero(ctx->state, T * L);
+        veczero(ctx->state, T*L);
     }
     if (flag & RF_TRANS) {
-        veczero(ctx->trans, L * L);
+        veczero(ctx->trans, L*L);
     }
+    veczero(ctx->prob_state, T*L);
+    veczero(ctx->prob_trans, L*L);
 }
 
 void crf1mc_exp_state(crf1m_context_t* ctx)
@@ -267,7 +276,7 @@ void crf1mc_exp_transition(crf1m_context_t* ctx)
 
 void crf1mc_alpha_score(crf1m_context_t* ctx)
 {
-    int i, j, t;
+    int i, t;
     floatval_t sum, *cur = NULL;
     floatval_t *scale = &ctx->scale_factor[0];
     const floatval_t *prev = NULL, *trans = NULL, *state = NULL;
@@ -314,7 +323,7 @@ void crf1mc_alpha_score(crf1m_context_t* ctx)
 
 void crf1mc_beta_score(crf1m_context_t* ctx)
 {
-    int i, j, t;
+    int i, t;
     floatval_t *cur = NULL;
     floatval_t *row = ctx->row;
     const floatval_t *next = NULL, *state = NULL, *trans = NULL;
@@ -343,6 +352,53 @@ void crf1mc_beta_score(crf1m_context_t* ctx)
         }
         vecscale(cur, *scale, L);
         --scale;
+    }
+}
+
+void crf1mc_marginal(crf1m_context_t* ctx)
+{
+    int i, j, t;
+    const int T = ctx->num_items;
+    const int L = ctx->num_labels;
+
+    /*
+        (iii) For 0 < t < T-1, calculate the probabilities at (t, i):
+            p(t,i) = fwd[t][i] * bwd[t][i] / norm
+                   = (1. / C[t]) * fwd'[t][i] * bwd'[t][i]
+        to compute expectations of state features at position #t.
+     */
+
+    for (t = 0;t < T;++t) {
+        floatval_t *fwd = ALPHA_SCORE_AT(ctx, t);
+        floatval_t *bwd = BACKWARD_SCORE_AT(ctx, t);
+        floatval_t *prob = PROB_STATE(ctx, t);
+        floatval_t coeff = 1. / ctx->scale_factor[t];
+        for (i = 0;i < L;++i) {
+            prob[i] = fwd[i] * bwd[i] * coeff;
+        }
+    }
+
+
+    /*
+        (iv) Calculate the probabilities of the path (t, i) -> (t+1, j)
+            p(t+1,j|t,i)
+                = fwd[t][i] * edge[i][j] * state[t+1][j] * bwd[t+1][j] / norm
+                = (fwd'[t][i] / (C[0] ... C[t])) * edge[i][j] * state[t+1][j] * (bwd'[t+1][j] / (C[t+1] ... C[T-1])) * (C[0] * ... * C[T-1])
+                = fwd'[t][i] * edge[i][j] * state[t+1][j] * bwd'[t+1][j]
+        to compute expectations of transition features.
+     */
+    for (t = 0;t < T-1;++t) {
+        floatval_t *fwd = ALPHA_SCORE_AT(ctx, t);
+        floatval_t *state = EXP_STATE_SCORE(ctx, t+1);
+        floatval_t *bwd = BACKWARD_SCORE_AT(ctx, t+1);
+
+        for (i = 0;i < L;++i) {
+            floatval_t *edge = EXP_TRANS_SCORE(ctx, i);
+            floatval_t *prob = PROB_TRANS(ctx, i);
+            for (j = 0;j < L;++j) {
+                prob[j] += fwd[i] * edge[j] * state[j] * bwd[j];
+            }
+        }
     }
 }
 
