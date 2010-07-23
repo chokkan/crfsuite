@@ -253,6 +253,10 @@
 				RelativePath=".\src\rumavl.h"
 				>
 			</File>
+			<File
+				RelativePath=".\src\vecmath.h"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

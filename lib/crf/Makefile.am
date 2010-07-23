@@ -17,6 +17,7 @@ libcrf_la_SOURCES = \
 	src/rumavl.h \
 	src/mt19937ar.c \
 	src/mt19937ar.h \
+	src/vecmath.h \
 	src/crf1m.c \
 	src/crf1m.h \
 	src/crf1m_context.c \
