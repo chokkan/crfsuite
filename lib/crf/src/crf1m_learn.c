@@ -198,7 +198,7 @@ void crf1ml_transition_score_scaled(
 
 void crf1ml_model_expectation(crf1ml_t* trainer, const crf_sequence_t* seq, floatval_t *w)
 {
-    int a, c, i, j, t, r;
+    int a, c, i, t, r;
     crf1m_context_t* ctx = trainer->ctx;
     const feature_refs_t *attr = NULL, *trans = NULL;
     const crf_item_t* item = NULL;
@@ -206,7 +206,7 @@ void crf1ml_model_expectation(crf1ml_t* trainer, const crf_sequence_t* seq, floa
     const int L = trainer->num_labels;
 
     for (t = 0;t < T;++t) {
-        floatval_t *prob = PROB_STATE(ctx, t);
+        floatval_t *prob = MEXP_STATE(ctx, t);
 
         /* Compute expectations for state features at position #t. */
         item = &seq->items[t];
@@ -227,7 +227,7 @@ void crf1ml_model_expectation(crf1ml_t* trainer, const crf_sequence_t* seq, floa
 
     /* Loop over the labels (t, i) */
     for (i = 0;i < L;++i) {
-        const floatval_t *prob = PROB_TRANS(ctx, i);
+        const floatval_t *prob = MEXP_TRANS(ctx, i);
         const feature_refs_t *edge = TRANSITION_FROM(trainer, i);
         for (r = 0;r < edge->num_features;++r) {
             /* Transition feature from #i to #(f->dst). */
@@ -240,7 +240,7 @@ void crf1ml_model_expectation(crf1ml_t* trainer, const crf_sequence_t* seq, floa
 
 void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_feature_t func)
 {
-    int a, c, i, j, t, r;
+    int a, c, i, t, r;
     crf1m_context_t* ctx = trainer->ctx;
     const feature_refs_t *attr = NULL, *trans = NULL;
     const crf_item_t* item = NULL;
@@ -248,7 +248,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
     const int L = trainer->num_labels;
 
     for (t = 0;t < T;++t) {
-        floatval_t *prob = PROB_STATE(ctx, t);
+        floatval_t *prob = MEXP_STATE(ctx, t);
 
         /* Compute expectations for state features at position #t. */
         item = &seq->items[t];
@@ -270,7 +270,7 @@ void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_f
 
     /* Loop over the labels (t, i) */
     for (i = 0;i < L;++i) {
-        const floatval_t *prob = PROB_TRANS(ctx, i);
+        const floatval_t *prob = MEXP_TRANS(ctx, i);
         const feature_refs_t *edge = TRANSITION_FROM(trainer, i);
         for (r = 0;r < edge->num_features;++r) {
             /* Transition feature from #i to #(f->dst). */
@@ -405,7 +405,7 @@ int crf1ml_prepare(
     trainer->num_attributes = A;
 
     /* Construct a CRF context. */
-    trainer->ctx = crf1mc_new(L, T);
+    trainer->ctx = crf1mc_new(CTXF_MARGINALS, L, T);
     if (trainer->ctx == NULL) {
         ret = CRFERR_OUTOFMEMORY;
         goto error_exit;

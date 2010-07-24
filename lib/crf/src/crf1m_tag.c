@@ -69,7 +69,7 @@ static void exp_state(crf1mt_t* tagger, const crf_sequence_t* seq)
     /* Loop over the items in the sequence. */
     for (t = 0;t < T;++t) {
         item = &seq->items[t];
-        state = EXP_STATE_SCORE(ctx, t);
+        state = STATE_EXP(ctx, t);
 
         /* Initialize the state scores at position #t as zero. */
         for (i = 0;i < L;++i) {
@@ -109,7 +109,7 @@ static void transition_score(crf1mt_t* tagger)
 
     /* Initialize all transition scores as zero. */
     for (i = 0;i < L;++i) {
-        trans = EXP_TRANS_SCORE(ctx, i);
+        trans = TRANS_EXP(ctx, i);
         for (j = 0;j < L;++j) {
             trans[j] = 0;
         }
@@ -117,7 +117,7 @@ static void transition_score(crf1mt_t* tagger)
 
     /* Compute transition scores between two labels. */
     for (i = 0;i < L;++i) {
-        trans = EXP_TRANS_SCORE(ctx, i);
+        trans = TRANS_EXP(ctx, i);
         crf1mm_get_labelref(model, i, &edge);
         for (r = 0;r < edge.num_features;++r) {
             /* Transition feature from #i to #(f->dst). */
@@ -136,7 +136,7 @@ crf1mt_t *crf1mt_new(crf1mm_t* crf1mm)
     crf1mt->num_labels = crf1mm_get_num_labels(crf1mm);
     crf1mt->num_attributes = crf1mm_get_num_attrs(crf1mm);
     crf1mt->model = crf1mm;
-    crf1mt->ctx = crf1mc_new(crf1mt->num_labels, 0);
+    crf1mt->ctx = crf1mc_new(CTXF_VITERBI, crf1mt->num_labels, 0);
     transition_score(crf1mt);
 
     return crf1mt;

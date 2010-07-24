@@ -126,7 +126,7 @@ static lbfgsfloatval_t lbfgs_evaluate(
         /*printf("lognorm = %f\n", crf1mt->ctx->log_norm);*/
 
         /* Compute the probability of the input sequence on the model. */
-        logp = crf1mc_logprob(crf1mt->ctx);
+        logp = crf1mc_score(crf1mt->ctx) - crf1mc_lognorm(crf1mt->ctx);
         /* Update the log-likelihood. */
         logl += logp;
 

@@ -210,7 +210,7 @@ compute_loglikelihood(
         crf1mc_marginal(crf1mt->ctx);
 
         /* Compute the probability of the input sequence on the model. */
-        logp += crf1mc_logprob(crf1mt->ctx);
+        logp += crf1mc_score(crf1mt->ctx) - crf1mc_lognorm(crf1mt->ctx);
     }
 
     /* Compute the L2 norm of feature weights. */
@@ -299,7 +299,7 @@ static int l2sgd(
             crf1mc_marginal(crf1mt->ctx);
 
             /* Compute the probability of the input sequence on the model. */
-            logp += crf1mc_logprob(crf1mt->ctx);
+            logp += crf1mc_score(crf1mt->ctx) - crf1mc_lognorm(crf1mt->ctx);
 
             /* Update the feature weights. */
             crf1ml_enum_features(crf1mt, seq, update_feature_weights);

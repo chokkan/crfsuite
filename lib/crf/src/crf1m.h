@@ -36,17 +36,29 @@
 #include <time.h>
 #include "logging.h"
 
+
+enum {
+    CTXF_NONE       = 0x00,
+    CTXF_VITERBI    = 0x01,
+    CTXF_MARGINALS  = 0x02,
+};
+
 /**
  * CRF context. 
  */
 typedef struct {
     /**
-     * The total number of distinct output labels.
+     * Flag specifying the functionality.
+     */
+    int flag;
+
+    /**
+     * The total number of distinct output labels (L).
      */
     int num_labels;
 
     /**
-     * The number of items.
+     * The number of items (T).
      */
     int num_items;
 
@@ -56,13 +68,6 @@ typedef struct {
     int max_items;
 
     /**
-     * Label array.
-     *    This is a [T] vector whose element [t] presents the output label
-     *    at position #t.
-     */
-    int *labels;
-
-    /**
      * Logarithm of the normalize factor for the input sequence.
      *    This is equivalent to the total scores of all paths,
      *    given an input sequence.
@@ -70,72 +75,103 @@ typedef struct {
     floatval_t log_norm;
 
     /**
-     * Forward score matrix.
-     *    This is a [T+1][L] matrix whose element [t][l] presents the total
-     *    score of paths starting at BOS and arraiving at (t, l), given an
-     *    input sequence. Elements [T][l] for any l are zero.
+     * State scores.
+     *  This is a [T][L] matrix whose element [t][l] presents total score
+     *  of state features associating label #l at #t.
      */
-    floatval_t *forward_score;
+    floatval_t *state;
 
     /**
-     * Backward score matrix.
-     *    This is a [T+1][L] matrix whose element [t][l] presents the total
-     *    score of paths starting at (t, l) and arraiving at EOS, given an
-     *    input sequence. Elements [T][l] for any l are zero.
+     * Transition scores.
+     *  This is a [L][L] matrix whose element [i][j] represents the total
+     *  score of transition features associating labels #i and #j.
      */
-    floatval_t *backward_score;
+    floatval_t *trans;
+
+    /**
+     * Alpha score matrix.
+     *    This is a [T][L] matrix whose element [t][l] presents the total
+     *    score of paths starting at BOS and arraiving at (t, l).
+     */
+    floatval_t *alpha_score;
+
+    /**
+     * Beta score matrix.
+     *    This is a [T][L] matrix whose element [t][l] presents the total
+     *    score of paths starting at (t, l) and arraiving at EOS.
+     */
+    floatval_t *beta_score;
 
     floatval_t *scale_factor;
     floatval_t *row;
 
-    floatval_t *state;
-    floatval_t *trans;
+    /**
+     * Label array.
+     *  This is a [T] vector whose element [t] presents the output label at
+     *  position #t.
+     */
+    int *labels;
 
     /**
-     * State score matrix.
-     *    This is a [T][L] matrix whose element [t][l] presents the total
-     *    score when state features output label #l at position #i.
+     * Backward edges.
+     *  This is a [T][L] matrix whose element [t][j] represents the label #i
+     *  that yields the maximum score to arrive at (t, j).
+     *  This member is available only with CTXF_VITERBI flag.
+     */
+    int *backward_edge;
+
+    /**
+     * Exponents of state scores.
+     *  This is a [T][L] matrix whose element [t][l] presents the exponent
+     *  of the total score of state features associating label #l at #t.
+     *  This member is available only with CTXF_MARGINALS flag.
      */
     floatval_t *exp_state;
 
     /**
-     * Transition score matrix.
-     *    This is a [L+1][L+1] matrix whose element [i][j] represents the
-     *    score when a transition feature moves a label #i of the previous
-     *    item to #j.
+     * Exponents of transition scores.
+     *  This is a [L][L] matrix whose element [i][j] represents the exponent
+     *  of the total score of transition features associating labels #i and #j.
+     *  This member is available only with CTXF_MARGINALS flag.
      */
     floatval_t *exp_trans;
 
-    floatval_t *prob_state;
-    floatval_t *prob_trans;
+    /**
+     * Model expectations of states.
+     *  This is a [T][L] matrix whose element [t][l] presents the model
+     *  expectation (marginal probability) of the state (t,l)
+     *  This member is available only with CTXF_MARGINALS flag.
+     */
+    floatval_t *mexp_state;
 
     /**
-     * Backward edges.
-     *    This is a [T][L] matrix whose element [t][j] represents the label
-     *    #i that gives the maximum score to arrive at (t, j).
+     * Model expectations of transitions.
+     *  This is a [L][L] matrix whose element [i][j] presents the model
+     *  expectation of the transition (i--j).
+     *  This member is available only with CTXF_MARGINALS flag.
      */
-    int *backward_edge;
+    floatval_t *mexp_trans;
 
 } crf1m_context_t;
 
 #define    MATRIX(p, xl, x, y)        ((p)[(xl) * (y) + (x)])
 
-#define    ALPHA_SCORE_AT(ctx, t) \
-    (&MATRIX(ctx->forward_score, ctx->num_labels, 0, t))
-#define    BACKWARD_SCORE_AT(ctx, t) \
-    (&MATRIX(ctx->backward_score, ctx->num_labels, 0, t))
+#define    ALPHA_SCORE(ctx, t) \
+    (&MATRIX(ctx->alpha_score, ctx->num_labels, 0, t))
+#define    BETA_SCORE(ctx, t) \
+    (&MATRIX(ctx->beta_score, ctx->num_labels, 0, t))
 #define    STATE_SCORE(ctx, i) \
     (&MATRIX(ctx->state, ctx->num_labels, 0, i))
-#define    EXP_STATE_SCORE(ctx, i) \
-    (&MATRIX(ctx->exp_state, ctx->num_labels, 0, i))
-#define    PROB_STATE(ctx, i) \
-    (&MATRIX(ctx->prob_state, ctx->num_labels, 0, i))
 #define    TRANS_SCORE(ctx, i) \
     (&MATRIX(ctx->trans, ctx->num_labels, 0, i))
-#define    EXP_TRANS_SCORE(ctx, i) \
+#define    STATE_EXP(ctx, i) \
+    (&MATRIX(ctx->exp_state, ctx->num_labels, 0, i))
+#define    TRANS_EXP(ctx, i) \
     (&MATRIX(ctx->exp_trans, ctx->num_labels, 0, i))
-#define    PROB_TRANS(ctx, i) \
-    (&MATRIX(ctx->prob_trans, ctx->num_labels, 0, i))
+#define    MEXP_STATE(ctx, i) \
+    (&MATRIX(ctx->mexp_state, ctx->num_labels, 0, i))
+#define    MEXP_TRANS(ctx, i) \
+    (&MATRIX(ctx->mexp_trans, ctx->num_labels, 0, i))
 #define    BACKWARD_EDGE_AT(ctx, t) \
     (&MATRIX(ctx->backward_edge, ctx->num_labels, 0, t))
 
@@ -147,7 +183,7 @@ enum {
     RF_TRANS    = 0x02,
 };
 
-crf1m_context_t* crf1mc_new(int L, int T);
+crf1m_context_t* crf1mc_new(int flag, int L, int T);
 int crf1mc_set_num_items(crf1m_context_t* ctx, int T);
 void crf1mc_reset(crf1m_context_t* ctx, int flag);
 void crf1mc_delete(crf1m_context_t* ctx);
@@ -155,7 +191,8 @@ void crf1mc_exp_state(crf1m_context_t* ctx);
 void crf1mc_exp_transition(crf1m_context_t* ctx);
 void crf1mc_alpha_score(crf1m_context_t* ctx);
 void crf1mc_beta_score(crf1m_context_t* ctx);
-floatval_t crf1mc_logprob(crf1m_context_t* ctx);
+floatval_t crf1mc_score(crf1m_context_t* ctx);
+floatval_t crf1mc_lognorm(crf1m_context_t* ctx);
 floatval_t crf1mc_viterbi(crf1m_context_t* ctx);
 void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp);
 void crf1mc_test_context(FILE *fp);
