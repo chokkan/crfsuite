@@ -5,6 +5,10 @@ lib_LTLIBRARIES = libcrf.la
 EXTRA_DIST = \
 	crf.vcproj 
 
+libcrfincludedir = $(includedir)
+libcrfinclude_HEADERS = \
+	include/crfsuite.h
+
 libcrf_la_SOURCES = \
 	src/dictionary.c \
 	src/logging.c \
@@ -28,9 +32,6 @@ libcrf_la_SOURCES = \
 	src/crf1m_model.c \
 	src/crf1m_tag.c \
 	src/crf.c
-
-libcrf_la_INCLUDES = \
-	include/crf.h
 
 libcrf_la_CFLAGS = -I./include -I$(top_builddir)/lib/cqdb/include 
 
