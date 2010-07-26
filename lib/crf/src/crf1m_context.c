@@ -46,6 +46,19 @@
 #include "crf1m.h"
 #include "vecmath.h"
 
+#ifdef _MSC_VER
+    #include <malloc.h>
+#else
+    #include <stdlib.h>
+    static inline void *_aligned_malloc(size_t size, size_t alignment)
+    {
+        void *p;
+        int ret = posix_memalign(&p, alignment, size);
+        return (ret == 0) ? p : 0;
+    }
+#endif
+
+
 crf1m_context_t* crf1mc_new(int flag, int L, int T)
 {
     int ret = 0;
@@ -60,7 +73,7 @@ crf1m_context_t* crf1mc_new(int flag, int L, int T)
         if (ctx->trans == NULL) goto error_exit;
 
         if (ctx->flag & CTXF_MARGINALS) {
-            ctx->exp_trans = (floatval_t*)calloc(L * L, sizeof(floatval_t));
+            ctx->exp_trans = (floatval_t*)_aligned_malloc((L * L + 4) * sizeof(floatval_t), 16);
             if (ctx->exp_trans == NULL) goto error_exit;
             ctx->mexp_trans = (floatval_t*)calloc(L * L, sizeof(floatval_t));
             if (ctx->mexp_trans == NULL) goto error_exit;
@@ -117,7 +130,7 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
         if (ctx->state == NULL) return CRFERR_OUTOFMEMORY;
 
         if (ctx->flag & CTXF_MARGINALS) {
-            ctx->exp_state = (floatval_t*)calloc(T * L, sizeof(floatval_t));
+            ctx->exp_state = (floatval_t*)_aligned_malloc((T * L + 4) * sizeof(floatval_t), 16);
             if (ctx->exp_state == NULL) return CRFERR_OUTOFMEMORY;
             ctx->mexp_state = (floatval_t*)calloc(T * L, sizeof(floatval_t));
             if (ctx->mexp_state == NULL) return CRFERR_OUTOFMEMORY;
