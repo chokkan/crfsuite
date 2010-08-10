@@ -374,7 +374,6 @@ struct tag_crf1ml {
 
     feature_refs_t* attributes;
     feature_refs_t* forward_trans;
-    feature_refs_t* backward_trans;
 
     int num_features;            /**< Number of distinct features (K). */
 
@@ -385,7 +384,6 @@ struct tag_crf1ml {
     crf1ml_feature_t *features;
 
     floatval_t *w;            /**< Array of w (feature weights) */
-    floatval_t *prob;
 
     crf_params_t* params;
     crf1ml_option_t opt;

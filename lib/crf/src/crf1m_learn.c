@@ -57,8 +57,6 @@
     (&(trainer)->attributes[(a)])
 #define    TRANSITION_FROM(trainer, i) \
     (&(trainer)->forward_trans[(i)])
-#define    TRANSITION_TO(trainer, j) \
-    (&(trainer)->backward_trans[(j)])
 
 void crf1ml_set_labels(crf1ml_t* trainer, const crf_sequence_t* seq)
 {
@@ -298,15 +296,12 @@ static int init_feature_references(crf1ml_t* trainer, const int A, const int L)
     /* Initialize. */
     trainer->attributes = NULL;
     trainer->forward_trans = NULL;
-    trainer->backward_trans = NULL;
 
     /* Allocate arrays for feature references. */
     trainer->attributes = (feature_refs_t*)calloc(A, sizeof(feature_refs_t));
     if (trainer->attributes == NULL) goto error_exit;
     trainer->forward_trans = (feature_refs_t*)calloc(L, sizeof(feature_refs_t));
     if (trainer->forward_trans == NULL) goto error_exit;
-    trainer->backward_trans = (feature_refs_t*)calloc(L, sizeof(feature_refs_t));
-    if (trainer->backward_trans == NULL) goto error_exit;
 
     /*
         Firstly, loop over the features to count the number of references.
@@ -320,7 +315,6 @@ static int init_feature_references(crf1ml_t* trainer, const int A, const int L)
             break;
         case FT_TRANS:
             trainer->forward_trans[f->src].num_features++;
-            trainer->backward_trans[f->dst].num_features++;
             break;
         }
     }
@@ -341,10 +335,6 @@ static int init_feature_references(crf1ml_t* trainer, const int A, const int L)
         fl->fids = (int*)calloc(fl->num_features, sizeof(int));
         if (fl->fids == NULL) goto error_exit;
         fl->num_features = 0;
-        fl = &trainer->backward_trans[i];
-        fl->fids = (int*)calloc(fl->num_features, sizeof(int));
-        if (fl->fids == NULL) goto error_exit;
-        fl->num_features = 0;
     }
 
     /*
@@ -359,8 +349,6 @@ static int init_feature_references(crf1ml_t* trainer, const int A, const int L)
             break;
         case FT_TRANS:
             fl = &trainer->forward_trans[f->src];
-            fl->fids[fl->num_features++] = k;
-            fl = &trainer->backward_trans[f->dst];
             fl->fids[fl->num_features++] = k;
             break;
         }
@@ -378,11 +366,6 @@ error_exit:
         for (i = 0;i < L;++i) free(trainer->forward_trans[i].fids);
         free(trainer->forward_trans);
         trainer->forward_trans = NULL;
-    }
-    if (trainer->backward_trans == NULL) {
-        for (i = 0;i < L;++i) free(trainer->backward_trans[i].fids);
-        free(trainer->backward_trans);
-        trainer->backward_trans = NULL;
     }
     return -1;
 }
@@ -420,13 +403,6 @@ int crf1ml_prepare(
         goto error_exit;
     }
 
-    /* Allocate the work space for probability calculation. */
-    trainer->prob = (floatval_t*)calloc(L, sizeof(floatval_t));
-    if (trainer->prob == NULL) {
-        ret = CRFERR_OUTOFMEMORY;
-        goto error_exit;
-    }
-
     /* Initialize the feature references. */
     init_feature_references(trainer, A, L);
 
@@ -435,8 +411,6 @@ int crf1ml_prepare(
 error_exit:
     free(trainer->attributes);
     free(trainer->forward_trans);
-    free(trainer->backward_trans);
-    free(trainer->prob);
     free(trainer->ctx);
     return 0;
 }

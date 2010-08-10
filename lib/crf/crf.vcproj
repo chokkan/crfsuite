@@ -167,38 +167,10 @@
 			</File>
 		</Filter>
 		<Filter
-			Name="Linear chain CRF"
+			Name="CRFSuite internal"
 			>
 			<File
-				RelativePath=".\src\crf1m.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\crf1m.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\crf1m_context.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\crf1m_feature.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\crf1m_learn.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\crf1m_learn_lbfgs.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\crf1m_model.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\crf1m_tag.c"
+				RelativePath=".\crfsuite_internal.h"
 				>
 			</File>
 		</Filter>
@@ -251,6 +223,50 @@
 			</File>
 			<File
 				RelativePath=".\src\vecmath.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="CRF 1st dyad"
+			>
+			<File
+				RelativePath=".\crf1d_batch.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\crf1m.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\crf1m.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\crf1m_context.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\crf1m_feature.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\crf1m_model.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\crf1m_tag.c"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Training"
+			>
+			<File
+				RelativePath=".\src\crf1m_learn.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\crf1m_learn_lbfgs.c"
 				>
 			</File>
 		</Filter>
