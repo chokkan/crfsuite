@@ -44,7 +44,7 @@
 #include "params.h"
 
 #include "logging.h"
-#include "crf1m.h"
+#include "crf1d.h"
 
 int crf1m_model_create(const char *filename, crf_model_t** ptr_model);
 
@@ -55,7 +55,7 @@ int crf1m_create_instance_from_file(const char *filename, void **ptr)
 
 
 typedef struct {
-    crf1mm_t*    crf1mm;
+    crf1dm_t*    crf1dm;
 
     crf_dictionary_t*    attrs;
     crf_dictionary_t*    labels;
@@ -85,22 +85,22 @@ static int model_attrs_get(crf_dictionary_t* dic, const char *str)
 
 static int model_attrs_to_id(crf_dictionary_t* dic, const char *str)
 {
-    crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
-    return crf1mm_to_aid(crf1mm, str);
+    crf1dm_t *crf1dm = (crf1dm_t*)dic->internal;
+    return crf1dm_to_aid(crf1dm, str);
 }
 
 static int model_attrs_to_string(crf_dictionary_t* dic, int id, char const **pstr)
 {
-    crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
-    const char *str = crf1mm_to_attr(crf1mm, id);
+    crf1dm_t *crf1dm = (crf1dm_t*)dic->internal;
+    const char *str = crf1dm_to_attr(crf1dm, id);
     *pstr = str;
     return 0;
 }
 
 static int model_attrs_num(crf_dictionary_t* dic)
 {
-    crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
-    return crf1mm_get_num_attrs(crf1mm);
+    crf1dm_t *crf1dm = (crf1dm_t*)dic->internal;
+    return crf1dm_get_num_attrs(crf1dm);
 }
 
 static void model_attrs_free(crf_dictionary_t* dic, const char *str)
@@ -134,22 +134,22 @@ static int model_labels_get(crf_dictionary_t* dic, const char *str)
 
 static int model_labels_to_id(crf_dictionary_t* dic, const char *str)
 {
-    crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
-    return crf1mm_to_lid(crf1mm, str);
+    crf1dm_t *crf1dm = (crf1dm_t*)dic->internal;
+    return crf1dm_to_lid(crf1dm, str);
 }
 
 static int model_labels_to_string(crf_dictionary_t* dic, int id, char const **pstr)
 {
-    crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
-    const char *str = crf1mm_to_label(crf1mm, id);
+    crf1dm_t *crf1dm = (crf1dm_t*)dic->internal;
+    const char *str = crf1dm_to_label(crf1dm, id);
     *pstr = str;
     return 0;
 }
 
 static int model_labels_num(crf_dictionary_t* dic)
 {
-    crf1mm_t *crf1mm = (crf1mm_t*)dic->internal;
-    return crf1mm_get_num_labels(crf1mm);
+    crf1dm_t *crf1dm = (crf1dm_t*)dic->internal;
+    return crf1dm_get_num_labels(crf1dm);
 }
 
 static void model_labels_free(crf_dictionary_t* dic, const char *str)
@@ -172,8 +172,8 @@ static int tagger_release(crf_tagger_t* tagger)
 
 static int tagger_tag(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* output)
 {
-    crf1mt_t* crf1mt = (crf1mt_t*)tagger->internal;
-    crf1mt_tag(crf1mt, inst, output);
+    crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
+    crf1dt_tag(crf1dt, inst, output);
     return 0;
 }
 
@@ -196,11 +196,11 @@ static int model_release(crf_model_t* model)
     if (count == 0) {
         /* This instance is being destroyed. */
         model_internal_t* internal = (model_internal_t*)model->internal;
-        crf1mt_delete((crf1mt_t*)internal->tagger->internal);
+        crf1dt_delete((crf1dt_t*)internal->tagger->internal);
         free(internal->tagger);
         free(internal->labels);
         free(internal->attrs);
-        crf1mm_close(internal->crf1mm);
+        crf1dm_close(internal->crf1dm);
         free(internal);
         free(model);
     }
@@ -240,15 +240,15 @@ static int model_get_attrs(crf_model_t* model, crf_dictionary_t** ptr_attrs)
 static int model_dump(crf_model_t* model, FILE *fpo)
 {
     model_internal_t* internal = (model_internal_t*)model->internal;
-    crf1mm_dump(internal->crf1mm, fpo);
+    crf1dm_dump(internal->crf1dm, fpo);
     return 0;
 }
 
 int crf1m_model_create(const char *filename, crf_model_t** ptr_model)
 {
     int ret = 0;
-    crf1mm_t *crf1mm = NULL;
-    crf1mt_t *crf1mt = NULL;
+    crf1dm_t *crf1dm = NULL;
+    crf1dt_t *crf1dt = NULL;
     crf_model_t *model = NULL;
     model_internal_t *internal = NULL;
     crf_tagger_t *tagger = NULL;
@@ -257,15 +257,15 @@ int crf1m_model_create(const char *filename, crf_model_t** ptr_model)
     *ptr_model = NULL;
 
     /* Open the model file. */
-    crf1mm = crf1mm_new(filename);
-    if (crf1mm == NULL) {
+    crf1dm = crf1dm_new(filename);
+    if (crf1dm == NULL) {
         ret = CRFERR_INCOMPATIBLE;
         goto error_exit;
     }
 
     /* Construct a tagger based on the model. */
-    crf1mt = crf1mt_new(crf1mm);
-    if (crf1mt == NULL) {
+    crf1dt = crf1dt_new(crf1dm);
+    if (crf1dt == NULL) {
         ret = CRFERR_OUTOFMEMORY;
         goto error_exit;
     }
@@ -283,7 +283,7 @@ int crf1m_model_create(const char *filename, crf_model_t** ptr_model)
         ret = CRFERR_OUTOFMEMORY;
         goto error_exit;
     }
-    attrs->internal = crf1mm;
+    attrs->internal = crf1dm;
     attrs->addref = model_attrs_addref;
     attrs->release = model_attrs_release;
     attrs->get = model_attrs_get;
@@ -298,7 +298,7 @@ int crf1m_model_create(const char *filename, crf_model_t** ptr_model)
         ret = CRFERR_OUTOFMEMORY;
         goto error_exit;
     }
-    labels->internal = crf1mm;
+    labels->internal = crf1dm;
     labels->addref = model_labels_addref;
     labels->release = model_labels_release;
     labels->get = model_labels_get;
@@ -314,13 +314,13 @@ int crf1m_model_create(const char *filename, crf_model_t** ptr_model)
         ret = CRFERR_OUTOFMEMORY;
         goto error_exit;
     }
-    tagger->internal = crf1mt;
+    tagger->internal = crf1dt;
     tagger->addref = tagger_addref;
     tagger->release = tagger_release;
     tagger->tag = tagger_tag;
 
     /* Set the internal data. */
-    internal->crf1mm = crf1mm;
+    internal->crf1dm = crf1dm;
     internal->attrs = attrs;
     internal->labels = labels;
     internal->tagger = tagger;
@@ -347,11 +347,11 @@ error_exit:
     free(tagger);
     free(labels);
     free(attrs);
-    if (crf1mt != NULL) {
-        crf1mt_delete(crf1mt);
+    if (crf1dt != NULL) {
+        crf1dt_delete(crf1dt);
     }
-    if (crf1mm != NULL) {
-        crf1mm_close(crf1mm);
+    if (crf1dm != NULL) {
+        crf1dm_close(crf1dm);
     }
     free(internal);
     free(model);

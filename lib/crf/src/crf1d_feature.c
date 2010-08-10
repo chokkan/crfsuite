@@ -44,7 +44,7 @@
 #include <crfsuite.h>
 
 #include "logging.h"
-#include "crf1m.h"
+#include "crf1d.h"
 #include "rumavl.h"    /* AVL tree library necessary for feature generation. */
 
 /**
@@ -54,11 +54,6 @@ typedef struct {
     RUMAVL* avl;    /**< Root node of the AVL tree. */
     int num;        /**< Number of features in the AVL tree. */
 } featureset_t;
-
-typedef struct {
-    int                 num_features;    /**< Number of features. */
-    crf1df_feature_t*   features;        /**< Array of features. */
-} features_t;
 
 
 #define    COMP(a, b)    ((a)>(b))-((a)<(b))

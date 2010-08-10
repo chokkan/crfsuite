@@ -50,12 +50,12 @@
 #include "mt19937ar.h"
 
 #include "logging.h"
-#include "crf1m.h"
+#include "crf1d.h"
 
 
 
 
-void crf1dt_shuffle(int *perm, int N, int init)
+void crf1dl_shuffle(int *perm, int N, int init)
 {
     int i, j, tmp;
 
@@ -85,9 +85,9 @@ static crf_train_internal_t* crf_train_new(const char *interface)
     trainer->lg = (logging_t*)calloc(1, sizeof(logging_t));
     trainer->params = params_create_instance();
 
-    trainer->batch = crf1dt_create_instance_batch();
+    trainer->batch = crf1dl_create_instance_batch();
     trainer->batch->exchange_options(trainer->batch, trainer->params, 0);
-    crf1dt_lbfgs_init_options(trainer->params);
+    crf_train_lbfgs_init(trainer->params);
 
     return trainer;
 }
@@ -152,7 +152,7 @@ static int crf_train_train(
     crf_train_internal_t *trainer = (crf_train_internal_t*)self->internal;
     crf_train_batch_t *batch = trainer->batch;
     
-    crf1dt_lbfgs(
+    crf_train_lbfgs(
         batch,
         trainer->params,
         trainer->lg,
@@ -168,9 +168,9 @@ static int crf_train_train(
     floatval_t sigma = 10, *best_w = NULL;
     crf_sequence_t* seqs = (crf_sequence_t*)instances;
     crf1df_features_t* features = NULL;
-    crf1dt_t *crf1mt = (crf1dt_t*)trainer->internal;
-    crf_params_t *params = crf1mt->params;
-    crf1dt_option_t *opt = &crf1mt->opt;
+    crf1dl_t *crf1dt = (crf1dl_t*)trainer->internal;
+    crf_params_t *params = crf1dt->params;
+    crf1dl_option_t *opt = &crf1dt->opt;
 
     /* Obtain the maximum number of items. */
     max_item_length = 0;
@@ -181,18 +181,18 @@ static int crf_train_train(
     }
 
     /* Access parameters. */
-    crf1dt_exchange_options(crf1mt->params, opt, -1);
+    crf1dl_exchange_options(crf1dt->params, opt, -1);
 
     /* Report the parameters. */
-    logging(crf1mt->lg, "Training first-order linear-chain CRFs (trainer.crf1m)\n");
-    logging(crf1mt->lg, "\n");
+    logging(crf1dt->lg, "Training first-order linear-chain CRFs (trainer.crf1m)\n");
+    logging(crf1dt->lg, "\n");
 
     /* Generate features. */
-    logging(crf1mt->lg, "Feature generation\n");
-    logging(crf1mt->lg, "feature.minfreq: %f\n", opt->feature_minfreq);
-    logging(crf1mt->lg, "feature.possible_states: %d\n", opt->feature_possible_states);
-    logging(crf1mt->lg, "feature.possible_transitions: %d\n", opt->feature_possible_transitions);
-    crf1mt->clk_begin = clock();
+    logging(crf1dt->lg, "Feature generation\n");
+    logging(crf1dt->lg, "feature.minfreq: %f\n", opt->feature_minfreq);
+    logging(crf1dt->lg, "feature.possible_states: %d\n", opt->feature_possible_states);
+    logging(crf1dt->lg, "feature.possible_transitions: %d\n", opt->feature_possible_transitions);
+    crf1dt->clk_begin = clock();
     features = crf1df_generate(
         seqs,
         num_instances,
@@ -201,27 +201,27 @@ static int crf_train_train(
         opt->feature_possible_states ? 1 : 0,
         opt->feature_possible_transitions ? 1 : 0,
         opt->feature_minfreq,
-        crf1mt->lg->func,
-        crf1mt->lg->instance
+        crf1dt->lg->func,
+        crf1dt->lg->instance
         );
-    logging(crf1mt->lg, "Number of features: %d\n", features->num_features);
-    logging(crf1mt->lg, "Seconds required: %.3f\n", (clock() - crf1mt->clk_begin) / (double)CLOCKS_PER_SEC);
-    logging(crf1mt->lg, "\n");
+    logging(crf1dt->lg, "Number of features: %d\n", features->num_features);
+    logging(crf1dt->lg, "Seconds required: %.3f\n", (clock() - crf1dt->clk_begin) / (double)CLOCKS_PER_SEC);
+    logging(crf1dt->lg, "\n");
 
     /* Preparation for training. */
-    crf1dt_prepare(crf1mt, num_labels, num_attributes, max_item_length, features);
-    crf1mt->num_attributes = num_attributes;
-    crf1mt->num_labels = num_labels;
-    crf1mt->num_sequences = num_instances;
-    crf1mt->seqs = seqs;
+    crf1dl_prepare(crf1dt, num_labels, num_attributes, max_item_length, features);
+    crf1dt->num_attributes = num_attributes;
+    crf1dt->num_labels = num_labels;
+    crf1dt->num_sequences = num_instances;
+    crf1dt->seqs = seqs;
 
-    crf1mt->tagger.internal = crf1mt;
-    crf1mt->tagger.tag = crf_train_tag;
+    crf1dt->tagger.internal = crf1dt;
+    crf1dt->tagger.tag = crf_train_tag;
 
     if (strcmp(opt->algorithm, "lbfgs") == 0) {
-        ret = crf1dt_lbfgs(crf1mt, opt);
+        ret = crf_train_lbfgs(crf1dt, opt);
     /*} else if (strcmp(opt->algorithm, "sgd") == 0) {
-        ret = crf1dt_sgd(crf1mt, opt);*/
+        ret = crf1dl_sgd(crf1dt, opt);*/
     } else {
         return CRFERR_INTERNAL_LOGIC;
     }
@@ -231,7 +231,7 @@ static int crf_train_train(
     return 0;
 }
 
-int crf1dt_create_instance(const char *interface, void **ptr)
+int crf1dl_create_instance(const char *interface, void **ptr)
 {
     if (strcmp(interface, "trainer.crf1m") == 0) {
         crf_trainer_t* trainer = (crf_trainer_t*)calloc(1, sizeof(crf_trainer_t));

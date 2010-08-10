@@ -230,6 +230,14 @@
 			Name="CRF 1st dyad"
 			>
 			<File
+				RelativePath=".\src\crf1d.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\crf1d.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\crf1d_context.c"
 				>
 			</File>
@@ -238,23 +246,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\crf1d_train.c"
+				RelativePath=".\src\crf1d_learn.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\crf1m.c"
+				RelativePath=".\src\crf1d_model.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\crf1m.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\crf1m_model.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\crf1m_tag.c"
+				RelativePath=".\src\crf1d_tag.c"
 				>
 			</File>
 		</Filter>

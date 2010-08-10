@@ -43,7 +43,7 @@
 
 #include <crfsuite.h>
 
-#include "crf1m.h"
+#include "crf1d.h"
 #include "vecmath.h"
 
 #ifdef _MSC_VER
@@ -172,9 +172,12 @@ void crf1dc_reset(crf1d_context_t* ctx, int flag)
     if (flag & RF_TRANS) {
         veczero(ctx->trans, L*L);
     }
-    veczero(ctx->mexp_state, T*L);
-    veczero(ctx->mexp_trans, L*L);
-    ctx->log_norm = 0;
+
+    if (ctx->flag & CTXF_MARGINALS) {
+        veczero(ctx->mexp_state, T*L);
+        veczero(ctx->mexp_trans, L*L);
+        ctx->log_norm = 0;
+    }
 }
 
 void crf1dc_exp_state(crf1d_context_t* ctx)

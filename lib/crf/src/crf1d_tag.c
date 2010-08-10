@@ -1,5 +1,5 @@
 /*
- *      Linear-chain CRF tagger.
+ *      CRF1d tagger.
  *
  * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.
@@ -43,24 +43,24 @@
 
 #include <crfsuite.h>
 
-#include "crf1m.h"
+#include "crf1d.h"
 
 struct tag_crf1mt {
-    int num_labels;            /**< Number of distinct output labels (L). */
-    int num_attributes;        /**< Number of distinct attributes (A). */
+    int num_labels;         /**< Number of distinct output labels (L). */
+    int num_attributes;     /**< Number of distinct attributes (A). */
 
-    crf1mm_t *model;        /**< CRF model. */
-    crf1d_context_t *ctx;    /**< CRF context. */
+    crf1dm_t *model;        /**< CRF model. */
+    crf1d_context_t *ctx;   /**< CRF context. */
 };
 
 
-static void exp_state(crf1mt_t* tagger, const crf_sequence_t* seq)
+static void state_score(crf1dt_t* tagger, const crf_sequence_t* seq)
 {
     int a, i, l, t, r, fid;
-    crf1mm_feature_t f;
+    crf1dm_feature_t f;
     feature_refs_t attr;
     floatval_t scale, *state = NULL;
-    crf1mm_t* model = tagger->model;
+    crf1dm_t* model = tagger->model;
     crf1d_context_t* ctx = tagger->ctx;
     const crf_item_t* item = NULL;
     const int T = seq->num_items;
@@ -69,18 +69,13 @@ static void exp_state(crf1mt_t* tagger, const crf_sequence_t* seq)
     /* Loop over the items in the sequence. */
     for (t = 0;t < T;++t) {
         item = &seq->items[t];
-        state = EXP_STATE_SCORE(ctx, t);
-
-        /* Initialize the state scores at position #t as zero. */
-        for (i = 0;i < L;++i) {
-            state[i] = 0;
-        }
+        state = STATE_SCORE(ctx, t);
 
         /* Loop over the contents (attributes) attached to the item. */
         for (i = 0;i < item->num_contents;++i) {
             /* Access the list of state features associated with the attribute. */
             a = item->contents[i].aid;
-            crf1mm_get_attrref(model, a, &attr);
+            crf1dm_get_attrref(model, a, &attr);
             /* A scale usually represents the atrribute frequency in the item. */
             scale = item->contents[i].scale;
 
@@ -88,8 +83,8 @@ static void exp_state(crf1mt_t* tagger, const crf_sequence_t* seq)
             for (r = 0;r < attr.num_features;++r) {
                 /* The state feature #(attr->fids[r]), which is represented by
                    the attribute #a, outputs the label #(f->dst). */
-                fid = crf1mm_get_featureid(&attr, r);
-                crf1mm_get_feature(model, fid, &f);
+                fid = crf1dm_get_featureid(&attr, r);
+                crf1dm_get_feature(model, fid, &f);
                 l = f.dst;
                 state[l] += f.weight * scale;
             }
@@ -97,66 +92,70 @@ static void exp_state(crf1mt_t* tagger, const crf_sequence_t* seq)
     }
 }
 
-static void transition_score(crf1mt_t* tagger)
+static void transition_score(crf1dt_t* tagger)
 {
-    int i, j, r, fid;
-    crf1mm_feature_t f;
+    int i, r, fid;
+    crf1dm_feature_t f;
     feature_refs_t edge;
     floatval_t *trans = NULL;
-    crf1mm_t* model = tagger->model;
+    crf1dm_t* model = tagger->model;
     crf1d_context_t* ctx = tagger->ctx;
     const int L = tagger->num_labels;
 
-    /* Initialize all transition scores as zero. */
-    for (i = 0;i < L;++i) {
-        trans = EXP_TRANS_SCORE(ctx, i);
-        for (j = 0;j < L;++j) {
-            trans[j] = 0;
-        }
-    }
-
     /* Compute transition scores between two labels. */
     for (i = 0;i < L;++i) {
-        trans = EXP_TRANS_SCORE(ctx, i);
-        crf1mm_get_labelref(model, i, &edge);
+        trans = TRANS_SCORE(ctx, i);
+        crf1dm_get_labelref(model, i, &edge);
         for (r = 0;r < edge.num_features;++r) {
             /* Transition feature from #i to #(f->dst). */
-            fid = crf1mm_get_featureid(&edge, r);
-            crf1mm_get_feature(model, fid, &f);
+            fid = crf1dm_get_featureid(&edge, r);
+            crf1dm_get_feature(model, fid, &f);
             trans[f.dst] = f.weight;
         }        
     }
 }
 
-crf1mt_t *crf1mt_new(crf1mm_t* crf1mm)
+crf1dt_t *crf1dt_new(crf1dm_t* crf1dm)
 {
-    crf1mt_t* crf1mt = NULL;
+    crf1dt_t* crf1dt = NULL;
 
-    crf1mt = (crf1mt_t*)calloc(1, sizeof(crf1mt_t));
-    crf1mt->num_labels = crf1mm_get_num_labels(crf1mm);
-    crf1mt->num_attributes = crf1mm_get_num_attrs(crf1mm);
-    crf1mt->model = crf1mm;
-    crf1mt->ctx = crf1dc_new(CTXF_VITERBI, crf1mt->num_labels, 0);
-    transition_score(crf1mt);
+    crf1dt = (crf1dt_t*)calloc(1, sizeof(crf1dt_t));
+    if (crf1dt != NULL) {
+        crf1dt->num_labels = crf1dm_get_num_labels(crf1dm);
+        crf1dt->num_attributes = crf1dm_get_num_attrs(crf1dm);
+        crf1dt->model = crf1dm;
+        crf1dt->ctx = crf1dc_new(CTXF_VITERBI, crf1dt->num_labels, 0);
+        if (crf1dt->ctx != NULL) {
+            crf1dc_reset(crf1dt->ctx, RF_TRANS);
+            transition_score(crf1dt);
+        } else {
+            crf1dt_delete(crf1dt);
+            crf1dt = NULL;
+        }
+    }
 
-    return crf1mt;
+    return crf1dt;
 }
 
-void crf1mt_delete(crf1mt_t* crf1mt)
+void crf1dt_delete(crf1dt_t* crf1dt)
 {
-    crf1dc_delete(crf1mt->ctx);
-    free(crf1mt);
+    if (crf1dt->ctx != NULL) {
+        crf1dc_delete(crf1dt->ctx);
+        crf1dt->ctx = NULL;
+    }
+    free(crf1dt);
 }
 
-int crf1mt_tag(crf1mt_t* crf1mt, crf_sequence_t *inst, crf_output_t* output)
+int crf1dt_tag(crf1dt_t* crf1dt, crf_sequence_t *inst, crf_output_t* output)
 {
     int i;
     floatval_t score = 0;
-    crf1d_context_t* ctx = crf1mt->ctx;
+    crf1d_context_t* ctx = crf1dt->ctx;
 
     crf1dc_set_num_items(ctx, inst->num_items);
 
-    exp_state(crf1mt, inst);
+    crf1dc_reset(crf1dt->ctx, RF_STATE);
+    state_score(crf1dt, inst);
     score = crf1dc_viterbi(ctx);
 
     crf_output_init_n(output, inst->num_items);

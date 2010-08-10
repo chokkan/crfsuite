@@ -59,7 +59,7 @@ typedef struct {
     int         max_iterations;
     char*       linesearch;
     int         linesearch_max_iterations;
-} crf1dt_lbfgs_option_t;
+} crf1dl_lbfgs_option_t;
 
 typedef struct {
     crf_train_batch_t *batch;
@@ -139,9 +139,9 @@ static int lbfgs_progress(
 
 #if 0
     /* Send the tagger with the current parameters. */
-    if (crf1mt->cbe_proc != NULL) {
+    if (crf1dt->cbe_proc != NULL) {
         /* Callback notification with the tagger object. */
-        int ret = crf1mt->cbe_proc(crf1mt->cbe_instance, &crf1mt->tagger);
+        int ret = crf1dt->cbe_proc(crf1dt->cbe_instance, &crf1dt->tagger);
     }
 #endif
     logging(lg, "\n");
@@ -150,7 +150,7 @@ static int lbfgs_progress(
     return 0;
 }
 
-int crf1dt_lbfgs_options(crf_params_t* params, crf1dt_lbfgs_option_t* opt, int mode)
+int crf1dl_lbfgs_options(crf_params_t* params, crf1dl_lbfgs_option_t* opt, int mode)
 {
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_STRING(
@@ -198,12 +198,12 @@ int crf1dt_lbfgs_options(crf_params_t* params, crf1dt_lbfgs_option_t* opt, int m
 }
 
 
-void crf1dt_lbfgs_init_options(crf_params_t* params)
+void crf_train_lbfgs_init(crf_params_t* params)
 {
-    crf1dt_lbfgs_options(params, NULL, 0);
+    crf1dl_lbfgs_options(params, NULL, 0);
 }
 
-int crf1dt_lbfgs(
+int crf_train_lbfgs(
     crf_train_batch_t *batch,
     crf_params_t *params,
     logging_t *lg,
@@ -223,7 +223,7 @@ int crf1dt_lbfgs(
     int K;
     lbfgs_internal_t lbfgsi;
     lbfgs_parameter_t lbfgsparam;
-    crf1dt_lbfgs_option_t opt;
+    crf1dl_lbfgs_option_t opt;
 
     batch->set_data(batch, seqs, N, L, A, lg);
     K = batch->num_features;
@@ -231,7 +231,7 @@ int crf1dt_lbfgs(
     lbfgsi.batch = batch;
     lbfgsi.lg = lg;
 
-    crf1dt_lbfgs_options(params, &opt, -1);
+    crf1dl_lbfgs_options(params, &opt, -1);
 
     /* Allocate an array that stores the best weights. */ 
     w = (floatval_t*)calloc(sizeof(floatval_t), K);

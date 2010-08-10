@@ -70,4 +70,17 @@ struct tag_crf_train_batch
     int (*tag)(crf_train_batch_t *self, const floatval_t *w, crf_sequence_t *inst, crf_output_t* output);
 };
 
+int crf_train_lbfgs(
+    crf_train_batch_t *batch,
+    crf_params_t *params,
+    logging_t *lg,
+    const crf_sequence_t *seqs,
+    int num_instances,
+    int num_labels,
+    int num_attributes
+    );
+
+void crf_train_lbfgs_init(crf_params_t* params);
+
+
 #endif/*__CRFSUITE_INTERNAL_H__*/
