@@ -236,49 +236,6 @@ void crf1ml_model_expectation(crf1ml_t* trainer, const crf_sequence_t* seq, floa
     }
 }
 
-void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_feature_t func)
-{
-    int a, c, i, t, r;
-    crf1m_context_t* ctx = trainer->ctx;
-    const feature_refs_t *attr = NULL, *trans = NULL;
-    const crf_item_t* item = NULL;
-    const int T = seq->num_items;
-    const int L = trainer->num_labels;
-
-    for (t = 0;t < T;++t) {
-        floatval_t *prob = MEXP_STATE(ctx, t);
-
-        /* Compute expectations for state features at position #t. */
-        item = &seq->items[t];
-        for (c = 0;c < item->num_contents;++c) {
-            /* Access the attribute. */
-            floatval_t scale = item->contents[c].scale;
-            a = item->contents[c].aid;
-            attr = ATTRIBUTE(trainer, a);
-
-            /* Loop over state features for the attribute. */
-            for (r = 0;r < attr->num_features;++r) {
-                int fid = attr->fids[r];
-                crf1ml_feature_t *f = FEATURE(trainer, fid);
-                i = f->dst;
-                func(f, fid, prob[i], scale, trainer, seq, t);
-            }
-        }
-    }
-
-    /* Loop over the labels (t, i) */
-    for (i = 0;i < L;++i) {
-        const floatval_t *prob = MEXP_TRANS(ctx, i);
-        const feature_refs_t *edge = TRANSITION_FROM(trainer, i);
-        for (r = 0;r < edge->num_features;++r) {
-            /* Transition feature from #i to #(f->dst). */
-            int fid = edge->fids[r];
-            crf1ml_feature_t *f = FEATURE(trainer, fid);
-            func(f, fid, prob[f->dst], 1., trainer, seq, t);
-        }
-    }
-}
-
 static int init_feature_references(crf1ml_t* trainer, const int A, const int L)
 {
     int i, k;
