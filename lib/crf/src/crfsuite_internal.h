@@ -1,5 +1,5 @@
 /*
- *      Parameter exchange.
+ *      CRFsuite internal interface.
  *
  * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.
@@ -30,51 +30,44 @@
 
 /* $Id$ */
 
-#ifndef    __PARAMS_H__
-#define    __PARAMS_H__
+#ifndef __CRFSUITE_INTERNAL_H__
+#define __CRFSUITE_INTERNAL_H__
 
-crf_params_t* params_create_instance();
-int params_add_int(crf_params_t* params, const char *name, int value);
-int params_add_float(crf_params_t* params, const char *name, floatval_t value);
-int params_add_string(crf_params_t* params, const char *name, const char *value);
+#include <crfsuite.h>
+#include "logging.h"
 
-enum {
-    PARAMS_READ = -1,
-    PARAMS_INIT = 0,
-    PARAMS_WRITE = 1,
+struct tag_crf_train_batch;
+typedef struct tag_crf_train_batch crf_train_batch_t;
+
+struct tag_crf_train_internal;
+typedef struct tag_crf_train_internal crf_train_internal_t;
+
+struct tag_crf_train_internal {
+    crf_train_batch_t *batch;       /**< Batch training interface. */
+    crf_params_t *params;           /**< Parameter interface. */
+    logging_t* lg;                  /**< Logging interface. */
+    crf_evaluate_callback cbe_proc;
+    void *cbe_instance;
 };
 
-#define    BEGIN_PARAM_MAP(params, mode) \
-    do { \
-        int __ret = 0; \
-        int __mode = mode; \
-        crf_params_t* __params = params;
+/**
+ * Interface for batch training algorithms.
+ */
+struct tag_crf_train_batch
+{
+    void *internal;
 
-#define    END_PARAM_MAP() \
-    } while (0) ;
+    const crf_sequence_t *seqs;
+    int num_instances;
+    int num_attributes;
+    int num_labels;
+    int num_features;
 
-#define    DDX_PARAM_INT(name, var, defval, help) \
-    if (__mode < 0) \
-        __ret = __params->get_int(__params, name, &var); \
-    else if (__mode > 0) \
-        __ret = __params->set_int(__params, name, var); \
-    else \
-        __ret = params_add_int(__params, name, defval);
+    int (*exchange_options)(crf_train_batch_t *self, crf_params_t* params, int mode);
+    int (*set_data)(crf_train_batch_t *self, const crf_sequence_t *seqs, int num_instances, int num_labels, int num_attributes, logging_t *lg);
+    int (*objective_and_gradients)(crf_train_batch_t *self, const floatval_t *w, floatval_t *f, floatval_t *g);
+    int (*save_model)(crf_train_batch_t *self, const char *filename, const floatval_t *w, crf_dictionary_t* attrs, crf_dictionary_t* labels, logging_t *lg);
+    int (*tag)(crf_train_batch_t *self, const floatval_t *w, crf_sequence_t *inst, crf_output_t* output);
+};
 
-#define    DDX_PARAM_FLOAT(name, var, defval, help) \
-    if (__mode < 0) \
-        __ret = __params->get_float(__params, name, &var); \
-    else if (__mode > 0) \
-        __ret = __params->set_float(__params, name, var); \
-    else \
-        __ret = params_add_float(__params, name, defval);
-
-#define    DDX_PARAM_STRING(name, var, defval, help) \
-    if (__mode < 0) \
-        __ret = __params->get_string(__params, name, &var); \
-    else if (__mode > 0) \
-        __ret = __params->set_string(__params, name, var); \
-    else \
-        __ret = params_add_string(__params, name, defval);
-
-#endif/*__PARAMS_H__*/
+#endif/*__CRFSUITE_INTERNAL_H__*/

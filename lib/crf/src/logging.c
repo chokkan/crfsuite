@@ -45,7 +45,7 @@ void logging(logging_t* lg, const char *format, ...)
     va_list args;
     va_start(args, format);
 
-    if (lg->func != NULL) {
+    if (lg != NULL && lg->func != NULL) {
         lg->func(lg->instance, format, args);
     }
 }

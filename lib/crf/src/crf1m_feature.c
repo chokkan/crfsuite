@@ -55,14 +55,19 @@ typedef struct {
     int num;        /**< Number of features in the AVL tree. */
 } featureset_t;
 
+typedef struct {
+    int                 num_features;    /**< Number of features. */
+    crf1df_feature_t*   features;        /**< Array of features. */
+} features_t;
+
 
 #define    COMP(a, b)    ((a)>(b))-((a)<(b))
 
 static int featureset_comp(const void *x, const void *y, size_t n, void *udata)
 {
     int ret = 0;
-    const crf1ml_feature_t* f1 = (const crf1ml_feature_t*)x;
-    const crf1ml_feature_t* f2 = (const crf1ml_feature_t*)y;
+    const crf1df_feature_t* f1 = (const crf1df_feature_t*)x;
+    const crf1df_feature_t* f2 = (const crf1df_feature_t*)y;
 
     ret = COMP(f1->type, f2->type);
     if (ret == 0) {
@@ -81,7 +86,7 @@ static featureset_t* featureset_new()
     if (set != NULL) {
         set->num = 0;
         set->avl = rumavl_new(
-            sizeof(crf1ml_feature_t), featureset_comp, NULL, NULL);
+            sizeof(crf1df_feature_t), featureset_comp, NULL, NULL);
         if (set->avl == NULL) {
             free(set);
             set = NULL;
@@ -98,10 +103,10 @@ static void featureset_delete(featureset_t* set)
     }
 }
 
-static int featureset_add(featureset_t* set, const crf1ml_feature_t* f)
+static int featureset_add(featureset_t* set, const crf1df_feature_t* f)
 {
     /* Check whether if the feature already exists. */
-    crf1ml_feature_t *p = (crf1ml_feature_t*)rumavl_find(set->avl, f);
+    crf1df_feature_t *p = (crf1df_feature_t*)rumavl_find(set->avl, f);
     if (p == NULL) {
         /* Insert the feature to the feature set. */
         rumavl_insert(set->avl, f);
@@ -113,11 +118,11 @@ static int featureset_add(featureset_t* set, const crf1ml_feature_t* f)
     return 0;
 }
 
-static void featureset_generate(crf1ml_features_t* features, featureset_t* set, floatval_t minfreq)
+static void featureset_generate(features_t* features, featureset_t* set, floatval_t minfreq)
 {
     int n = 0, k = 0;
     RUMAVL_NODE *node = NULL;
-    crf1ml_feature_t *f = NULL;
+    crf1df_feature_t *f = NULL;
 
     features->features = 0;
 
@@ -129,12 +134,12 @@ static void featureset_generate(crf1ml_features_t* features, featureset_t* set, 
     }
 
     /* The second path: copy the valid features to the feature array. */
-    features->features = (crf1ml_feature_t*)calloc(n, sizeof(crf1ml_feature_t));
+    features->features = (crf1df_feature_t*)calloc(n, sizeof(crf1df_feature_t));
     if (features->features != NULL) {
         node = NULL;
         while ((node = rumavl_node_next(set->avl, node, 1, (void**)&f)) != NULL) {
             if (minfreq <= f->freq) {
-                memcpy(&features->features[k], f, sizeof(crf1ml_feature_t));
+                memcpy(&features->features[k], f, sizeof(crf1df_feature_t));
                 ++k;
             }
         }
@@ -142,7 +147,10 @@ static void featureset_generate(crf1ml_features_t* features, featureset_t* set, 
     }
 }
 
-crf1ml_features_t* crf1ml_generate_features(
+
+
+crf1df_feature_t* crf1df_generate(
+    int *ptr_num_features,
     const crf_sequence_t *seqs,
     int num_sequences,
     int num_labels,
@@ -155,9 +163,9 @@ crf1ml_features_t* crf1ml_generate_features(
     )
 {
     int c, i, j, s, t;
-    crf1ml_feature_t f;
+    crf1df_feature_t f;
+    features_t features;
     featureset_t* set = NULL;
-    crf1ml_features_t *features = NULL;
     const int N = num_sequences;
     const int L = num_labels;
     logging_t lg;
@@ -165,9 +173,6 @@ crf1ml_features_t* crf1ml_generate_features(
     lg.func = func;
     lg.instance = instance;
     lg.percent = 0;
-
-    /* Allocate a feature container. */
-    features = (crf1ml_features_t*)calloc(1, sizeof(crf1ml_features_t));
 
     /* Create an instance of feature set. */
     set = featureset_new();
@@ -241,10 +246,106 @@ crf1ml_features_t* crf1ml_generate_features(
     }
 
     /* Convert the feature set to an feature array. */
-    featureset_generate(features, set, minfreq);
+    featureset_generate(&features, set, minfreq);
 
     /* Delete the feature set. */
     featureset_delete(set);
 
-    return features;
+    *ptr_num_features = features.num_features;
+    return features.features;
+}
+
+int crf1df_init_references(
+    feature_refs_t **ptr_attributes,
+    feature_refs_t **ptr_trans,
+    const crf1df_feature_t *features,
+    const int K,
+    const int A,
+    const int L
+    )
+{
+    int i, k;
+    feature_refs_t *fl = NULL;
+    feature_refs_t *attributes = NULL;
+    feature_refs_t *trans = NULL;
+
+    /*
+        The purpose of this routine is to collect references (indices) of:
+        - state features fired by each attribute (attributes)
+        - transition features pointing from each label (trans)
+    */
+
+    /* Allocate arrays for feature references. */
+    attributes = (feature_refs_t*)calloc(A, sizeof(feature_refs_t));
+    if (attributes == NULL) goto error_exit;
+    trans = (feature_refs_t*)calloc(L, sizeof(feature_refs_t));
+    if (trans == NULL) goto error_exit;
+
+    /*
+        Firstly, loop over the features to count the number of references.
+        We don't use realloc() to avoid memory fragmentation.
+     */
+    for (k = 0;k < K;++k) {
+        const crf1df_feature_t *f = &features[k];
+        switch (f->type) {
+        case FT_STATE:
+            attributes[f->src].num_features++;
+            break;
+        case FT_TRANS:
+            trans[f->src].num_features++;
+            break;
+        }
+    }
+
+    /*
+        Secondarily, allocate memory blocks to store the feature references.
+        We also clear fl->num_features fields, which will be used as indices
+        in the next phase.
+     */
+    for (i = 0;i < A;++i) {
+        fl = &attributes[i];
+        fl->fids = (int*)calloc(fl->num_features, sizeof(int));
+        if (fl->fids == NULL) goto error_exit;
+        fl->num_features = 0;
+    }
+    for (i = 0;i < L;++i) {
+        fl = &trans[i];
+        fl->fids = (int*)calloc(fl->num_features, sizeof(int));
+        if (fl->fids == NULL) goto error_exit;
+        fl->num_features = 0;
+    }
+
+    /*
+        Finally, store the feature indices.
+     */
+    for (k = 0;k < K;++k) {
+        const crf1df_feature_t *f = &features[k];
+        switch (f->type) {
+        case FT_STATE:
+            fl = &attributes[f->src];
+            fl->fids[fl->num_features++] = k;
+            break;
+        case FT_TRANS:
+            fl = &trans[f->src];
+            fl->fids[fl->num_features++] = k;
+            break;
+        }
+    }
+
+    *ptr_attributes = attributes;
+    *ptr_trans = trans;
+    return 0;
+
+error_exit:
+    if (attributes != NULL) {
+        for (i = 0;i < A;++i) free(attributes[i].fids);
+        free(attributes);
+    }
+    if (trans != NULL) {
+        for (i = 0;i < L;++i) free(trans[i].fids);
+        free(trans);
+    }
+    *ptr_attributes = NULL;
+    *ptr_trans = NULL;
+    return -1;
 }

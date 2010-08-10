@@ -170,7 +170,7 @@
 			Name="CRFSuite internal"
 			>
 			<File
-				RelativePath=".\crfsuite_internal.h"
+				RelativePath=".\src\crfsuite_internal.h"
 				>
 			</File>
 		</Filter>
@@ -230,7 +230,7 @@
 			Name="CRF 1st dyad"
 			>
 			<File
-				RelativePath=".\crf1d_batch.c"
+				RelativePath=".\src\crf1d_train.c"
 				>
 			</File>
 			<File
@@ -262,11 +262,11 @@
 			Name="Training"
 			>
 			<File
-				RelativePath=".\src\crf1m_learn.c"
+				RelativePath=".\src\train.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\crf1m_learn_lbfgs.c"
+				RelativePath=".\src\train_lbfgs.c"
 				>
 			</File>
 		</Filter>

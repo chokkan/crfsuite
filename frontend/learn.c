@@ -336,17 +336,11 @@ int main_learn(int argc, char *argv[], const char *argv0)
         trainer,
         data_train.instances,
         data_train.num_instances,
-        labels->num(labels),
-        attrs->num(attrs)
+        attrs,
+        labels,
+        opt.model
         )) {
         goto force_exit;
-    }
-
-    /* Write out the obtained model. */
-    if (opt.model != NULL) {
-        if (ret = trainer->save(trainer, opt.model, attrs, labels)) {
-            goto force_exit;
-        }
     }
 
     /* Log the end time. */

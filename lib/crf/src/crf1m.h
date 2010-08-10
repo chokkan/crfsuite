@@ -34,6 +34,7 @@
 #define    __CRF1M_H__
 
 #include <time.h>
+#include "crfsuite_internal.h"
 #include "logging.h"
 
 
@@ -237,15 +238,7 @@ typedef struct {
      * Frequency (observation expectation).
      */
     floatval_t    freq;
-} crf1ml_feature_t;
-
-/**
- * Feature set.
- */
-typedef struct {
-    int                    num_features;    /**< Number of features. */
-    crf1ml_feature_t*    features;        /**< Array of features. */
-} crf1ml_features_t;
+} crf1df_feature_t;
 
 /**
  * Feature references.
@@ -256,7 +249,8 @@ typedef struct {
     int*    fids;            /**< Array of feature ids */
 } feature_refs_t;
 
-crf1ml_features_t* crf1ml_generate_features(
+crf1df_feature_t* crf1df_generate(
+    int *ptr_num_features,
     const crf_sequence_t *seqs,
     int num_sequences,
     int num_labels,
@@ -267,6 +261,16 @@ crf1ml_features_t* crf1ml_generate_features(
     crf_logging_callback func,
     void *instance
     );
+
+int crf1df_init_references(
+    feature_refs_t **ptr_attributes,
+    feature_refs_t **ptr_trans,
+    const crf1df_feature_t *features,
+    const int K,
+    const int A,
+    const int L
+    );
+
 
 /* crf1m_model.c */
 struct tag_crf1mm;
@@ -317,18 +321,6 @@ void crf1mm_dump(crf1mm_t* model, FILE *fp);
 
 
 typedef struct {
-    char*        regularization;
-    floatval_t    regularization_sigma;
-    int            memory;
-    floatval_t    epsilon;
-    int         stop;
-    floatval_t  delta;
-    int            max_iterations;
-    char*       linesearch;
-    int         linesearch_max_iterations;
-} crf1ml_lbfgs_option_t;
-
-typedef struct {
     floatval_t  sigma;
     floatval_t  lambda;
     floatval_t  t0;
@@ -339,110 +331,29 @@ typedef struct {
     floatval_t  calibration_rate;
     int         calibration_samples;
     int         calibration_candidates;
-} crf1ml_sgd_option_t;
-
-typedef struct {
-    char*       algorithm;
-    floatval_t    feature_minfreq;
-    int            feature_possible_states;
-    int            feature_possible_transitions;
-
-    crf1ml_lbfgs_option_t   lbfgs;
-    crf1ml_sgd_option_t     sgd;
-} crf1ml_option_t;
+} crf1dt_sgd_option_t;
 
 
-/**
- * First-order Markov CRF trainer.
- */
-struct tag_crf1ml {
-    int num_labels;            /**< Number of distinct output labels (L). */
-    int num_attributes;        /**< Number of distinct attributes (A). */
 
-    int max_items;
 
-    int num_sequences;
-    crf_sequence_t* seqs;
-    crf_tagger_t tagger;
-
-    crf1m_context_t *ctx;    /**< CRF context. */
-
-    logging_t* lg;
-
-    void *cbe_instance;
-    crf_evaluate_callback cbe_proc;
-
-    feature_refs_t* attributes;
-    feature_refs_t* forward_trans;
-
-    int num_features;            /**< Number of distinct features (K). */
-
-    /**
-     * Feature array.
-     *    Elements must be sorted by type, src, and dst in this order.
-     */
-    crf1ml_feature_t *features;
-
-    floatval_t *w;            /**< Array of w (feature weights) */
-
-    crf_params_t* params;
-    crf1ml_option_t opt;
-
-    clock_t clk_begin;
-    clock_t clk_prev;
-
-    void *solver_data;
-};
-typedef struct tag_crf1ml crf1ml_t;
-
-typedef void (*update_feature_t)(
-    crf1ml_feature_t* f,
-    const int fid,
-    floatval_t prob,
-    floatval_t scale,
-    crf1ml_t* trainer,
-    const crf_sequence_t* seq,
-    int t
-    );
-
-void crf1ml_set_labels(crf1ml_t* trainer, const crf_sequence_t* seq);
-void
-crf1ml_state_score(
-    crf1ml_t* trainer,
-    const crf_sequence_t* seq,
-    const floatval_t* w,
-    const int K
-    );
-void crf1ml_transition_score(
-    crf1ml_t* trainer,
-    const floatval_t* w,
-    const int K
-    );
-void
-crf1ml_state_score_scaled(
-    crf1ml_t* trainer,
-    const crf_sequence_t* seq,
-    const floatval_t* w,
-    const int K,
-    floatval_t scale
-    );
-void crf1ml_transition_score_scaled(
-    crf1ml_t* trainer,
-    const floatval_t* w,
-    const int K,
-    floatval_t scale
-    );
-
-void crf1ml_enum_features(crf1ml_t* trainer, const crf_sequence_t* seq, update_feature_t func);
-void crf1ml_model_expectation(crf1ml_t* trainer, const crf_sequence_t* seq, floatval_t *w);
-void crf1ml_shuffle(int *perm, int N, int init);
+void crf1dt_shuffle(int *perm, int N, int init);
 
 /* crf1m_learn_lbfgs.c */
-int crf1ml_lbfgs(crf1ml_t* crf1mt, crf1ml_option_t *opt);
-int crf1ml_lbfgs_options(crf_params_t* params, crf1ml_option_t* opt, int mode);
+int crf1dt_lbfgs(
+    crf_train_batch_t *batch,
+    crf_params_t *params,
+    logging_t *lg,
+    const crf_sequence_t *seqs,
+    int num_instances,
+    int num_labels,
+    int num_attributes
+    );
+void crf1dt_lbfgs_init_options(crf_params_t* params);
 
-int crf1ml_sgd(crf1ml_t* crf1mt, crf1ml_option_t *opt);
-int crf1ml_sgd_options(crf_params_t* params, crf1ml_option_t* opt, int mode);
+/*
+int crf1dt_sgd(crf1dt_t* crf1mt, crf1dt_option_t *opt);
+int crf1dt_sgd_options(crf_params_t* params, crf1dt_option_t* opt, int mode);
+*/
 
 
 /* crf1m_tag.c */
@@ -452,6 +363,8 @@ typedef struct tag_crf1mt crf1mt_t;
 crf1mt_t *crf1mt_new(crf1mm_t* crf1mm);
 void crf1mt_delete(crf1mt_t* crf1mt);
 int crf1mt_tag(crf1mt_t* crf1mt, crf_sequence_t *inst, crf_output_t* output);
+
+crf_train_batch_t *crf1dt_create_instance_batch();
 
 
 #endif/*__CRF1M_H__*/
