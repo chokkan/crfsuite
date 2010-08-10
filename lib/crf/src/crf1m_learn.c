@@ -463,7 +463,7 @@ static int crf1ml_exchange_options(crf_params_t* params, crf1ml_option_t* opt, i
     END_PARAM_MAP()
 
     crf1ml_lbfgs_options(params, opt, mode);
-    crf1ml_sgd_options(params, opt, mode);
+    //crf1ml_sgd_options(params, opt, mode);
 
     return 0;
 }
@@ -621,8 +621,8 @@ static int crf_train_train(
 
     if (strcmp(opt->algorithm, "lbfgs") == 0) {
         ret = crf1ml_lbfgs(crf1mt, opt);
-    } else if (strcmp(opt->algorithm, "sgd") == 0) {
-        ret = crf1ml_sgd(crf1mt, opt);
+    /*} else if (strcmp(opt->algorithm, "sgd") == 0) {
+        ret = crf1ml_sgd(crf1mt, opt);*/
     } else {
         return CRFERR_INTERNAL_LOGIC;
     }

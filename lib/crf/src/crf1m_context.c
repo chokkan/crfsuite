@@ -325,7 +325,7 @@ void crf1mc_marginal(crf1m_context_t* ctx)
 }
 
 #if 0
-/* Sigh, this found to be slower than the forward-backward algorithm. */
+/* Sigh, this was found to be slower than the forward-backward algorithm. */
 
 #define    ADJACENCY(ctx, i) \
     (&MATRIX(ctx->adj, ctx->num_labels, 0, i))
