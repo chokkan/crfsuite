@@ -50,7 +50,7 @@ struct tag_crf1mt {
     int num_attributes;        /**< Number of distinct attributes (A). */
 
     crf1mm_t *model;        /**< CRF model. */
-    crf1m_context_t *ctx;    /**< CRF context. */
+    crf1d_context_t *ctx;    /**< CRF context. */
 };
 
 
@@ -61,7 +61,7 @@ static void exp_state(crf1mt_t* tagger, const crf_sequence_t* seq)
     feature_refs_t attr;
     floatval_t scale, *state = NULL;
     crf1mm_t* model = tagger->model;
-    crf1m_context_t* ctx = tagger->ctx;
+    crf1d_context_t* ctx = tagger->ctx;
     const crf_item_t* item = NULL;
     const int T = seq->num_items;
     const int L = tagger->num_labels;
@@ -69,7 +69,7 @@ static void exp_state(crf1mt_t* tagger, const crf_sequence_t* seq)
     /* Loop over the items in the sequence. */
     for (t = 0;t < T;++t) {
         item = &seq->items[t];
-        state = STATE_EXP(ctx, t);
+        state = EXP_STATE_SCORE(ctx, t);
 
         /* Initialize the state scores at position #t as zero. */
         for (i = 0;i < L;++i) {
@@ -104,12 +104,12 @@ static void transition_score(crf1mt_t* tagger)
     feature_refs_t edge;
     floatval_t *trans = NULL;
     crf1mm_t* model = tagger->model;
-    crf1m_context_t* ctx = tagger->ctx;
+    crf1d_context_t* ctx = tagger->ctx;
     const int L = tagger->num_labels;
 
     /* Initialize all transition scores as zero. */
     for (i = 0;i < L;++i) {
-        trans = TRANS_EXP(ctx, i);
+        trans = EXP_TRANS_SCORE(ctx, i);
         for (j = 0;j < L;++j) {
             trans[j] = 0;
         }
@@ -117,7 +117,7 @@ static void transition_score(crf1mt_t* tagger)
 
     /* Compute transition scores between two labels. */
     for (i = 0;i < L;++i) {
-        trans = TRANS_EXP(ctx, i);
+        trans = EXP_TRANS_SCORE(ctx, i);
         crf1mm_get_labelref(model, i, &edge);
         for (r = 0;r < edge.num_features;++r) {
             /* Transition feature from #i to #(f->dst). */
@@ -136,7 +136,7 @@ crf1mt_t *crf1mt_new(crf1mm_t* crf1mm)
     crf1mt->num_labels = crf1mm_get_num_labels(crf1mm);
     crf1mt->num_attributes = crf1mm_get_num_attrs(crf1mm);
     crf1mt->model = crf1mm;
-    crf1mt->ctx = crf1mc_new(CTXF_VITERBI, crf1mt->num_labels, 0);
+    crf1mt->ctx = crf1dc_new(CTXF_VITERBI, crf1mt->num_labels, 0);
     transition_score(crf1mt);
 
     return crf1mt;
@@ -144,7 +144,7 @@ crf1mt_t *crf1mt_new(crf1mm_t* crf1mm)
 
 void crf1mt_delete(crf1mt_t* crf1mt)
 {
-    crf1mc_delete(crf1mt->ctx);
+    crf1dc_delete(crf1mt->ctx);
     free(crf1mt);
 }
 
@@ -152,12 +152,12 @@ int crf1mt_tag(crf1mt_t* crf1mt, crf_sequence_t *inst, crf_output_t* output)
 {
     int i;
     floatval_t score = 0;
-    crf1m_context_t* ctx = crf1mt->ctx;
+    crf1d_context_t* ctx = crf1mt->ctx;
 
-    crf1mc_set_num_items(ctx, inst->num_items);
+    crf1dc_set_num_items(ctx, inst->num_items);
 
     exp_state(crf1mt, inst);
-    score = crf1mc_viterbi(ctx);
+    score = crf1dc_viterbi(ctx);
 
     crf_output_init_n(output, inst->num_items);
     output->probability = score;

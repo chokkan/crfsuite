@@ -72,7 +72,7 @@ typedef struct {
     feature_refs_t* attributes;     /**< References to attribute features [A]. */
     feature_refs_t* forward_trans;  /**< References to transition features [L]. */
 
-    crf1m_context_t *ctx;           /**< CRF1d context. */
+    crf1d_context_t *ctx;           /**< CRF1d context. */
     crf1dt_option_t opt;            /**< CRF1d options. */
 
 } crf1dt_t;
@@ -112,7 +112,7 @@ crf1dt_finish(
     )
 {
     if (trainer->ctx != NULL) {
-        crf1mc_delete(trainer->ctx);
+        crf1dc_delete(trainer->ctx);
         trainer->ctx = NULL;
     }
     if (trainer->features != NULL) {
@@ -141,7 +141,7 @@ crf1dt_set_labels(
     )
 {
     int t;
-    crf1m_context_t* ctx = trainer->ctx;
+    crf1d_context_t* ctx = trainer->ctx;
     const crf_item_t* item = NULL;
     const int T = seq->num_items;
 
@@ -167,7 +167,7 @@ crf1dt_state_score(
     )
 {
     int i, t, r;
-    crf1m_context_t* ctx = trainer->ctx;
+    crf1d_context_t* ctx = trainer->ctx;
     const int T = seq->num_items;
     const int L = trainer->num_labels;
 
@@ -210,7 +210,7 @@ crf1dt_state_score_scaled(
     )
 {
     int i, t, r;
-    crf1m_context_t* ctx = trainer->ctx;
+    crf1d_context_t* ctx = trainer->ctx;
     const int T = seq->num_items;
     const int L = trainer->num_labels;
 
@@ -249,7 +249,7 @@ crf1dt_transition_score(
     )
 {
     int i, r;
-    crf1m_context_t* ctx = trainer->ctx;
+    crf1d_context_t* ctx = trainer->ctx;
     const int L = trainer->num_labels;
 
     /* Compute transition scores between two labels. */
@@ -279,7 +279,7 @@ crf1dt_transition_score_scaled(
     )
 {
     int i, r;
-    crf1m_context_t* ctx = trainer->ctx;
+    crf1d_context_t* ctx = trainer->ctx;
     const int L = trainer->num_labels;
 
     /* Compute transition scores between two labels. */
@@ -309,14 +309,14 @@ crf1dt_model_expectation(
     )
 {
     int a, c, i, t, r;
-    crf1m_context_t* ctx = trainer->ctx;
+    crf1d_context_t* ctx = trainer->ctx;
     const feature_refs_t *attr = NULL, *trans = NULL;
     const crf_item_t* item = NULL;
     const int T = seq->num_items;
     const int L = trainer->num_labels;
 
     for (t = 0;t < T;++t) {
-        floatval_t *prob = MEXP_STATE(ctx, t);
+        floatval_t *prob = STATE_MEXP(ctx, t);
 
         /* Compute expectations for state features at position #t. */
         item = &seq->items[t];
@@ -337,7 +337,7 @@ crf1dt_model_expectation(
 
     /* Loop over the labels (t, i) */
     for (i = 0;i < L;++i) {
-        const floatval_t *prob = MEXP_TRANS(ctx, i);
+        const floatval_t *prob = TRANS_MEXP(ctx, i);
         const feature_refs_t *edge = TRANSITION(trainer, i);
         for (r = 0;r < edge->num_features;++r) {
             /* Transition feature from #i to #(f->dst). */
@@ -366,13 +366,13 @@ crf1dt_tag(
     int i;
     floatval_t score = 0;
     const int T = seq->num_items;
-    crf1m_context_t* ctx = trainer->ctx;
+    crf1d_context_t* ctx = trainer->ctx;
     
-    crf1mc_reset(trainer->ctx, RF_TRANS | RF_STATE);
+    crf1dc_reset(trainer->ctx, RF_TRANS | RF_STATE);
     crf1dt_transition_score(trainer, w);
     crf1dt_set_labels(trainer, seq);
     crf1dt_state_score(trainer, seq, w);
-    score = crf1mc_viterbi(trainer->ctx);
+    score = crf1dc_viterbi(trainer->ctx);
 
     crf_output_init_n(output, T);
     output->probability = score;
@@ -442,7 +442,7 @@ crf1dt_set_data(
     }
 
     /* Construct a CRF context. */
-    crf1dt->ctx = crf1mc_new(CTXF_MARGINALS, L, T);
+    crf1dt->ctx = crf1dc_new(CTXF_MARGINALS, L, T);
     if (crf1dt->ctx == NULL) {
         ret = CRFERR_OUTOFMEMORY;
         goto error_exit;
@@ -731,9 +731,9 @@ static int crf1dt_batch_objective_and_gradients(crf_train_batch_t *self, const f
         Set the scores (weights) of transition features here because
         these are independent of input label sequences.
      */
-    crf1mc_reset(crf1dt->ctx, RF_TRANS);
+    crf1dc_reset(crf1dt->ctx, RF_TRANS);
     crf1dt_transition_score(crf1dt, w);
-    crf1mc_exp_transition(crf1dt->ctx);
+    crf1dc_exp_transition(crf1dt->ctx);
 
     /*
         Compute model expectations.
@@ -742,17 +742,17 @@ static int crf1dt_batch_objective_and_gradients(crf_train_batch_t *self, const f
         const crf_sequence_t* seq = &seqs[i];
         /* Set label sequences and state scores. */
         crf1dt_set_labels(crf1dt, seq);
-        crf1mc_reset(crf1dt->ctx, RF_STATE);
+        crf1dc_reset(crf1dt->ctx, RF_STATE);
         crf1dt_state_score(crf1dt, seq, w);
-        crf1mc_exp_state(crf1dt->ctx);
+        crf1dc_exp_state(crf1dt->ctx);
 
         /* Compute forward/backward scores. */
-        crf1mc_alpha_score(crf1dt->ctx);
-        crf1mc_beta_score(crf1dt->ctx);
-        crf1mc_marginal(crf1dt->ctx);
+        crf1dc_alpha_score(crf1dt->ctx);
+        crf1dc_beta_score(crf1dt->ctx);
+        crf1dc_marginal(crf1dt->ctx);
 
         /* Compute the probability of the input sequence on the model. */
-        logp = crf1mc_score(crf1dt->ctx) - crf1mc_lognorm(crf1dt->ctx);
+        logp = crf1dc_score(crf1dt->ctx) - crf1dc_lognorm(crf1dt->ctx);
         /* Update the log-likelihood. */
         logl += logp;
 

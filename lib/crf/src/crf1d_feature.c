@@ -1,5 +1,5 @@
 /*
- *      Feature generation for linear-chain CRF.
+ *      CRF1d feature generator (dyad features).
  *
  * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.
@@ -118,13 +118,17 @@ static int featureset_add(featureset_t* set, const crf1df_feature_t* f)
     return 0;
 }
 
-static void featureset_generate(features_t* features, featureset_t* set, floatval_t minfreq)
+static crf1df_feature_t*
+featureset_generate(
+    int *ptr_num_features,
+    featureset_t* set,
+    floatval_t minfreq
+    )
 {
     int n = 0, k = 0;
     RUMAVL_NODE *node = NULL;
     crf1df_feature_t *f = NULL;
-
-    features->features = 0;
+    crf1df_feature_t *features = NULL;
 
     /* The first pass: count the number of valid features. */
     while ((node = rumavl_node_next(set->avl, node, 1, (void**)&f)) != NULL) {
@@ -134,16 +138,20 @@ static void featureset_generate(features_t* features, featureset_t* set, floatva
     }
 
     /* The second path: copy the valid features to the feature array. */
-    features->features = (crf1df_feature_t*)calloc(n, sizeof(crf1df_feature_t));
-    if (features->features != NULL) {
+    features = (crf1df_feature_t*)calloc(n, sizeof(crf1df_feature_t));
+    if (features != NULL) {
         node = NULL;
         while ((node = rumavl_node_next(set->avl, node, 1, (void**)&f)) != NULL) {
             if (minfreq <= f->freq) {
-                memcpy(&features->features[k], f, sizeof(crf1df_feature_t));
+                memcpy(&features[k], f, sizeof(crf1df_feature_t));
                 ++k;
             }
         }
-        features->num_features = n;
+        *ptr_num_features = n;
+        return features;
+    } else {
+        *ptr_num_features = 0;
+        return NULL;
     }
 }
 
@@ -164,7 +172,7 @@ crf1df_feature_t* crf1df_generate(
 {
     int c, i, j, s, t;
     crf1df_feature_t f;
-    features_t features;
+    crf1df_feature_t *features = NULL;
     featureset_t* set = NULL;
     const int N = num_sequences;
     const int L = num_labels;
@@ -246,13 +254,12 @@ crf1df_feature_t* crf1df_generate(
     }
 
     /* Convert the feature set to an feature array. */
-    featureset_generate(&features, set, minfreq);
+    features = featureset_generate(ptr_num_features, set, minfreq);
 
     /* Delete the feature set. */
     featureset_delete(set);
 
-    *ptr_num_features = features.num_features;
-    return features.features;
+    return features;
 }
 
 int crf1df_init_references(

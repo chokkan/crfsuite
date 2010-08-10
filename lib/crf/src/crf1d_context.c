@@ -1,5 +1,5 @@
 /*
- *      Forward backward algorithm of linear-chain CRF.
+ *      CRF1d context (forward-backward, viterbi, etc).
  *
  * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.
@@ -59,12 +59,12 @@
 #endif
 
 
-crf1m_context_t* crf1mc_new(int flag, int L, int T)
+crf1d_context_t* crf1dc_new(int flag, int L, int T)
 {
     int ret = 0;
-    crf1m_context_t* ctx = NULL;
+    crf1d_context_t* ctx = NULL;
     
-    ctx = (crf1m_context_t*)calloc(1, sizeof(crf1m_context_t));
+    ctx = (crf1d_context_t*)calloc(1, sizeof(crf1d_context_t));
     if (ctx != NULL) {
         ctx->flag = flag;
         ctx->num_labels = L;
@@ -79,7 +79,7 @@ crf1m_context_t* crf1mc_new(int flag, int L, int T)
             if (ctx->mexp_trans == NULL) goto error_exit;
         }
 
-        if (ret = crf1mc_set_num_items(ctx, T)) {
+        if (ret = crf1dc_set_num_items(ctx, T)) {
             goto error_exit;
         }
 
@@ -90,11 +90,11 @@ crf1m_context_t* crf1mc_new(int flag, int L, int T)
     return ctx;
 
 error_exit:
-    crf1mc_delete(ctx);
+    crf1dc_delete(ctx);
     return NULL;
 }
 
-int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
+int crf1dc_set_num_items(crf1d_context_t* ctx, int T)
 {
     const int L = ctx->num_labels;
 
@@ -142,7 +142,7 @@ int crf1mc_set_num_items(crf1m_context_t* ctx, int T)
     return 0;
 }
 
-void crf1mc_delete(crf1m_context_t* ctx)
+void crf1dc_delete(crf1d_context_t* ctx)
 {
     if (ctx != NULL) {
         free(ctx->backward_edge);
@@ -161,7 +161,7 @@ void crf1mc_delete(crf1m_context_t* ctx)
     free(ctx);
 }
 
-void crf1mc_reset(crf1m_context_t* ctx, int flag)
+void crf1dc_reset(crf1d_context_t* ctx, int flag)
 {
     const int T = ctx->num_items;
     const int L = ctx->num_labels;
@@ -177,7 +177,7 @@ void crf1mc_reset(crf1m_context_t* ctx, int flag)
     ctx->log_norm = 0;
 }
 
-void crf1mc_exp_state(crf1m_context_t* ctx)
+void crf1dc_exp_state(crf1d_context_t* ctx)
 {
     const int T = ctx->num_items;
     const int L = ctx->num_labels;
@@ -186,7 +186,7 @@ void crf1mc_exp_state(crf1m_context_t* ctx)
     vecexp(ctx->exp_state, L * T);
 }
 
-void crf1mc_exp_transition(crf1m_context_t* ctx)
+void crf1dc_exp_transition(crf1d_context_t* ctx)
 {
     const int L = ctx->num_labels;
 
@@ -194,7 +194,7 @@ void crf1mc_exp_transition(crf1m_context_t* ctx)
     vecexp(ctx->exp_trans, L * L);
 }
 
-void crf1mc_alpha_score(crf1m_context_t* ctx)
+void crf1dc_alpha_score(crf1d_context_t* ctx)
 {
     int i, t;
     floatval_t sum, *cur = NULL;
@@ -207,7 +207,7 @@ void crf1mc_alpha_score(crf1m_context_t* ctx)
         alpha[0][j] = state[0][j]
      */
     cur = ALPHA_SCORE(ctx, 0);
-    state = STATE_EXP(ctx, 0);
+    state = EXP_STATE_SCORE(ctx, 0);
     veccopy(cur, state, L);
     sum = vecsum(cur, L);
     *scale = (sum != 0.) ? 1. / sum : 1.;
@@ -220,11 +220,11 @@ void crf1mc_alpha_score(crf1m_context_t* ctx)
     for (t = 1;t < T;++t) {
         prev = ALPHA_SCORE(ctx, t-1);
         cur = ALPHA_SCORE(ctx, t);
-        state = STATE_EXP(ctx, t);
+        state = EXP_STATE_SCORE(ctx, t);
 
         veczero(cur, L);
         for (i = 0;i < L;++i) {
-            trans = TRANS_EXP(ctx, i);
+            trans = EXP_TRANS_SCORE(ctx, i);
             vecaadd(cur, prev[i], trans, L);
         }
         vecmul(cur, state, L);
@@ -241,7 +241,7 @@ void crf1mc_alpha_score(crf1m_context_t* ctx)
     ctx->log_norm = -vecsumlog(ctx->scale_factor, T);
 }
 
-void crf1mc_beta_score(crf1m_context_t* ctx)
+void crf1dc_beta_score(crf1d_context_t* ctx)
 {
     int i, t;
     floatval_t *cur = NULL;
@@ -260,14 +260,14 @@ void crf1mc_beta_score(crf1m_context_t* ctx)
     for (t = T-2;0 <= t;--t) {
         cur = BETA_SCORE(ctx, t);
         next = BETA_SCORE(ctx, t+1);
-        state = STATE_EXP(ctx, t+1);
+        state = EXP_STATE_SCORE(ctx, t+1);
 
         veccopy(row, next, L);
         vecmul(row, state, L);
 
         /* Compute the beta score at (t, i). */
         for (i = 0;i < L;++i) {
-            trans = TRANS_EXP(ctx, i);
+            trans = EXP_TRANS_SCORE(ctx, i);
             cur[i] = vecdot(trans, row, L);
         }
         vecscale(cur, *scale, L);
@@ -275,7 +275,7 @@ void crf1mc_beta_score(crf1m_context_t* ctx)
     }
 }
 
-void crf1mc_marginal(crf1m_context_t* ctx)
+void crf1dc_marginal(crf1d_context_t* ctx)
 {
     int i, j, t;
     const int T = ctx->num_items;
@@ -289,7 +289,7 @@ void crf1mc_marginal(crf1m_context_t* ctx)
     for (t = 0;t < T;++t) {
         floatval_t *fwd = ALPHA_SCORE(ctx, t);
         floatval_t *bwd = BETA_SCORE(ctx, t);
-        floatval_t *prob = MEXP_STATE(ctx, t);
+        floatval_t *prob = STATE_MEXP(ctx, t);
         veccopy(prob, fwd, L);
         vecmul(prob, bwd, L);
         vecscale(prob, 1. / ctx->scale_factor[t], L);
@@ -306,7 +306,7 @@ void crf1mc_marginal(crf1m_context_t* ctx)
      */
     for (t = 0;t < T-1;++t) {
         floatval_t *fwd = ALPHA_SCORE(ctx, t);
-        floatval_t *state = STATE_EXP(ctx, t+1);
+        floatval_t *state = EXP_STATE_SCORE(ctx, t+1);
         floatval_t *bwd = BETA_SCORE(ctx, t+1);
         floatval_t *row = ctx->row;
 
@@ -315,8 +315,8 @@ void crf1mc_marginal(crf1m_context_t* ctx)
         vecmul(row, state, L);
 
         for (i = 0;i < L;++i) {
-            floatval_t *edge = TRANS_EXP(ctx, i);
-            floatval_t *prob = MEXP_TRANS(ctx, i);
+            floatval_t *edge = EXP_TRANS_SCORE(ctx, i);
+            floatval_t *prob = TRANS_MEXP(ctx, i);
             for (j = 0;j < L;++j) {
                 prob[j] += fwd[i] * edge[j] * row[j];
             }
@@ -330,7 +330,7 @@ void crf1mc_marginal(crf1m_context_t* ctx)
 #define    ADJACENCY(ctx, i) \
     (&MATRIX(ctx->adj, ctx->num_labels, 0, i))
 
-void crf1mc_marginal_without_beta(crf1m_context_t* ctx)
+void crf1dc_marginal_without_beta(crf1d_context_t* ctx)
 {
     int i, j, t;
     floatval_t *prob = NULL;
@@ -344,7 +344,7 @@ void crf1mc_marginal_without_beta(crf1m_context_t* ctx)
             p(T-1,j) = fwd'[T-1][j]
      */
     fwd = ALPHA_SCORE(ctx, T-1);
-    prob = MEXP_STATE(ctx, T-1);
+    prob = STATE_MEXP(ctx, T-1);
     veccopy(prob, fwd, L);
     
     /*
@@ -354,7 +354,7 @@ void crf1mc_marginal_without_beta(crf1m_context_t* ctx)
      */
     for (t = T-1;0 < t;--t) {
         fwd = ALPHA_SCORE(ctx, t-1);
-        prob = MEXP_STATE(ctx, t);
+        prob = STATE_MEXP(ctx, t);
 
         veczero(ctx->adj, L*L);
         veczero(row, L);
@@ -366,7 +366,7 @@ void crf1mc_marginal_without_beta(crf1m_context_t* ctx)
          */
         for (i = 0;i < L;++i) {
             floatval_t *adj = ADJACENCY(ctx, i);
-            floatval_t *edge = TRANS_EXP(ctx, i);
+            floatval_t *edge = EXP_TRANS_SCORE(ctx, i);
             vecaadd(adj, fwd[i], edge, L);
             vecadd(row, adj, L);
         }
@@ -392,7 +392,7 @@ void crf1mc_marginal_without_beta(crf1m_context_t* ctx)
          */
         for (i = 0;i < L;++i) {
             floatval_t *adj = ADJACENCY(ctx, i);
-            floatval_t *prob = MEXP_TRANS(ctx, i);
+            floatval_t *prob = TRANS_MEXP(ctx, i);
             vecadd(prob, adj, L);
         }
 
@@ -400,7 +400,7 @@ void crf1mc_marginal_without_beta(crf1m_context_t* ctx)
             Compute the marginal probability of states at t-1.
                 p(t-1,i) = \sum_{j} p(t-1,i,t,j)
          */
-        prob = MEXP_STATE(ctx, t-1);
+        prob = STATE_MEXP(ctx, t-1);
         for (i = 0;i < L;++i) {
             floatval_t *adj = ADJACENCY(ctx, i);
             prob[i] = vecsum(adj, L);
@@ -409,7 +409,7 @@ void crf1mc_marginal_without_beta(crf1m_context_t* ctx)
 }
 #endif
 
-floatval_t crf1mc_score(crf1m_context_t* ctx)
+floatval_t crf1dc_score(crf1d_context_t* ctx)
 {
     int i, j, t;
     floatval_t ret = 0;
@@ -437,12 +437,12 @@ floatval_t crf1mc_score(crf1m_context_t* ctx)
     return ret;
 }
 
-floatval_t crf1mc_lognorm(crf1m_context_t* ctx)
+floatval_t crf1dc_lognorm(crf1d_context_t* ctx)
 {
     return ctx->log_norm;
 }
 
-floatval_t crf1mc_viterbi(crf1m_context_t* ctx)
+floatval_t crf1dc_viterbi(crf1d_context_t* ctx)
 {
     int i, j, t;
     int *back = NULL;
@@ -520,47 +520,47 @@ static void check_values(FILE *fp, floatval_t cv, floatval_t tv)
     }
 }
 
-void crf1mc_test_context(FILE *fp)
+void crf1dc_debug_context(FILE *fp)
 {
     int y1, y2, y3;
     floatval_t norm = 0;
     const int L = 3;
     const int T = 3;
-    crf1m_context_t *ctx = crf1mc_new(CTXF_MARGINALS, L, T);
+    crf1d_context_t *ctx = crf1dc_new(CTXF_MARGINALS, L, T);
     floatval_t *trans = NULL, *state = NULL;
     floatval_t scores[3][3][3];
     
     /* Initialize the state scores. */
-    state = STATE_EXP(ctx, 0);
+    state = EXP_STATE_SCORE(ctx, 0);
     state[0] = .4;    state[1] = .5;    state[2] = .1;
-    state = STATE_EXP(ctx, 1);
+    state = EXP_STATE_SCORE(ctx, 1);
     state[0] = .4;    state[1] = .1;    state[2] = .5;
-    state = STATE_EXP(ctx, 2);
+    state = EXP_STATE_SCORE(ctx, 2);
     state[0] = .4;    state[1] = .1;    state[2] = .5;
 
     /* Initialize the transition scores. */
-    trans = TRANS_EXP(ctx, 0);
+    trans = EXP_TRANS_SCORE(ctx, 0);
     trans[0] = .3;    trans[1] = .1;    trans[2] = .4;
-    trans = TRANS_EXP(ctx, 1);
+    trans = EXP_TRANS_SCORE(ctx, 1);
     trans[0] = .6;    trans[1] = .2;    trans[2] = .1;
-    trans = TRANS_EXP(ctx, 2);
+    trans = EXP_TRANS_SCORE(ctx, 2);
     trans[0] = .5;    trans[1] = .2;    trans[2] = .1;
 
     ctx->num_items = ctx->max_items;
-    crf1mc_alpha_score(ctx);
-    crf1mc_beta_score(ctx);
+    crf1dc_alpha_score(ctx);
+    crf1dc_beta_score(ctx);
 
     /* Compute the score of every label sequence. */
     for (y1 = 0;y1 < L;++y1) {
-        floatval_t s1 = STATE_EXP(ctx, 0)[y1];
+        floatval_t s1 = EXP_STATE_SCORE(ctx, 0)[y1];
         for (y2 = 0;y2 < L;++y2) {
             floatval_t s2 = s1;
-            s2 *= TRANS_EXP(ctx, y1)[y2];
-            s2 *= STATE_EXP(ctx, 1)[y2];
+            s2 *= EXP_TRANS_SCORE(ctx, y1)[y2];
+            s2 *= EXP_STATE_SCORE(ctx, 1)[y2];
             for (y3 = 0;y3 < L;++y3) {
                 floatval_t s3 = s2;
-                s3 *= TRANS_EXP(ctx, y2)[y3];
-                s3 *= STATE_EXP(ctx, 2)[y3];
+                s3 *= EXP_TRANS_SCORE(ctx, y2)[y3];
+                s3 *= EXP_STATE_SCORE(ctx, 2)[y3];
                 scores[y1][y2][y3] = s3;
             }
         }
@@ -589,7 +589,7 @@ void crf1mc_test_context(FILE *fp)
                 ctx->labels[0] = y1;
                 ctx->labels[1] = y2;
                 ctx->labels[2] = y3;
-                logp = crf1mc_score(ctx) - crf1mc_lognorm(ctx);
+                logp = crf1dc_score(ctx) - crf1dc_lognorm(ctx);
 
                 fprintf(fp, "Check for the sequence %d-%d-%d... ", y1, y2, y3);
                 check_values(fp, exp(logp), scores[y1][y2][y3] / norm);
@@ -658,8 +658,8 @@ void crf1mc_test_context(FILE *fp)
 
             a = ALPHA_SCORE(ctx, 0)[y1];
             b = BETA_SCORE(ctx, 1)[y2];
-            s = STATE_EXP(ctx, 1)[y2];
-            t = TRANS_EXP(ctx, y1)[y2];
+            s = EXP_STATE_SCORE(ctx, 1)[y2];
+            t = EXP_TRANS_SCORE(ctx, y1)[y2];
 
             fprintf(fp, "Check for the marginal probability (0,%d)-(1,%d)... ", y1, y2);
             check_values(fp, a * t * s * b, p / norm);
@@ -675,8 +675,8 @@ void crf1mc_test_context(FILE *fp)
 
             a = ALPHA_SCORE(ctx, 1)[y2];
             b = BETA_SCORE(ctx, 2)[y3];
-            s = STATE_EXP(ctx, 2)[y3];
-            t = TRANS_EXP(ctx, y2)[y3];
+            s = EXP_STATE_SCORE(ctx, 2)[y3];
+            t = EXP_TRANS_SCORE(ctx, y2)[y3];
 
             fprintf(fp, "Check for the marginal probability (1,%d)-(2,%d)... ", y2, y3);
             check_values(fp, a * t * s * b, p / norm);

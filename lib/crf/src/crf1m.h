@@ -1,5 +1,5 @@
 /*
- *      Linear-chain Conditional Random Fields (CRF).
+ *      The 1st-order linear-chain CRFs with dyad features.
  *
  * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.
@@ -33,19 +33,39 @@
 #ifndef    __CRF1M_H__
 #define    __CRF1M_H__
 
-#include <time.h>
+#include <crfsuite.h>
 #include "crfsuite_internal.h"
-#include "logging.h"
 
 
+/**
+ * \defgroup crf1d_context.c
+ */
+/** @{ */
+
+/**
+ * Functionality flags for contexts.
+ *  @see    crf1dc_new().
+ */
 enum {
-    CTXF_NONE       = 0x00,
+    CTXF_BASE       = 0x01,
     CTXF_VITERBI    = 0x01,
     CTXF_MARGINALS  = 0x02,
+    CTXF_ALL        = 0xFF,
 };
 
 /**
- * CRF context. 
+ * Reset flags.
+ *  @see    crf1dc_reset().
+ */
+enum {
+    RF_STATE    = 0x01,     /**< Reset state scores. */
+    RF_TRANS    = 0x02,     /**< Reset transition scores. */
+    RF_ALL      = 0xFF,     /**< Reset all. */
+};
+
+/**
+ * Context structure.
+ *  This structure maintains internal data for an instance.
  */
 typedef struct {
     /**
@@ -54,12 +74,12 @@ typedef struct {
     int flag;
 
     /**
-     * The total number of distinct output labels (L).
+     * The total number of distinct labels (L).
      */
     int num_labels;
 
     /**
-     * The number of items (T).
+     * The number of items (T) in the instance.
      */
     int num_items;
 
@@ -69,9 +89,8 @@ typedef struct {
     int max_items;
 
     /**
-     * Logarithm of the normalize factor for the input sequence.
-     *    This is equivalent to the total scores of all paths,
-     *    given an input sequence.
+     * Logarithm of the normalization factor for the instance.
+     *  This is equivalent to the total scores of all paths in the lattice.
      */
     floatval_t log_norm;
 
@@ -91,25 +110,34 @@ typedef struct {
 
     /**
      * Alpha score matrix.
-     *    This is a [T][L] matrix whose element [t][l] presents the total
-     *    score of paths starting at BOS and arraiving at (t, l).
+     *  This is a [T][L] matrix whose element [t][l] presents the total
+     *  score of paths starting at BOS and arraiving at (t, l).
      */
     floatval_t *alpha_score;
 
     /**
      * Beta score matrix.
-     *    This is a [T][L] matrix whose element [t][l] presents the total
-     *    score of paths starting at (t, l) and arraiving at EOS.
+     *  This is a [T][L] matrix whose element [t][l] presents the total
+     *  score of paths starting at (t, l) and arraiving at EOS.
      */
     floatval_t *beta_score;
 
+    /**
+     * Scale factor vector.
+     *  This is a [T] vector whose element [t] presents the scaling
+     *  coefficient for the alpha_score and beta_score.
+     */
     floatval_t *scale_factor;
+
+    /**
+     * Row vector (work space).
+     *  This is a [T] vector used internally for a work space.
+     */
     floatval_t *row;
 
     /**
-     * Label array.
-     *  This is a [T] vector whose element [t] presents the output label at
-     *  position #t.
+     * Label vector.
+     *  This is a [T] vector whose element [t] stores the label at position #t.
      */
     int *labels;
 
@@ -117,7 +145,7 @@ typedef struct {
      * Backward edges.
      *  This is a [T][L] matrix whose element [t][j] represents the label #i
      *  that yields the maximum score to arrive at (t, j).
-     *  This member is available only with CTXF_VITERBI flag.
+     *  This member is available only with CTXF_VITERBI flag enabled.
      */
     int *backward_edge;
 
@@ -153,7 +181,7 @@ typedef struct {
      */
     floatval_t *mexp_trans;
 
-} crf1m_context_t;
+} crf1d_context_t;
 
 #define    MATRIX(p, xl, x, y)        ((p)[(xl) * (y) + (x)])
 
@@ -165,40 +193,39 @@ typedef struct {
     (&MATRIX(ctx->state, ctx->num_labels, 0, i))
 #define    TRANS_SCORE(ctx, i) \
     (&MATRIX(ctx->trans, ctx->num_labels, 0, i))
-#define    STATE_EXP(ctx, i) \
+#define    EXP_STATE_SCORE(ctx, i) \
     (&MATRIX(ctx->exp_state, ctx->num_labels, 0, i))
-#define    TRANS_EXP(ctx, i) \
+#define    EXP_TRANS_SCORE(ctx, i) \
     (&MATRIX(ctx->exp_trans, ctx->num_labels, 0, i))
-#define    MEXP_STATE(ctx, i) \
+#define    STATE_MEXP(ctx, i) \
     (&MATRIX(ctx->mexp_state, ctx->num_labels, 0, i))
-#define    MEXP_TRANS(ctx, i) \
+#define    TRANS_MEXP(ctx, i) \
     (&MATRIX(ctx->mexp_trans, ctx->num_labels, 0, i))
 #define    BACKWARD_EDGE_AT(ctx, t) \
     (&MATRIX(ctx->backward_edge, ctx->num_labels, 0, t))
 
+crf1d_context_t* crf1dc_new(int flag, int L, int T);
+int crf1dc_set_num_items(crf1d_context_t* ctx, int T);
+void crf1dc_delete(crf1d_context_t* ctx);
+void crf1dc_reset(crf1d_context_t* ctx, int flag);
+void crf1dc_exp_state(crf1d_context_t* ctx);
+void crf1dc_exp_transition(crf1d_context_t* ctx);
+void crf1dc_alpha_score(crf1d_context_t* ctx);
+void crf1dc_beta_score(crf1d_context_t* ctx);
+void crf1dc_marginal(crf1d_context_t* ctx);
+floatval_t crf1dc_score(crf1d_context_t* ctx);
+floatval_t crf1dc_lognorm(crf1d_context_t* ctx);
+floatval_t crf1dc_viterbi(crf1d_context_t* ctx);
+void crf1dc_debug_context(FILE *fp);
 
-/* crf1m_common.c */
-enum {
-    RF_NONE     = 0x00,
-    RF_STATE    = 0x01,
-    RF_TRANS    = 0x02,
-};
+/** @} */
 
-crf1m_context_t* crf1mc_new(int flag, int L, int T);
-int crf1mc_set_num_items(crf1m_context_t* ctx, int T);
-void crf1mc_reset(crf1m_context_t* ctx, int flag);
-void crf1mc_delete(crf1m_context_t* ctx);
-void crf1mc_exp_state(crf1m_context_t* ctx);
-void crf1mc_exp_transition(crf1m_context_t* ctx);
-void crf1mc_alpha_score(crf1m_context_t* ctx);
-void crf1mc_beta_score(crf1m_context_t* ctx);
-floatval_t crf1mc_score(crf1m_context_t* ctx);
-floatval_t crf1mc_lognorm(crf1m_context_t* ctx);
-floatval_t crf1mc_viterbi(crf1m_context_t* ctx);
-void crf1mc_debug_context(crf1m_context_t* ctx, FILE *fp);
-void crf1mc_test_context(FILE *fp);
-void crf1mc_marginal(crf1m_context_t* ctx);
 
+
+/**
+ * \defgroup crf1d_feature.c
+ */
+/** @{ */
 
 /**
  * Feature type.
@@ -270,6 +297,8 @@ int crf1df_init_references(
     const int A,
     const int L
     );
+
+/** @} */
 
 
 /* crf1m_model.c */
