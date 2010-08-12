@@ -52,6 +52,17 @@
 #include "logging.h"
 #include "crf1d.h"
 
+enum {
+    FTYPE_NONE = 0,
+    FTYPE_CRF1D,
+};
+
+enum {
+    ALG_NONE = 0,
+    ALG_LBFGS,
+    ALG_PEGASOS,
+    ALG_AVERAGED_PERCEPTRON,
+};
 
 
 
@@ -79,7 +90,7 @@ void crf1dl_shuffle(int *perm, int N, int init)
 
 
 
-static crf_train_internal_t* crf_train_new(const char *interface)
+static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
 {
     crf_train_internal_t *trainer = (crf_train_internal_t*)calloc(1, sizeof(crf_train_internal_t));
     trainer->lg = (logging_t*)calloc(1, sizeof(logging_t));
@@ -87,7 +98,13 @@ static crf_train_internal_t* crf_train_new(const char *interface)
 
     trainer->batch = crf1dl_create_instance_batch();
     trainer->batch->exchange_options(trainer->batch, trainer->params, 0);
-    crf_train_lbfgs_init(trainer->params);
+
+    /* Initialize parameters for the training algorithm. */
+    switch (algorithm) {
+    case ALG_LBFGS:
+        crf_train_lbfgs_init(trainer->params);
+        break;
+    }
 
     return trainer;
 }
@@ -140,7 +157,7 @@ static crf_params_t* crf_train_params(crf_trainer_t* self)
     return params;
 }
 
-static int crf_train_train(
+static int crf_train_train_lbfgs(
     crf_trainer_t* self,
     const crf_sequence_t* seqs,
     int num_instances,
@@ -149,9 +166,15 @@ static int crf_train_train(
     const char *filename
     )
 {
+    char *algorithm = NULL;
     crf_train_internal_t *trainer = (crf_train_internal_t*)self->internal;
     crf_train_batch_t *batch = trainer->batch;
-    
+
+    /* Report the parameters. */
+    logging(trainer->lg, "Training\n");
+    logging(trainer->lg, "algorithm: L-BFGS\n");
+    logging(trainer->lg, "\n");
+
     crf_train_lbfgs(
         batch,
         trainer->params,
@@ -233,7 +256,31 @@ static int crf_train_train(
 
 int crf1dl_create_instance(const char *interface, void **ptr)
 {
-    if (strcmp(interface, "trainer.crf1m") == 0) {
+    int ftype = FTYPE_NONE;
+    int algorithm = ALG_NONE;
+
+    /* Check if the interface name begins with "train/" */
+    if (strncmp(interface, "train/", 6) != 0) {
+        return 1;
+    }
+    interface += 6;
+
+    /* Obtain the feature type. */
+    if (strncmp(interface, "crf1d/", 6) == 0) {
+        ftype = FTYPE_CRF1D;
+        interface += 6;
+    } else {
+        return 1;
+    }
+
+    /* Obtain the training algorithm. */
+    if (strncmp(interface, "lbfgs", 5) == 0) {
+        algorithm = ALG_LBFGS;
+    } else {
+        return 1;
+    }
+
+    if (ftype != FTYPE_NONE && algorithm != ALG_NONE) {
         crf_trainer_t* trainer = (crf_trainer_t*)calloc(1, sizeof(crf_trainer_t));
 
         trainer->nref = 1;
@@ -244,8 +291,8 @@ int crf1dl_create_instance(const char *interface, void **ptr)
     
         trainer->set_message_callback = crf_train_set_message_callback;
         trainer->set_evaluate_callback = crf_train_set_evaluate_callback;
-        trainer->train = crf_train_train;
-        trainer->internal = crf_train_new(interface);
+        trainer->train = crf_train_train_lbfgs;
+        trainer->internal = crf_train_new(ftype, algorithm);
 
         *ptr = trainer;
         return 0;

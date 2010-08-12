@@ -66,7 +66,6 @@ typedef struct {
     logging_t *lg;
     int l2_regularization;
     floatval_t sigma2inv;
-    floatval_t* g;
     floatval_t* best_w;
     clock_t begin;
 } lbfgs_internal_t;
@@ -211,45 +210,36 @@ int crf_train_lbfgs(
     int num_instances,
     int num_labels,
     int num_attributes
-
     )
 {
-    int i, ret;
+    int i, K, ret;
     floatval_t *w = NULL;
     clock_t begin = clock();
     const int N = num_instances;
     const int L = num_labels;
     const int A = num_attributes;
-    int K;
     lbfgs_internal_t lbfgsi;
     lbfgs_parameter_t lbfgsparam;
     crf1dl_lbfgs_option_t opt;
 
+    /* Set the training set to the CRF, and generate features. */
     batch->set_data(batch, seqs, N, L, A, lg);
     K = batch->num_features;
 
-    lbfgsi.batch = batch;
-    lbfgsi.lg = lg;
-
-    crf1dl_lbfgs_options(params, &opt, -1);
-
-    /* Allocate an array that stores the best weights. */ 
+    /* Allocate an array that stores the current weights. */ 
     w = (floatval_t*)calloc(sizeof(floatval_t), K);
     if (w == NULL) {
         return CRFERR_OUTOFMEMORY;
     }
  
-    lbfgsi.best_w = (floatval_t*)malloc(sizeof(floatval_t) * K);
+    /* Allocate an array that stores the best weights. */ 
+    lbfgsi.best_w = (floatval_t*)calloc(sizeof(floatval_t), K);
     if (lbfgsi.best_w == NULL) {
         return CRFERR_OUTOFMEMORY;
     }
-    for (i = 0;i < K;++i) {
-        lbfgsi.best_w[i] = 0.;
-    }
 
-    /* Initialize the L-BFGS parameters with default values. */
-    lbfgs_parameter_init(&lbfgsparam);
-
+    /* Read the L-BFGS parameters. */
+    crf1dl_lbfgs_options(params, &opt, -1);
     logging(lg, "L-BFGS optimization\n");
     logging(lg, "regularization: %s\n", opt.regularization);
     logging(lg, "regularization.sigma: %f\n", opt.regularization_sigma);
@@ -263,6 +253,7 @@ int crf_train_lbfgs(
     logging(lg, "\n");
 
     /* Set parameters for L-BFGS. */
+    lbfgs_parameter_init(&lbfgsparam);
     lbfgsparam.m = opt.memory;
     lbfgsparam.epsilon = opt.epsilon;
     lbfgsparam.past = opt.stop;
@@ -291,6 +282,10 @@ int crf_train_lbfgs(
         lbfgsparam.orthantwise_c = 0.;
     }
 
+    /* Set other callback data. */
+    lbfgsi.batch = batch;
+    lbfgsi.lg = lg;
+
     /* Call the L-BFGS solver. */
     lbfgsi.begin = clock();
     ret = lbfgs(
@@ -311,6 +306,7 @@ int crf_train_lbfgs(
     } else {
         logging(lg, "L-BFGS terminated with error code (%d)\n", ret);
     }
+
 
     for (i = 0;i < K;++i) {
         w[i] = lbfgsi.best_w[i];

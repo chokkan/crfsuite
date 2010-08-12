@@ -266,6 +266,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\train_averaged_perceptron.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\train_lbfgs.c"
 				>
 			</File>

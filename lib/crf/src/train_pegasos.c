@@ -1,5 +1,5 @@
 /*
- *      Training linear-chain CRFs with Stochastic Gradient Descent (SGD).
+ *      Online training with Pegasos.
  *
  * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.
@@ -104,10 +104,11 @@
 #include <math.h>
 
 #include <crfsuite.h>
+#include "crfsuite_internal.h"
 
 #include "logging.h"
 #include "params.h"
-#include "crf1m.h"
+#include "crf1d.h"
 
 #define MIN(a, b)   ((a) < (b) ? (a) : (b))
 

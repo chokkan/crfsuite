@@ -191,7 +191,7 @@ output_result(
         const char *label = NULL;
 
         if (opt->reference) {
-            labels->to_string(labels, inst->items[i].label, &label);
+            labels->to_string(labels, inst->labels[i], &label);
             fprintf(fpo, "%s\t", label);
             labels->free(labels, label);
         }
@@ -221,7 +221,7 @@ output_instance(
 
     for (i = 0;i < inst->num_items;++i) {
         const char *label = NULL;
-        labels->to_string(labels, inst->items[i].label, &label);
+        labels->to_string(labels, inst->labels[i], &label);
         fprintf(fpo, "%s", label);
         labels->free(labels, label);
 

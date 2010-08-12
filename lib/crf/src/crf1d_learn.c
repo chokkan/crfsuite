@@ -1,5 +1,5 @@
 /*
- *      Training interface for CRF1d
+ *      Training routines for CRF1d.
  *
  * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.
@@ -81,6 +81,11 @@ typedef struct {
     crf1dl_t crf1dt;
 } batch_internal_t;
 
+typedef struct {
+    crf1dl_t crf1dt;
+} online_internal_t;
+
+
 #define    FEATURE(trainer, k) \
     (&(trainer)->features[(k)])
 #define    ATTRIBUTE(trainer, a) \
@@ -147,8 +152,7 @@ crf1dl_set_labels(
 
     ctx->num_items = T;
     for (t = 0;t < T;++t) {
-        item = &seq->items[t];
-        ctx->labels[t] = item->label;
+        ctx->labels[t] = seq->labels[t];
     }
 }
 
@@ -292,6 +296,59 @@ crf1dl_transition_score_scaled(
             const crf1df_feature_t *f = FEATURE(trainer, fid);
             trans[f->dst] = w[fid] * scale;
         }        
+    }
+}
+
+static void
+crf1dl_update(
+    crf1dl_t *trainer,
+    floatval_t *w,
+    const crf_sequence_t *seq,
+    const crf_output_t *lseq,
+    floatval_t value
+    )
+{
+    int i = -1, t, r;
+    crf1d_context_t* ctx = trainer->ctx;
+    const int T = seq->num_items;
+    const int L = trainer->num_labels;
+
+    /* Loop over the items in the sequence. */
+    for (t = 0;t < T;++t) {
+        const crf_item_t *item = &seq->items[t];
+        const int j = lseq->labels[t];
+
+        /* Loop over the contents (attributes) attached to the item. */
+        for (i = 0;i < item->num_contents;++i) {
+            /* Access the list of state features associated with the attribute. */
+            int a = item->contents[i].aid;
+            const feature_refs_t *attr = ATTRIBUTE(trainer, a);
+            floatval_t scale = item->contents[i].scale;
+
+            /* Loop over the state features associated with the attribute. */
+            for (r = 0;r < attr->num_features;++r) {
+                /* State feature associates the attribute #a with the label #(f->dst). */
+                int fid = attr->fids[r];
+                const crf1df_feature_t *f = FEATURE(trainer, fid);
+                if (f->dst == j) {
+                    w[fid] += scale * value;
+                }
+            }
+        }
+
+        if (i != -1) {
+            const feature_refs_t *edge = TRANSITION(trainer, i);
+            for (r = 0;r < edge->num_features;++r) {
+                /* Transition feature from #i to #(f->dst). */
+                int fid = edge->fids[r];
+                const crf1df_feature_t *f = FEATURE(trainer, fid);
+                if (f->dst == j) {
+                    w[fid] += value;
+                }
+            }
+        }
+
+        i = j;
     }
 }
 
@@ -449,6 +506,11 @@ crf1dl_set_data(
     }
 
     /* Feature generation. */
+    logging(lg, "Feature generation\n");
+    logging(lg, "type: CRF1d\n");
+    logging(lg, "feature.minfreq: %f\n", opt->feature_minfreq);
+    logging(lg, "feature.possible_states: %d\n", opt->feature_possible_states);
+    logging(lg, "feature.possible_transitions: %d\n", opt->feature_possible_transitions);
     begin = clock();
     crf1dt->features = crf1df_generate(
         &crf1dt->num_features,
@@ -764,6 +826,14 @@ static int crf1dl_batch_objective_and_gradients(crf_train_batch_t *self, const f
     return 0;
 }
 
+static int crf1dl_batch_update(crf_train_online_t *self, floatval_t *w, const crf_sequence_t *seq, const crf_output_t *ls, floatval_t value)
+{
+    batch_internal_t *batch = (batch_internal_t*)self->internal;
+    crf1dl_update(&batch->crf1dt, w, seq, ls, value);
+    return 0;
+
+}
+
 static int crf1dl_batch_save_model(crf_train_batch_t *self, const char *filename, const floatval_t *w, crf_dictionary_t* attrs, crf_dictionary_t* labels, logging_t *lg)
 {
     batch_internal_t *batch = (batch_internal_t*)self->internal;
@@ -795,3 +865,25 @@ crf_train_batch_t *crf1dl_create_instance_batch()
 
     return self;
 }
+
+/*
+crf_train_online_t *crf1dl_create_instance_online()
+{
+    crf_train_online_t* self = (crf_train_online_t*)calloc(1, sizeof(crf_train_online_t));
+    if (self != NULL) {
+        online_internal_t *online = (online_internal_t*)calloc(1, sizeof(online_internal_t));
+        if (batch != NULL) {
+            crf1dl_init(&online->crf1dt);
+
+            self->exchange_options = crf1dl_batch_exchange_options;
+            self->set_data = crf1dl_batch_set_data;
+            self->objective_and_gradients = crf1dl_batch_objective_and_gradients;
+            self->save_model = crf1dl_batch_save_model;
+            self->tag = crf1dl_batch_tag;
+            self->internal = batch;
+        }
+    }
+
+    return self;
+}
+*/

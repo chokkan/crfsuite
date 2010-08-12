@@ -71,31 +71,31 @@ enum {
 
 
 /**
- * Content of an item.
- *    A content consists of an attribute id with its frequency in the item.
+ * An attribute content.
+ *  An attribute content consists of an attribute id with its weight (frequency).
  */
 typedef struct {
-    int            aid;    /**< Attribute id. */
-    floatval_t    scale;    /**< Scale factor (frequency) of the attribute. */
+    int         aid;    /**< Attribute id. */
+    floatval_t  scale;  /**< Weight (frequency) of the attribute. */
 } crf_content_t;
 
 /**
  * An item.
  */
 typedef struct {
-    int                num_contents;    /**< Number of contents associated with the item. */
-    int                max_contents;    /**< Maximum number of contents. */
-    crf_content_t*    contents;        /**< Array of the contents. */
-    int                label;            /**< Output label. */
+    int             num_contents;   /**< Number of contents associated with the item. */
+    int             max_contents;   /**< Maximum number of contents. */
+    crf_content_t   *contents;      /**< Array of the contents. */
 } crf_item_t;
 
 /**
- * A sequence.
+ * An sequence.
  */
 typedef struct {
-    int            num_items;    /**< Number of items in the sequence. */
-    int            max_items;    /**< Maximum number of items (internal use). */
-    crf_item_t*    items;        /**< Array of the items. */
+    int         num_items;          /**< Number of items in the sequence. */
+    int         max_items;          /**< Maximum number of items (internal use). */
+    crf_item_t  *items;             /**< Array of the items. */
+    int         *labels;            /**< Array of the label sequence. */
 } crf_sequence_t;
 
 /**

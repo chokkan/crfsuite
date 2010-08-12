@@ -1,5 +1,5 @@
 /*
- *      Linear-chain Conditional Random Fields (CRF).
+ *      The 1st-order linear-chain CRF with dyad features (CRF1d).
  *
  * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.

@@ -49,6 +49,8 @@ typedef struct {
     char *model;
     char *training;
     char *evaluation;
+    char *algorithm;
+    char *type;
 
     int help;
 
@@ -70,6 +72,8 @@ static void learn_option_init(learn_option_t* opt)
     memset(opt, 0, sizeof(*opt));
     opt->num_params = 0;
     opt->model = mystrdup("crfsuite.model");
+    opt->algorithm = mystrdup("lbfgs");
+    opt->type = mystrdup("dyad");
 }
 
 static void learn_option_finish(learn_option_t* opt)
@@ -98,6 +102,14 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
 
     ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
         opt->help = 1;
+
+    ON_OPTION_WITH_ARG(SHORTOPT('a') || LONGOPT("algorithm"))
+        free(opt->algorithm);
+        opt->algorithm = mystrdup(arg);
+
+    ON_OPTION_WITH_ARG(SHORTOPT('f') || LONGOPT("feature"))
+        free(opt->type);
+        opt->model = mystrdup(arg);
 
     ON_OPTION_WITH_ARG(SHORTOPT('p') || LONGOPT("param"))
         opt->params = (char **)realloc(opt->params, sizeof(char*) * (opt->num_params + 1));
@@ -234,7 +246,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
     }
 
     /* Create a trainer instance. */
-    ret = crf_create_instance("trainer.crf1m", (void**)&trainer);
+    ret = crf_create_instance("train/crf1d/lbfgs", (void**)&trainer);
     if (!ret) {
         fprintf(fpe, "ERROR: Failed to create a trainer instance.\n");
         ret = 1;

@@ -115,7 +115,6 @@ void crf_item_copy(crf_item_t* dst, const crf_item_t* src)
 
     dst->num_contents = src->num_contents;
     dst->max_contents = src->max_contents;
-    dst->label = src->label;
     dst->contents = (crf_content_t*)calloc(dst->num_contents, sizeof(crf_content_t));
     for (i = 0;i < dst->num_contents;++i) {
         crf_content_copy(&dst->contents[i], &src->contents[i]);
@@ -127,11 +126,9 @@ void crf_item_swap(crf_item_t* x, crf_item_t* y)
     crf_item_t tmp = *x;
     x->num_contents = y->num_contents;
     x->max_contents = y->max_contents;
-    x->label = y->label;
     x->contents = y->contents;
     y->num_contents = tmp.num_contents;
     y->max_contents = tmp.max_contents;
-    y->label = tmp.label;
     y->contents = tmp.contents;
 }
 
@@ -165,6 +162,7 @@ void crf_sequence_init_n(crf_sequence_t* inst, int num_items)
     inst->num_items = num_items;
     inst->max_items = num_items;
     inst->items = (crf_item_t*)calloc(num_items, sizeof(crf_item_t));
+    inst->labels = (int*)calloc(num_items, sizeof(int));
 }
 
 void crf_sequence_finish(crf_sequence_t* inst)
@@ -174,6 +172,7 @@ void crf_sequence_finish(crf_sequence_t* inst)
     for (i = 0;i < inst->num_items;++i) {
         crf_item_finish(&inst->items[i]);
     }
+    free(inst->labels);
     free(inst->items);
     crf_sequence_init(inst);
 }
@@ -185,8 +184,10 @@ void crf_sequence_copy(crf_sequence_t* dst, const crf_sequence_t* src)
     dst->num_items = src->num_items;
     dst->max_items = src->max_items;
     dst->items = (crf_item_t*)calloc(dst->num_items, sizeof(crf_item_t));
+    dst->labels = (int*)calloc(dst->num_items, sizeof(int));
     for (i = 0;i < dst->num_items;++i) {
         crf_item_copy(&dst->items[i], &src->items[i]);
+        dst->labels[i] = src->labels[i];
     }
 }
 
@@ -196,9 +197,11 @@ void crf_sequence_swap(crf_sequence_t* x, crf_sequence_t* y)
     x->num_items = y->num_items;
     x->max_items = y->max_items;
     x->items = y->items;
+    x->labels = y->labels;
     y->num_items = tmp.num_items;
     y->max_items = tmp.max_items;
     y->items = tmp.items;
+    y->labels = tmp.labels;
 }
 
 int crf_sequence_append(crf_sequence_t* inst, const crf_item_t* item, int label)
@@ -206,9 +209,10 @@ int crf_sequence_append(crf_sequence_t* inst, const crf_item_t* item, int label)
     if (inst->max_items <= inst->num_items) {
         inst->max_items = (inst->max_items + 1) * 2;
         inst->items = (crf_item_t*)realloc(inst->items, sizeof(crf_item_t) * inst->max_items);
+        inst->labels = (int*)realloc(inst->labels, sizeof(int) * inst->max_items);
     }
     crf_item_copy(&inst->items[inst->num_items], item);
-    inst->items[inst->num_items].label = label;
+    inst->labels[inst->num_items] = label;
     ++inst->num_items;
     return 0;
 }
@@ -376,7 +380,7 @@ int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_sequence_t* refer
     }
 
     for (t = 0;t < target->num_labels;++t) {
-        int lr = reference->items[t].label;
+        int lr = reference->labels[t];
         int lt = target->labels[t];
 
         if (eval->num_labels <= lr || eval->num_labels <= lt) {

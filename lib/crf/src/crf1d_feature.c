@@ -192,7 +192,7 @@ crf1df_feature_t* crf1df_generate(
         /* Loop over the items in the sequence. */
         for (t = 0;t < T;++t) {
             item = &seq->items[t];
-            cur = item->label;
+            cur = seq->labels[t];
 
             /* Transition feature: label #prev -> label #(item->yid).
                Features with previous label #L are transition BOS. */
