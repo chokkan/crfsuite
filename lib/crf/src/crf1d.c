@@ -170,10 +170,10 @@ static int tagger_release(crf_tagger_t* tagger)
     return crf_interlocked_decrement(&tagger->nref);
 }
 
-static int tagger_tag(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* output)
+static int tagger_tag(crf_tagger_t* tagger, crf_instance_t *inst, int *labels, floatval_t *ptr_score)
 {
     crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
-    crf1dt_tag(crf1dt, inst, output);
+    crf1dt_tag(crf1dt, inst, labels, ptr_score);
     return 0;
 }
 

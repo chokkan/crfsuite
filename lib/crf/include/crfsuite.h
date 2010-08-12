@@ -75,8 +75,8 @@ enum {
  *  An attribute content consists of an attribute id with its weight (frequency).
  */
 typedef struct {
-    int         aid;    /**< Attribute id. */
-    floatval_t  scale;  /**< Weight (frequency) of the attribute. */
+    int         aid;                /**< Attribute id. */
+    floatval_t  scale;              /**< Weight (frequency) of the attribute. */
 } crf_content_t;
 
 /**
@@ -84,40 +84,28 @@ typedef struct {
  */
 typedef struct {
     int             num_contents;   /**< Number of contents associated with the item. */
-    int             max_contents;   /**< Maximum number of contents. */
+    int             cap_contents;   /**< Maximum number of contents (internal use). */
     crf_content_t   *contents;      /**< Array of the contents. */
 } crf_item_t;
 
 /**
- * An sequence.
+ * An instance (sequence of items and labels).
  */
 typedef struct {
-    int         num_items;          /**< Number of items in the sequence. */
-    int         max_items;          /**< Maximum number of items (internal use). */
-    crf_item_t  *items;             /**< Array of the items. */
+    int         num_items;          /**< Number of items/labels in the sequence. */
+    int         cap_items;          /**< Maximum number of items/labels (internal use). */
+    crf_item_t  *items;             /**< Array of the item sequence. */
     int         *labels;            /**< Array of the label sequence. */
-} crf_sequence_t;
+} crf_instance_t;
 
 /**
- * A data.
+ * A data set.
  */
 typedef struct {
     int                num_instances;        /**< Number of instances. */
-    int                max_instances;        /**< Maximum number of instances (internal use). */
-    int                num_labels;            /**< Number of distinct labels. */
-    int                num_attrs;            /**< Number of distinct attributes. */
-    int                max_item_length;    /**< Maximum item length. */
-    crf_sequence_t*    instances;            /**< Array of instances. */
+    int                cap_instances;        /**< Maximum number of instances (internal use). */
+    crf_instance_t*    instances;            /**< Array of instances. */
 } crf_data_t;
-
-/**
- * An output label sequence.
- */
-typedef struct {
-    int        num_labels;            /**< Number of output labels. */
-    int*    labels;                /**< Array of the output labels. */
-    floatval_t    probability;        /**< Probability of the output labels. */
-} crf_output_t;
 
 typedef struct {
     int        num_correct;
@@ -210,7 +198,7 @@ struct tag_crf_trainer {
     void (*set_message_callback)(crf_trainer_t* trainer, void *instance, crf_logging_callback cbm);
     void (*set_evaluate_callback)(crf_trainer_t* trainer, void *instance, crf_evaluate_callback cbe);
 
-    int (*train)(crf_trainer_t* trainer, const crf_sequence_t* seqs, int num_instances, crf_dictionary_t* attrs, crf_dictionary_t* labels, const char *filename);
+    int (*train)(crf_trainer_t* trainer, const crf_instance_t* seqs, int num_instances, crf_dictionary_t* attrs, crf_dictionary_t* labels, const char *filename);
 };
 
 struct tag_crf_tagger {
@@ -237,7 +225,7 @@ struct tag_crf_tagger {
     /**
      * Tag an input sequence.
      */
-    int (*tag)(crf_tagger_t* tagger, crf_sequence_t *inst, crf_output_t* output);
+    int (*tag)(crf_tagger_t* tagger, crf_instance_t *inst, int *labels, floatval_t *ptr_score);
 
 };
 
@@ -326,31 +314,27 @@ void crf_item_swap(crf_item_t* x, crf_item_t* y);
 int  crf_item_append_content(crf_item_t* item, const crf_content_t* cont);
 int  crf_item_empty(crf_item_t* item);
 
-void crf_sequence_init(crf_sequence_t* seq);
-void crf_sequence_init_n(crf_sequence_t* seq, int num_items);
-void crf_sequence_finish(crf_sequence_t* seq);
-void crf_sequence_copy(crf_sequence_t* dst, const crf_sequence_t* src);
-void crf_sequence_swap(crf_sequence_t* x, crf_sequence_t* y);
-int  crf_sequence_append(crf_sequence_t* seq, const crf_item_t* item, int label);
-int  crf_sequence_empty(crf_sequence_t* seq);
+void crf_instance_init(crf_instance_t* seq);
+void crf_instance_init_n(crf_instance_t* seq, int num_items);
+void crf_instance_finish(crf_instance_t* seq);
+void crf_instance_copy(crf_instance_t* dst, const crf_instance_t* src);
+void crf_instance_swap(crf_instance_t* x, crf_instance_t* y);
+int  crf_instance_append(crf_instance_t* seq, const crf_item_t* item, int label);
+int  crf_instance_empty(crf_instance_t* seq);
 
 void crf_data_init(crf_data_t* data);
 void crf_data_init_n(crf_data_t* data, int n);
 void crf_data_finish(crf_data_t* data);
 void crf_data_copy(crf_data_t* dst, const crf_data_t* src);
 void crf_data_swap(crf_data_t* x, crf_data_t* y);
-int  crf_data_append(crf_data_t* data, const crf_sequence_t* inst);
+int  crf_data_append(crf_data_t* data, const crf_instance_t* inst);
 int  crf_data_maxlength(crf_data_t* data);
 int  crf_data_totalitems(crf_data_t* data);
-
-void crf_output_init(crf_output_t* output);
-void crf_output_init_n(crf_output_t* output, int n);
-void crf_output_finish(crf_output_t* outpu);
 
 void crf_evaluation_init(crf_evaluation_t* eval, int n);
 void crf_evaluation_finish(crf_evaluation_t* eval);
 void crf_evaluation_clear(crf_evaluation_t* eval);
-int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_sequence_t* reference, const crf_output_t* target);
+int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_instance_t* reference, const int* target);
 void crf_evaluation_compute(crf_evaluation_t* eval);
 void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FILE *fpo);
 

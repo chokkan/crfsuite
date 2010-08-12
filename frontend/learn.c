@@ -153,7 +153,6 @@ static int message_callback(void *instance, const char *format, va_list args)
 static int evaluate_callback(void *instance, crf_tagger_t* tagger)
 {
     int i, ret = 0;
-    crf_output_t output;
     callback_data_t* cd = (callback_data_t*)instance;
     FILE *fpo = cd->fpo;
     crf_data_t* data = cd->data;
@@ -170,15 +169,17 @@ static int evaluate_callback(void *instance, crf_tagger_t* tagger)
     /* Tag the evaluation instances and accumulate the performance. */
     for (i = 0;i < data->num_instances;++i) {
         /* An instance to be tagged. */
-        crf_sequence_t* instance = &data->instances[i];
-
-        crf_output_init(&output);
+        floatval_t score = 0;
+        crf_instance_t* instance = &data->instances[i];
+        int *output = calloc(sizeof(int), instance->num_items);
 
         /* Tag an instance (ignoring any error occurrence). */
-        ret = tagger->tag(tagger, instance, &output);
+        ret = tagger->tag(tagger, instance, output, &score);
 
         /* Accumulate the tagging performance. */
-        crf_evaluation_accmulate(cd->eval, instance, &output);
+        crf_evaluation_accmulate(cd->eval, instance, output);
+
+        free(output);
     }
 
     /* Compute the performance. */
@@ -246,7 +247,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
     }
 
     /* Create a trainer instance. */
-    ret = crf_create_instance("train/crf1d/lbfgs", (void**)&trainer);
+    ret = crf_create_instance("train/crf1d/averaged-perceptron", (void**)&trainer);
     if (!ret) {
         fprintf(fpe, "ERROR: Failed to create a trainer instance.\n");
         ret = 1;
@@ -322,11 +323,6 @@ int main_learn(int argc, char *argv[], const char *argv0)
         fprintf(fpo, "\n");
         fflush(fpo);
     }
-
-    /* Fill the supplementary information for the data. */
-    data_train.num_labels = labels->num(labels);
-    data_train.num_attrs = attrs->num(attrs);
-    data_train.max_item_length = crf_data_maxlength(&data_train);
 
     /* Initialize an evaluation object. */
     crf_evaluation_finish(&eval);

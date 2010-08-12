@@ -172,6 +172,26 @@ double mt_genrand_res53(void)
 } 
 /* These real versions are due to Isaku Wada, 2002/01/09 added */
 
+/* This routine was added by Naoaki Okazaki for CRFsuite. */
+void mt_shuffle(int *perm, int n, int init)
+{
+    int i, j, tmp;
+
+    if (init) {
+        /* Initialize the permutation if necessary. */
+        for (i = 0;i < n;++i) {
+            perm[i] = i;
+        }
+    }
+
+    for (i = 0;i < n;++i) {
+        j = mt_genrand_int31() % n;
+        tmp = perm[j];
+        perm[j] = perm[i];
+        perm[i] = tmp;
+    }
+}
+
 #if 0
 int main(void)
 {

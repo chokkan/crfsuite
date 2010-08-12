@@ -154,7 +154,7 @@ featureset_generate(
 
 crf1df_feature_t* crf1df_generate(
     int *ptr_num_features,
-    const crf_sequence_t *seqs,
+    const crf_instance_t *seqs,
     int num_sequences,
     int num_labels,
     int num_attributes,
@@ -186,7 +186,7 @@ crf1df_feature_t* crf1df_generate(
     for (s = 0;s < N;++s) {
         int prev = L, cur = 0;
         const crf_item_t* item = NULL;
-        const crf_sequence_t* seq = &seqs[s];
+        const crf_instance_t* seq = &seqs[s];
         const int T = seq->num_items;
 
         /* Loop over the items in the sequence. */

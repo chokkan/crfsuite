@@ -86,7 +86,7 @@ typedef struct {
     /**
      * The maximum number of labels.
      */
-    int max_items;
+    int cap_items;
 
     /**
      * Logarithm of the normalization factor for the instance.
@@ -278,7 +278,7 @@ typedef struct {
 
 crf1df_feature_t* crf1df_generate(
     int *ptr_num_features,
-    const crf_sequence_t *seqs,
+    const crf_instance_t *seqs,
     int num_sequences,
     int num_labels,
     int num_attributes,
@@ -366,7 +366,7 @@ typedef struct tag_crf1mt crf1dt_t;
 
 crf1dt_t *crf1dt_new(crf1dm_t* crf1dm);
 void crf1dt_delete(crf1dt_t* crf1dt);
-int crf1dt_tag(crf1dt_t* crf1dt, crf_sequence_t *inst, crf_output_t* output);
+int crf1dt_tag(crf1dt_t* crf1dt, crf_instance_t *inst, int* output, floatval_t *ptr_score);
 
 /** @} */
 

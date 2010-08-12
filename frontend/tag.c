@@ -178,8 +178,8 @@ static int comments_append(comments_t* comments, const char *value)
 static void
 output_result(
     FILE *fpo,
-    const crf_sequence_t *inst,
-    crf_output_t *output,
+    const crf_instance_t *inst,
+    int *output,
     crf_dictionary_t *labels,
     comments_t* comments,
     const tagger_option_t* opt
@@ -187,7 +187,7 @@ output_result(
 {
     int i;
 
-    for (i = 0;i < output->num_labels;++i) {
+    for (i = 0;i < inst->num_items;++i) {
         const char *label = NULL;
 
         if (opt->reference) {
@@ -196,7 +196,7 @@ output_result(
             labels->free(labels, label);
         }
 
-        labels->to_string(labels, output->labels[i], &label);
+        labels->to_string(labels, output[i], &label);
         fprintf(fpo, "%s", label);
         labels->free(labels, label);
 
@@ -212,7 +212,7 @@ output_result(
 static void
 output_instance(
     FILE *fpo,
-    const crf_sequence_t *inst,
+    const crf_instance_t *inst,
     crf_dictionary_t *labels,
     crf_dictionary_t *attrs
     )
@@ -243,10 +243,9 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 {
     int N = 0, L = 0, ret = 0, lid = -1;
     clock_t clk0, clk1;
-    crf_sequence_t inst;
+    crf_instance_t inst;
     crf_item_t item;
     crf_content_t cont;
-    crf_output_t output;
     crf_evaluation_t eval;
     char *comment = NULL;
     comments_t comments;
@@ -273,7 +272,7 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 
     /* Initialize the objects for instance and evaluation. */
     L = labels->num(labels);
-    crf_sequence_init(&inst);
+    crf_instance_init(&inst);
     crf_evaluation_init(&eval, L);
 
     /* Open the stream for the input data. */
@@ -307,7 +306,7 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
             break;
         case IWA_EOI:
             /* Append the item to the instance. */
-            crf_sequence_append(&inst, &item, lid);
+            crf_instance_append(&inst, &item, lid);
             comments_append(&comments, comment);
             crf_item_finish(&item);
             break;
@@ -333,27 +332,28 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
             break;
         case IWA_NONE:
         case IWA_EOF:
-            if (!crf_sequence_empty(&inst)) {
+            if (!crf_instance_empty(&inst)) {
                 /* Initialize the object to receive the tagging result. */
-                crf_output_init(&output);
+                floatval_t score = 0;
+                int *output = calloc(sizeof(int), inst.num_items);
 
                 /* Tag the instance. */
-                if (ret = tagger->tag(tagger, &inst, &output)) {
+                if (ret = tagger->tag(tagger, &inst, output, &score)) {
                     goto force_exit;
                 }
                 ++N;
 
                 /* Accumulate the tagging performance. */
                 if (opt->evaluate) {
-                    crf_evaluation_accmulate(&eval, &inst, &output);
+                    crf_evaluation_accmulate(&eval, &inst, output);
                 }
 
                 if (!opt->quiet) {
-                    output_result(fpo, &inst, &output, labels, &comments, opt);
+                    output_result(fpo, &inst, output, labels, &comments, opt);
                 }
 
-                crf_output_finish(&output);
-                crf_sequence_finish(&inst);
+                free(output);
+                crf_instance_finish(&inst);
 
                 comments_finish(&comments);
                 comments_init(&comments);
@@ -386,7 +386,7 @@ force_exit:
     }
 
     free(comment);
-    crf_sequence_finish(&inst);
+    crf_instance_finish(&inst);
     crf_evaluation_finish(&eval);
 
     SAFE_RELEASE(tagger);

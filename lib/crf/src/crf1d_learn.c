@@ -64,8 +64,8 @@ typedef struct {
     int num_attributes;             /**< Number of distinct attributes (A). */
 
     int num_sequences;              /**< The number of instances (N). */
-    const crf_sequence_t* seqs;     /**< Data set (an array of instances) [N]. */
-    int max_items;                  /**< Maximum length of sequences in the data set. */
+    const crf_instance_t* seqs;     /**< Data set (an array of instances) [N]. */
+    int cap_items;                  /**< Maximum length of sequences in the data set. */
 
     int num_features;               /**< Number of distinct features (K). */
     crf1df_feature_t *features;     /**< Array of feature descriptors [K]. */
@@ -143,7 +143,7 @@ crf1dl_finish(
 static void
 crf1dl_state_score(
     crf1dl_t* trainer,
-    const crf_sequence_t* seq,
+    const crf_instance_t* seq,
     const floatval_t* w
     )
 {
@@ -185,7 +185,7 @@ crf1dl_state_score(
 static void
 crf1dl_state_score_scaled(
     crf1dl_t* trainer,
-    const crf_sequence_t* seq,
+    const crf_instance_t* seq,
     const floatval_t* w,
     floatval_t scale
     )
@@ -279,7 +279,7 @@ crf1dl_transition_score_scaled(
 static void
 crf1dl_enum_features(
     crf1dl_t *trainer,
-    const crf_sequence_t *seq,
+    const crf_instance_t *seq,
     const int *labels,
     crf_train_enum_features_callback func,
     void *instance
@@ -338,7 +338,7 @@ crf1dl_enum_features(
 static void
 crf1dl_model_expectation(
     crf1dl_t* trainer,
-    const crf_sequence_t* seq,
+    const crf_instance_t* seq,
     floatval_t *w
     )
 {
@@ -393,7 +393,7 @@ static int
 crf1dl_tag(
     crf1dl_t* trainer,
     const floatval_t *w,
-    const crf_sequence_t *seq,
+    const crf_instance_t *seq,
     int *viterbi,
     floatval_t *ptr_score
     )
@@ -449,7 +449,7 @@ static int crf1dl_exchange_options(crf_params_t* params, crf1dl_option_t* opt, i
 static int
 crf1dl_set_data(
     crf1dl_t *crf1dt,
-    const crf_sequence_t *seqs,
+    const crf_instance_t *seqs,
     int num_instances,
     int num_labels,
     int num_attributes,
@@ -737,7 +737,7 @@ static int crf1dl_batch_exchange_options(crf_train_batch_t *self, crf_params_t* 
     return crf1dl_exchange_options(params, &batch->crf1dt.opt, mode);
 }
 
-static int crf1dl_batch_set_data(crf_train_batch_t *self, const crf_sequence_t *seqs, int num_instances, int num_labels, int num_attributes, logging_t *lg)
+static int crf1dl_batch_set_data(crf_train_batch_t *self, const crf_instance_t *seqs, int num_instances, int num_labels, int num_attributes, logging_t *lg)
 {
     batch_internal_t *batch = (batch_internal_t*)self->internal;
     int ret = crf1dl_set_data(&batch->crf1dt, seqs, num_instances, num_labels, num_attributes, lg);
@@ -746,7 +746,7 @@ static int crf1dl_batch_set_data(crf_train_batch_t *self, const crf_sequence_t *
     self->num_attributes = num_attributes;
     self->num_labels = num_labels;
     self->num_features = batch->crf1dt.num_features;
-    self->max_items = batch->crf1dt.ctx->max_items;
+    self->cap_items = batch->crf1dt.ctx->cap_items;
     return ret;
 }
 
@@ -756,7 +756,7 @@ static int crf1dl_batch_objective_and_gradients(crf_train_batch_t *self, const f
     floatval_t logp = 0, logl = 0;
     batch_internal_t *batch = (batch_internal_t*)self->internal;
     crf1dl_t* crf1dt = &batch->crf1dt;
-    const crf_sequence_t* seqs = crf1dt->seqs;
+    const crf_instance_t* seqs = crf1dt->seqs;
     const int N = crf1dt->num_sequences;
     const int K = crf1dt->num_features;
 
@@ -780,7 +780,7 @@ static int crf1dl_batch_objective_and_gradients(crf_train_batch_t *self, const f
         Compute model expectations.
      */
     for (i = 0;i < N;++i) {
-        const crf_sequence_t* seq = &seqs[i];
+        const crf_instance_t* seq = &seqs[i];
         /* Set label sequences and state scores. */
         crf1dc_set_num_items(crf1dt->ctx, seq->num_items);
         crf1dc_reset(crf1dt->ctx, RF_STATE);
@@ -805,7 +805,7 @@ static int crf1dl_batch_objective_and_gradients(crf_train_batch_t *self, const f
     return 0;
 }
 
-static int crf1dl_batch_enum_features(crf_train_batch_t *self, const crf_sequence_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance)
+static int crf1dl_batch_enum_features(crf_train_batch_t *self, const crf_instance_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance)
 {
     batch_internal_t *batch = (batch_internal_t*)self->internal;
     crf1dl_enum_features(&batch->crf1dt, seq, labels, func, instance);
@@ -818,7 +818,7 @@ static int crf1dl_batch_save_model(crf_train_batch_t *self, const char *filename
     return crf1dl_save_model(&batch->crf1dt, filename, w, attrs, labels, lg);
 }
 
-static int crf1dl_batch_tag(crf_train_batch_t *self, const floatval_t *w, const crf_sequence_t *inst, int *viterbi, floatval_t *ptr_score)
+static int crf1dl_batch_tag(crf_train_batch_t *self, const floatval_t *w, const crf_instance_t *inst, int *viterbi, floatval_t *ptr_score)
 {
     batch_internal_t *batch = (batch_internal_t*)self->internal;
     return crf1dl_tag(&batch->crf1dt, w, inst, viterbi, ptr_score);

@@ -78,39 +78,19 @@ struct tag_crf_train_batch
 {
     void *internal;
 
-    const crf_sequence_t *seqs;
+    const crf_instance_t *seqs;
     int num_instances;
     int num_attributes;
     int num_labels;
     int num_features;
-    int max_items;
+    int cap_items;
 
     int (*exchange_options)(crf_train_batch_t *self, crf_params_t* params, int mode);
-    int (*set_data)(crf_train_batch_t *self, const crf_sequence_t *seqs, int num_instances, int num_labels, int num_attributes, logging_t *lg);
+    int (*set_data)(crf_train_batch_t *self, const crf_instance_t *seqs, int num_instances, int num_labels, int num_attributes, logging_t *lg);
     int (*objective_and_gradients)(crf_train_batch_t *self, const floatval_t *w, floatval_t *f, floatval_t *g);
-    int (*enum_features)(crf_train_batch_t *self, const crf_sequence_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance);
+    int (*enum_features)(crf_train_batch_t *self, const crf_instance_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance);
     int (*save_model)(crf_train_batch_t *self, const char *filename, const floatval_t *w, crf_dictionary_t* attrs, crf_dictionary_t* labels, logging_t *lg);
-    int (*tag)(crf_train_batch_t *self, const floatval_t *w, const crf_sequence_t *inst, int *viterbi, floatval_t *ptr_score);
-};
-
-/**
- * Interface for online training algorithms.
- */
-struct tag_crf_train_online
-{
-    void *internal;
-
-    const crf_sequence_t *seqs;
-    int num_instances;
-    int num_attributes;
-    int num_labels;
-    int num_features;
-
-    int (*exchange_options)(crf_train_online_t *self, crf_params_t* params, int mode);
-    int (*set_data)(crf_train_online_t *self, const crf_sequence_t *seqs, int num_instances, int num_labels, int num_attributes, logging_t *lg);
-    int (*objective_and_gradients)(crf_train_online_t *self, const crf_sequence_t *seq, const floatval_t *w, floatval_t *f, floatval_t *g);
-    int (*save_model)(crf_train_online_t *self, const char *filename, const floatval_t *w, crf_dictionary_t* attrs, crf_dictionary_t* labels, logging_t *lg);
-    int (*tag)(crf_train_online_t *self, const floatval_t *w, crf_sequence_t *inst, crf_output_t* output);
+    int (*tag)(crf_train_batch_t *self, const floatval_t *w, const crf_instance_t *inst, int *viterbi, floatval_t *ptr_score);
 };
 
 int crf_train_lbfgs(

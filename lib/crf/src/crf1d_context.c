@@ -100,7 +100,7 @@ int crf1dc_set_num_items(crf1d_context_t* ctx, int T)
 
     ctx->num_items = T;
 
-    if (ctx->max_items < T) {
+    if (ctx->cap_items < T) {
         free(ctx->backward_edge);
         free(ctx->mexp_state);
         free(ctx->exp_state);
@@ -136,7 +136,7 @@ int crf1dc_set_num_items(crf1d_context_t* ctx, int T)
             if (ctx->mexp_state == NULL) return CRFERR_OUTOFMEMORY;
         }
 
-        ctx->max_items = T;
+        ctx->cap_items = T;
     }
 
     return 0;
@@ -548,7 +548,7 @@ void crf1dc_debug_context(FILE *fp)
     trans = EXP_TRANS_SCORE(ctx, 2);
     trans[0] = .5;    trans[1] = .2;    trans[2] = .1;
 
-    ctx->num_items = ctx->max_items;
+    ctx->num_items = ctx->cap_items;
     crf1dc_alpha_score(ctx);
     crf1dc_beta_score(ctx);
 

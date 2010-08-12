@@ -54,7 +54,7 @@ struct tag_crf1mt {
 };
 
 
-static void state_score(crf1dt_t* tagger, const crf_sequence_t* seq)
+static void state_score(crf1dt_t* tagger, const crf_instance_t* seq)
 {
     int a, i, l, t, r, fid;
     crf1dm_feature_t f;
@@ -146,7 +146,7 @@ void crf1dt_delete(crf1dt_t* crf1dt)
     free(crf1dt);
 }
 
-int crf1dt_tag(crf1dt_t* crf1dt, crf_sequence_t *inst, crf_output_t* output)
+int crf1dt_tag(crf1dt_t* crf1dt, crf_instance_t *inst, int *labels, floatval_t *ptr_score)
 {
     int i;
     floatval_t score = 0;
@@ -158,12 +158,12 @@ int crf1dt_tag(crf1dt_t* crf1dt, crf_sequence_t *inst, crf_output_t* output)
     state_score(crf1dt, inst);
     score = crf1dc_viterbi(ctx);
 
-    crf_output_init_n(output, inst->num_items);
-    output->probability = score;
     for (i = 0;i < inst->num_items;++i) {
-        output->labels[i] = ctx->labels[i];
+        labels[i] = ctx->labels[i];
     }
-    output->num_labels = inst->num_items;
+    if (ptr_score != NULL) {
+        *ptr_score = score;
+    }
 
     return 0;
 }

@@ -14,6 +14,8 @@ double mt_genrand_real2(void);
 double mt_genrand_real3(void);
 double mt_genrand_res53(void);
 
+void mt_shuffle(int *perm, int n, int init);
+
 #ifdef __cplusplus
 };
 #endif
