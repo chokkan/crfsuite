@@ -213,7 +213,7 @@ void crf1dc_exp_transition(crf1d_context_t* ctx);
 void crf1dc_alpha_score(crf1d_context_t* ctx);
 void crf1dc_beta_score(crf1d_context_t* ctx);
 void crf1dc_marginal(crf1d_context_t* ctx);
-floatval_t crf1dc_score(crf1d_context_t* ctx);
+floatval_t crf1dc_score(crf1d_context_t* ctx, const int *labels);
 floatval_t crf1dc_lognorm(crf1d_context_t* ctx);
 floatval_t crf1dc_viterbi(crf1d_context_t* ctx);
 void crf1dc_debug_context(FILE *fp);

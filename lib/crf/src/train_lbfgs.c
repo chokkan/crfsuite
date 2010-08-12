@@ -206,25 +206,19 @@ int crf_train_lbfgs(
     crf_train_batch_t *batch,
     crf_params_t *params,
     logging_t *lg,
-    const crf_sequence_t *seqs,
-    int num_instances,
-    int num_labels,
-    int num_attributes
+    floatval_t **ptr_w
     )
 {
-    int i, K, ret;
+    int i, ret;
     floatval_t *w = NULL;
     clock_t begin = clock();
-    const int N = num_instances;
-    const int L = num_labels;
-    const int A = num_attributes;
+    const int N = batch->num_instances;
+    const int L = batch->num_labels;
+    const int A = batch->num_attributes;
+    const int K = batch->num_features;
     lbfgs_internal_t lbfgsi;
     lbfgs_parameter_t lbfgsparam;
     crf1dl_lbfgs_option_t opt;
-
-    /* Set the training set to the CRF, and generate features. */
-    batch->set_data(batch, seqs, N, L, A, lg);
-    K = batch->num_features;
 
     /* Allocate an array that stores the current weights. */ 
     w = (floatval_t*)calloc(sizeof(floatval_t), K);
@@ -312,8 +306,9 @@ int crf_train_lbfgs(
         w[i] = lbfgsi.best_w[i];
     }
 
-    logging(lg, "Total seconds required for L-BFGS: %.3f\n", (clock() - begin) / (double)CLOCKS_PER_SEC);
+    logging(lg, "Total seconds required for training: %.3f\n", (clock() - begin) / (double)CLOCKS_PER_SEC);
     logging(lg, "\n");
 
+    *ptr_w = w;
     return 0;
 }

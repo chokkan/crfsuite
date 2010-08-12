@@ -412,14 +412,13 @@ void crf1dc_marginal_without_beta(crf1d_context_t* ctx)
 }
 #endif
 
-floatval_t crf1dc_score(crf1d_context_t* ctx)
+floatval_t crf1dc_score(crf1d_context_t* ctx, const int *labels)
 {
     int i, j, t;
     floatval_t ret = 0;
     const floatval_t *state = NULL, *cur = NULL, *trans = NULL;
     const int T = ctx->num_items;
     const int L = ctx->num_labels;
-    const int *labels = ctx->labels;
 
     /* Stay at (0, labels[0]). */
     i = labels[0];
@@ -592,7 +591,7 @@ void crf1dc_debug_context(FILE *fp)
                 ctx->labels[0] = y1;
                 ctx->labels[1] = y2;
                 ctx->labels[2] = y3;
-                logp = crf1dc_score(ctx) - crf1dc_lognorm(ctx);
+                logp = crf1dc_score(ctx, ctx->labels) - crf1dc_lognorm(ctx);
 
                 fprintf(fp, "Check for the sequence %d-%d-%d... ", y1, y2, y3);
                 check_values(fp, exp(logp), scores[y1][y2][y3] / norm);

@@ -52,17 +52,6 @@
 #include "logging.h"
 #include "crf1d.h"
 
-enum {
-    FTYPE_NONE = 0,
-    FTYPE_CRF1D,
-};
-
-enum {
-    ALG_NONE = 0,
-    ALG_LBFGS,
-    ALG_PEGASOS,
-    ALG_AVERAGED_PERCEPTRON,
-};
 
 
 
@@ -95,14 +84,19 @@ static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
     crf_train_internal_t *trainer = (crf_train_internal_t*)calloc(1, sizeof(crf_train_internal_t));
     trainer->lg = (logging_t*)calloc(1, sizeof(logging_t));
     trainer->params = params_create_instance();
+    trainer->feature_type = ftype;
+    trainer->algorithm = algorithm;
 
     trainer->batch = crf1dl_create_instance_batch();
     trainer->batch->exchange_options(trainer->batch, trainer->params, 0);
 
     /* Initialize parameters for the training algorithm. */
     switch (algorithm) {
-    case ALG_LBFGS:
+    case TRAIN_LBFGS:
         crf_train_lbfgs_init(trainer->params);
+        break;
+    case TRAIN_AVERAGED_PERCEPTRON:
+        crf_train_averaged_perceptron_init(trainer->params);
         break;
     }
 
@@ -157,7 +151,7 @@ static crf_params_t* crf_train_params(crf_trainer_t* self)
     return params;
 }
 
-static int crf_train_train_lbfgs(
+static int crf_train_batch(
     crf_trainer_t* self,
     const crf_sequence_t* seqs,
     int num_instances,
@@ -168,96 +162,58 @@ static int crf_train_train_lbfgs(
 {
     char *algorithm = NULL;
     crf_train_internal_t *trainer = (crf_train_internal_t*)self->internal;
+    logging_t *lg = trainer->lg;
     crf_train_batch_t *batch = trainer->batch;
+    floatval_t *w = NULL;
+    const int N = num_instances;
+    const int L = labels->num(labels);
+    const int A = attrs->num(attrs);
 
-    /* Report the parameters. */
-    logging(trainer->lg, "Training\n");
-    logging(trainer->lg, "algorithm: L-BFGS\n");
-    logging(trainer->lg, "\n");
+    /* Show the training algorithm. */
+    logging(lg, "Training\n");
+    logging(lg, "algorithm: ");
+    switch (trainer->algorithm) {
+    case TRAIN_LBFGS:
+        logging(lg, "L-BFGS");
+        break;
+    case TRAIN_AVERAGED_PERCEPTRON:
+        logging(lg, "Averaged Perceptron");
+        break;
+    }
+    logging(lg, "\n");
+    logging(lg, "\n");
 
-    crf_train_lbfgs(
-        batch,
-        trainer->params,
-        trainer->lg,
-        seqs,
-        num_instances,
-        labels->num(labels),
-        attrs->num(attrs)
-        );
+    /* Set the training set to the CRF, and generate features. */
+    batch->set_data(batch, seqs, N, L, A, lg);
 
-#if 0
-    int i, max_item_length;
-    int ret = 0;
-    floatval_t sigma = 10, *best_w = NULL;
-    crf_sequence_t* seqs = (crf_sequence_t*)instances;
-    crf1df_features_t* features = NULL;
-    crf1dl_t *crf1dt = (crf1dl_t*)trainer->internal;
-    crf_params_t *params = crf1dt->params;
-    crf1dl_option_t *opt = &crf1dt->opt;
-
-    /* Obtain the maximum number of items. */
-    max_item_length = 0;
-    for (i = 0;i < num_instances;++i) {
-        if (max_item_length < seqs[i].num_items) {
-            max_item_length = seqs[i].num_items;
-        }
+    switch (trainer->algorithm) {
+    case TRAIN_LBFGS:
+        crf_train_lbfgs(
+            batch,
+            trainer->params,
+            lg,
+            &w
+            );
+        break;
+    case TRAIN_AVERAGED_PERCEPTRON:
+        crf_train_averaged_perceptron(
+            batch,
+            trainer->params,
+            lg,
+            &w
+            );
+        break;
     }
 
-    /* Access parameters. */
-    crf1dl_exchange_options(crf1dt->params, opt, -1);
+    free(w);
 
-    /* Report the parameters. */
-    logging(crf1dt->lg, "Training first-order linear-chain CRFs (trainer.crf1m)\n");
-    logging(crf1dt->lg, "\n");
-
-    /* Generate features. */
-    logging(crf1dt->lg, "Feature generation\n");
-    logging(crf1dt->lg, "feature.minfreq: %f\n", opt->feature_minfreq);
-    logging(crf1dt->lg, "feature.possible_states: %d\n", opt->feature_possible_states);
-    logging(crf1dt->lg, "feature.possible_transitions: %d\n", opt->feature_possible_transitions);
-    crf1dt->clk_begin = clock();
-    features = crf1df_generate(
-        seqs,
-        num_instances,
-        num_labels,
-        num_attributes,
-        opt->feature_possible_states ? 1 : 0,
-        opt->feature_possible_transitions ? 1 : 0,
-        opt->feature_minfreq,
-        crf1dt->lg->func,
-        crf1dt->lg->instance
-        );
-    logging(crf1dt->lg, "Number of features: %d\n", features->num_features);
-    logging(crf1dt->lg, "Seconds required: %.3f\n", (clock() - crf1dt->clk_begin) / (double)CLOCKS_PER_SEC);
-    logging(crf1dt->lg, "\n");
-
-    /* Preparation for training. */
-    crf1dl_prepare(crf1dt, num_labels, num_attributes, max_item_length, features);
-    crf1dt->num_attributes = num_attributes;
-    crf1dt->num_labels = num_labels;
-    crf1dt->num_sequences = num_instances;
-    crf1dt->seqs = seqs;
-
-    crf1dt->tagger.internal = crf1dt;
-    crf1dt->tagger.tag = crf_train_tag;
-
-    if (strcmp(opt->algorithm, "lbfgs") == 0) {
-        ret = crf_train_lbfgs(crf1dt, opt);
-    /*} else if (strcmp(opt->algorithm, "sgd") == 0) {
-        ret = crf1dl_sgd(crf1dt, opt);*/
-    } else {
-        return CRFERR_INTERNAL_LOGIC;
-    }
-
-    return ret;
-#endif
     return 0;
 }
 
 int crf1dl_create_instance(const char *interface, void **ptr)
 {
     int ftype = FTYPE_NONE;
-    int algorithm = ALG_NONE;
+    int algorithm = TRAIN_NONE;
 
     /* Check if the interface name begins with "train/" */
     if (strncmp(interface, "train/", 6) != 0) {
@@ -274,13 +230,15 @@ int crf1dl_create_instance(const char *interface, void **ptr)
     }
 
     /* Obtain the training algorithm. */
-    if (strncmp(interface, "lbfgs", 5) == 0) {
-        algorithm = ALG_LBFGS;
+    if (strcmp(interface, "lbfgs") == 0) {
+        algorithm = TRAIN_LBFGS;
+    } else if (strcmp(interface, "averaged-perceptron") == 0) {
+        algorithm = TRAIN_AVERAGED_PERCEPTRON;
     } else {
         return 1;
     }
 
-    if (ftype != FTYPE_NONE && algorithm != ALG_NONE) {
+    if (ftype != FTYPE_NONE && algorithm != TRAIN_NONE) {
         crf_trainer_t* trainer = (crf_trainer_t*)calloc(1, sizeof(crf_trainer_t));
 
         trainer->nref = 1;
@@ -291,7 +249,7 @@ int crf1dl_create_instance(const char *interface, void **ptr)
     
         trainer->set_message_callback = crf_train_set_message_callback;
         trainer->set_evaluate_callback = crf_train_set_evaluate_callback;
-        trainer->train = crf_train_train_lbfgs;
+        trainer->train = crf_train_batch;
         trainer->internal = crf_train_new(ftype, algorithm);
 
         *ptr = trainer;
