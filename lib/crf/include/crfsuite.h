@@ -59,6 +59,9 @@ typedef struct tag_crf_dictionary crf_dictionary_t;
 struct tag_crf_params;
 typedef struct tag_crf_params crf_params_t;
 
+/**
+ * Status codes.
+ */
 enum {
     CRF_SUCCESS = 0,
     CRFERR_UNKNOWN = 0x80000000,
@@ -67,6 +70,7 @@ enum {
     CRFERR_INCOMPATIBLE,
     CRFERR_INTERNAL_LOGIC,
     CRFERR_OVERFLOW,
+    CRFERR_NOTIMPLEMENTED,
 };
 
 
@@ -81,6 +85,7 @@ typedef struct {
 
 /**
  * An item.
+ *  An item consists of an array of attribute contents.
  */
 typedef struct {
     int             num_contents;   /**< Number of contents associated with the item. */
@@ -90,6 +95,7 @@ typedef struct {
 
 /**
  * An instance (sequence of items and labels).
+ *  An instance consists of a sequence of items and labels.
  */
 typedef struct {
     int         num_items;          /**< Number of items/labels in the sequence. */
@@ -107,33 +113,39 @@ typedef struct {
     crf_instance_t*    instances;            /**< Array of instances. */
 } crf_data_t;
 
+/**
+ * A label-wise performance values.
+ */
 typedef struct {
-    int        num_correct;
-    int        num_observation;
-    int        num_model;
-    int        num_total;
-    floatval_t    precision;
-    floatval_t    recall;
-    floatval_t    fmeasure;
+    int         num_correct;        /**< Number of correct predictions. */
+    int         num_observation;    /**< Number of predictions. */
+    int         num_model;          /**< Number of occurrences in the gold-standard data. */
+    int         num_total;          /**< */
+    floatval_t  precision;          /**< Precision. */
+    floatval_t  recall;             /**< Recall. */
+    floatval_t  fmeasure;           /**< F1 score. */
 } crf_label_evaluation_t;
 
+/**
+ * An overall performance values.
+ */
 typedef struct {
-    int        num_labels;
-    crf_label_evaluation_t* tbl;
+    int         num_labels;         /**< Number of labels. */
+    crf_label_evaluation_t* tbl;    /**< Array of label-wise evaluations. */
 
-    int        item_total_correct;
-    int     item_total_num;
-    int        item_total_model;
-    int        item_total_observation;
-    floatval_t    item_accuracy;
+    int         item_total_correct;
+    int         item_total_num;
+    int         item_total_model;
+    int         item_total_observation;
+    floatval_t  item_accuracy;      /**< Item accuracy. */
 
-    int        inst_total_correct;
-    int        inst_total_num;
-    floatval_t    inst_accuracy;
+    int         inst_total_correct; /**< Number of correctly predicted instances. */
+    int         inst_total_num;     /**< Total number of instances. */
+    floatval_t  inst_accuracy;      /**< Instance accuracy. */
 
-    floatval_t    macro_precision;
-    floatval_t    macro_recall;
-    floatval_t    macro_fmeasure;
+    floatval_t  macro_precision;    /**< Macro-averaged precision. */
+    floatval_t  macro_recall;       /**< Macro-averaged recall. */
+    floatval_t  macro_fmeasure;     /**< Macro-averaged F1 score. */
 } crf_evaluation_t;
 
 

@@ -68,6 +68,8 @@ typedef struct {
     floatval_t sigma2inv;
     floatval_t* best_w;
     clock_t begin;
+    crf_evaluate_callback cbe_proc;
+    void *cbe_instance;
 } lbfgs_internal_t;
 
 static lbfgsfloatval_t lbfgs_evaluate(
@@ -136,13 +138,14 @@ static int lbfgs_progress(
     logging(lg, "Line search step: %f\n", step);
     logging(lg, "Seconds required for this iteration: %.3f\n", duration / (double)CLOCKS_PER_SEC);
 
-#if 0
     /* Send the tagger with the current parameters. */
+#if 0
     if (crf1dt->cbe_proc != NULL) {
         /* Callback notification with the tagger object. */
         int ret = crf1dt->cbe_proc(crf1dt->cbe_instance, &crf1dt->tagger);
     }
 #endif
+
     logging(lg, "\n");
 
     /* Continue. */
@@ -206,7 +209,9 @@ int crf_train_lbfgs(
     crf_train_batch_t *batch,
     crf_params_t *params,
     logging_t *lg,
-    floatval_t **ptr_w
+    floatval_t **ptr_w,
+    crf_evaluate_callback cbe_proc,
+    void *cbe_instance
     )
 {
     int i, ret;
@@ -279,6 +284,8 @@ int crf_train_lbfgs(
     /* Set other callback data. */
     lbfgsi.batch = batch;
     lbfgsi.lg = lg;
+    lbfgsi.cbe_proc = cbe_proc;
+    lbfgsi.cbe_instance = cbe_instance;
 
     /* Call the L-BFGS solver. */
     lbfgsi.begin = clock();

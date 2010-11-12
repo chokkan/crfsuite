@@ -67,8 +67,8 @@ struct tag_crf_train_internal {
     logging_t* lg;                  /**< Logging interface. */
     int feature_type;               /**< Feature type. */
     int algorithm;                  /**< Training algorithm. */
-    void *cbe_instance;
     crf_evaluate_callback cbe_proc;
+    void *cbe_instance;
 };
 
 /**
@@ -97,7 +97,9 @@ int crf_train_lbfgs(
     crf_train_batch_t *batch,
     crf_params_t *params,
     logging_t *lg,
-    floatval_t **ptr_w
+    floatval_t **ptr_w,
+    crf_evaluate_callback cbe_proc,
+    void *cbe_instance
     );
 
 void crf_train_lbfgs_init(crf_params_t* params);
@@ -108,7 +110,9 @@ int crf_train_averaged_perceptron(
     crf_train_batch_t *batch,
     crf_params_t *params,
     logging_t *lg,
-    floatval_t **ptr_w
+    floatval_t **ptr_w,
+    crf_evaluate_callback cbe_proc,
+    void *cbe_instance
     );
 
 

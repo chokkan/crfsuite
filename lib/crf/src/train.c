@@ -52,6 +52,20 @@
 #include "logging.h"
 #include "crf1d.h"
 
+static int crf_tag_notimplemented(crf_tagger_t *tagger)
+{
+    return CRFERR_NOTIMPLEMENTED;
+}
+
+static int
+crf_tag_tag(crf_tagger_t* tagger, crf_instance_t *inst, int *labels, floatval_t *ptr_score)
+{
+    crf_train_internal_t *tr = (crf_train_internal_t*)tagger->internal;
+    crf_train_batch_t *batch = tr->batch;
+
+    return batch->tag(batch, w, inst, labels, ptr_score);
+}
+
 static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
 {
     crf_train_internal_t *tr = (crf_train_internal_t*)calloc(
@@ -168,7 +182,9 @@ static int crf_train_batch(
             batch,
             tr->params,
             lg,
-            &w
+            &w,
+            tr->cbe_proc,
+            tr->cbe_instance
             );
         break;
     case TRAIN_AVERAGED_PERCEPTRON:
@@ -176,7 +192,9 @@ static int crf_train_batch(
             batch,
             tr->params,
             lg,
-            &w
+            &w,
+            tr->cbe_proc,
+            tr->cbe_instance
             );
         break;
     }
