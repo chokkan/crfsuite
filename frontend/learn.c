@@ -71,7 +71,7 @@ static void learn_option_init(learn_option_t* opt)
     memset(opt, 0, sizeof(*opt));
     opt->num_params = 0;
     opt->holdout = -1;
-    opt->model = mystrdup("crfsuite.model");
+    opt->model = mystrdup("");
     opt->algorithm = mystrdup("lbfgs");
     opt->type = mystrdup("crf1d");
 }

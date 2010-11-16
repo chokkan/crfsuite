@@ -182,6 +182,11 @@ static int crf_train_batch(
         break;
     }
 
+    /* Store the model file. */
+    if (filename != NULL && *filename != '\0') {
+        data->save_model(data, filename, w, lg);
+    }
+
     free(w);
 
     return 0;
