@@ -209,11 +209,12 @@ int crf_train_averaged_perceptron(
         logging(lg, "Loss: %f\n", loss);
         logging(lg, "Feature norm: %f\n", sqrt(vecdot(wa, wa, K)));
         logging(lg, "Seconds required for this iteration: %.3f\n", (clock() - iteration_begin) / (double)CLOCKS_PER_SEC);
-        logging(lg, "\n");
 
         if (0 <= data->holdout) {
             data->holdout_evaluation(data, wa);
         }
+
+        logging(lg, "\n");
 
         /* Convergence test. */
         if (loss / N < opt.epsilon) {

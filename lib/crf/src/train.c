@@ -153,23 +153,16 @@ static int crf_train_batch(
     const int L = labels->num(labels);
     const int A = attrs->num(attrs);
 
-    /* Show the training algorithm. */
-    logging(lg, "Training\n");
-    logging(lg, "algorithm: ");
-    switch (tr->algorithm) {
-    case TRAIN_LBFGS:
-        logging(lg, "L-BFGS");
-        break;
-    case TRAIN_AVERAGED_PERCEPTRON:
-        logging(lg, "Averaged Perceptron");
-        break;
+    /* Report the holdout group. */
+    if (0 <= holdout) {
+        logging(lg, "Holdout group: %d\n", holdout+1);
+        logging(lg, "\n");
     }
-    logging(lg, "\n");
-    logging(lg, "\n");
 
     /* Set the training set to the CRF, and generate features. */
     data->set_data(data, seqs, N, attrs, labels, holdout, lg);
 
+    /* Call the training algorithm. */
     switch (tr->algorithm) {
     case TRAIN_LBFGS:
         crf_train_lbfgs(

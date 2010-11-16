@@ -55,8 +55,9 @@ static int progress(FILE *fpo, int prev, int current)
     return prev;
 }
 
-void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, crf_dictionary_t* labels, int group)
+int read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, crf_dictionary_t* labels, int group)
 {
+    int n = 0;
     int lid = -1;
     crf_instance_t inst;
     crf_item_t item;
@@ -119,6 +120,7 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
             crf_data_append(data, &inst);
             crf_instance_finish(&inst);
             inst.group = group;
+            ++n;
             break;
         case IWA_COMMENT:
             break;
@@ -127,4 +129,6 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
 
     progress(fpo, prev, 100);
     fprintf(fpo, "\n");
+
+    return n;
 }

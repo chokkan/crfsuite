@@ -73,7 +73,7 @@ static void learn_option_init(learn_option_t* opt)
     opt->holdout = -1;
     opt->model = mystrdup("crfsuite.model");
     opt->algorithm = mystrdup("lbfgs");
-    opt->type = mystrdup("dyad");
+    opt->type = mystrdup("crf1d");
 }
 
 static void learn_option_finish(learn_option_t* opt)
@@ -101,8 +101,16 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
         opt->help = 1;
 
     ON_OPTION_WITH_ARG(SHORTOPT('a') || LONGOPT("algorithm"))
-        free(opt->algorithm);
-        opt->algorithm = mystrdup(arg);
+        if (strcmp(arg, "lbfgs") == 0) {
+            free(opt->algorithm);
+            opt->algorithm = mystrdup("lbfgs");
+        } else if (strcmp(arg, "ap") == 0 || strcmp(arg, "averaged-perceptron") == 0) {
+            free(opt->algorithm);
+            opt->algorithm = mystrdup("averaged-perceptron");
+        } else {
+            fprintf(stderr, "ERROR: Unknown algorithm: %s\n", arg);
+            return 1;
+        }
 
     ON_OPTION_WITH_ARG(SHORTOPT('f') || LONGOPT("feature"))
         free(opt->type);
@@ -139,9 +147,10 @@ static int message_callback(void *instance, const char *format, va_list args)
 
 int main_learn(int argc, char *argv[], const char *argv0)
 {
-    int i, ret = 0, arg_used = 0;
+    int i, n, ret = 0, arg_used = 0;
     time_t ts;
     char timestamp[80];
+    char trainer_id[128];
     clock_t clk_begin, clk_current;
     learn_option_t opt;
     const char *command = argv[0];
@@ -182,7 +191,8 @@ int main_learn(int argc, char *argv[], const char *argv0)
     }
 
     /* Create a trainer instance. */
-    ret = crf_create_instance("train/crf1d/lbfgs", (void**)&trainer);
+    sprintf(trainer_id, "train/%s/%s", opt.type, opt.algorithm);
+    ret = crf_create_instance(trainer_id, (void**)&trainer);
     if (!ret) {
         fprintf(fpe, "ERROR: Failed to create a trainer instance.\n");
         ret = 1;
@@ -213,7 +223,6 @@ int main_learn(int argc, char *argv[], const char *argv0)
 
     /* Read the training data. */
     fprintf(fpo, "Reading the data set(s)\n");
-    clk_begin = clock();
     for (i = arg_used;i < argc;++i) {
         FILE *fp = (strcmp(argv[i], "-") == 0) ? fpi : fopen(argv[i], "r");
         if (fp == NULL) {
@@ -222,18 +231,23 @@ int main_learn(int argc, char *argv[], const char *argv0)
             goto force_exit;        
         }
 
-        fprintf(fpo, "%d - %s\n", i-arg_used+1, argv[i]);
-        read_data(fp, fpo, &data, attrs, labels, i-arg_used);
+        fprintf(fpo, "[%d] %s\n", i-arg_used+1, argv[i]);
+        clk_begin = clock();
+        n = read_data(fp, fpo, &data, attrs, labels, i-arg_used);
+        clk_current = clock();
+        fprintf(fpo, "Number of instances: %d\n", n);
+        fprintf(fpo, "Seconds required: %.3f\n", (clk_current - clk_begin) / (double)CLOCKS_PER_SEC);
         fclose(fp);
     }
-    clk_current = clock();
+    fprintf(fpo, "\n");
 
     /* Report the statistics of the training data. */
+    fprintf(fpo, "Statistics the data set(s)\n");
+    fprintf(fpo, "Number of data sets (groups): %d\n", argc-arg_used);
     fprintf(fpo, "Number of instances: %d\n", data.num_instances);
-    fprintf(fpo, "Total number of items: %d\n", crf_data_totalitems(&data));
+    fprintf(fpo, "Number of items: %d\n", crf_data_totalitems(&data));
     fprintf(fpo, "Number of attributes: %d\n", labels->num(attrs));
     fprintf(fpo, "Number of labels: %d\n", labels->num(labels));
-    fprintf(fpo, "Seconds required: %.3f\n", (clk_current - clk_begin) / (double)CLOCKS_PER_SEC);
     fprintf(fpo, "\n");
     fflush(fpo);
 
