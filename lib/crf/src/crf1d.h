@@ -376,7 +376,7 @@ int crf1dt_tag(crf1dt_t* crf1dt, crf_instance_t *inst, int* output, floatval_t *
  */
 /** @{ */
 
-crf_train_batch_t *crf1dl_create_instance_batch();
+crf_train_data_t *crf1dl_create_instance_batch();
 
 /** @} */
 

@@ -61,9 +61,9 @@ static int
 crf_tag_tag(crf_tagger_t* tagger, crf_instance_t *inst, int *labels, floatval_t *ptr_score)
 {
     crf_train_internal_t *tr = (crf_train_internal_t*)tagger->internal;
-    crf_train_batch_t *batch = tr->batch;
-
-    return batch->tag(batch, w, inst, labels, ptr_score);
+    crf_train_data_t *batch = tr->data;
+    return CRFERR_NOTIMPLEMENTED;
+    //return batch->tag(batch, w, inst, labels, ptr_score);
 }
 
 static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
@@ -76,8 +76,8 @@ static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
         tr->feature_type = ftype;
         tr->algorithm = algorithm;
 
-        tr->batch = crf1dl_create_instance_batch();
-        tr->batch->exchange_options(tr->batch, tr->params, 0);
+        tr->data = crf1dl_create_instance_batch();
+        tr->data->exchange_options(tr->data, tr->params, 0);
 
         /* Initialize parameters for the training algorithm. */
         switch (algorithm) {
@@ -153,7 +153,7 @@ static int crf_train_batch(
     char *algorithm = NULL;
     crf_train_internal_t *tr = (crf_train_internal_t*)self->internal;
     logging_t *lg = tr->lg;
-    crf_train_batch_t *batch = tr->batch;
+    crf_train_data_t *data = tr->data;
     floatval_t *w = NULL;
     const int N = num_instances;
     const int L = labels->num(labels);
@@ -174,12 +174,12 @@ static int crf_train_batch(
     logging(lg, "\n");
 
     /* Set the training set to the CRF, and generate features. */
-    batch->set_data(batch, seqs, N, L, A, lg);
+    data->set_data(data, seqs, N, L, A, lg);
 
     switch (tr->algorithm) {
     case TRAIN_LBFGS:
         crf_train_lbfgs(
-            batch,
+            data,
             tr->params,
             lg,
             &w,
@@ -189,7 +189,7 @@ static int crf_train_batch(
         break;
     case TRAIN_AVERAGED_PERCEPTRON:
         crf_train_averaged_perceptron(
-            batch,
+            data,
             tr->params,
             lg,
             &w,

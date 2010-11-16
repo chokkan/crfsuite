@@ -99,7 +99,7 @@ void crf_train_averaged_perceptron_init(crf_params_t* params)
 }
 
 int crf_train_averaged_perceptron(
-    crf_train_batch_t *batch,
+    crf_train_data_t *batch,
     crf_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w,

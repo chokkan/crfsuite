@@ -79,7 +79,7 @@ typedef struct {
 
 typedef struct {
     crf1dl_t crf1dt;
-} batch_internal_t;
+} data_internal_t;
 
 typedef struct {
     crf1dl_t crf1dt;
@@ -731,15 +731,15 @@ error_exit:
 
 
 
-static int crf1dl_batch_exchange_options(crf_train_batch_t *self, crf_params_t* params, int mode)
+static int crf1dl_batch_exchange_options(crf_train_data_t *self, crf_params_t* params, int mode)
 {
-    batch_internal_t *batch = (batch_internal_t*)self->internal;
+    data_internal_t *batch = (data_internal_t*)self->internal;
     return crf1dl_exchange_options(params, &batch->crf1dt.opt, mode);
 }
 
-static int crf1dl_batch_set_data(crf_train_batch_t *self, const crf_instance_t *seqs, int num_instances, int num_labels, int num_attributes, logging_t *lg)
+static int crf1dl_batch_set_data(crf_train_data_t *self, const crf_instance_t *seqs, int num_instances, int num_labels, int num_attributes, logging_t *lg)
 {
-    batch_internal_t *batch = (batch_internal_t*)self->internal;
+    data_internal_t *batch = (data_internal_t*)self->internal;
     int ret = crf1dl_set_data(&batch->crf1dt, seqs, num_instances, num_labels, num_attributes, lg);
     self->seqs = seqs;
     self->num_instances = num_instances;
@@ -750,11 +750,11 @@ static int crf1dl_batch_set_data(crf_train_batch_t *self, const crf_instance_t *
     return ret;
 }
 
-static int crf1dl_batch_objective_and_gradients(crf_train_batch_t *self, const floatval_t *w, floatval_t *f, floatval_t *g)
+static int crf1dl_batch_objective_and_gradients(crf_train_data_t *self, const floatval_t *w, floatval_t *f, floatval_t *g)
 {
     int i;
     floatval_t logp = 0, logl = 0;
-    batch_internal_t *batch = (batch_internal_t*)self->internal;
+    data_internal_t *batch = (data_internal_t*)self->internal;
     crf1dl_t* crf1dt = &batch->crf1dt;
     const crf_instance_t* seqs = crf1dt->seqs;
     const int N = crf1dt->num_sequences;
@@ -805,30 +805,30 @@ static int crf1dl_batch_objective_and_gradients(crf_train_batch_t *self, const f
     return 0;
 }
 
-static int crf1dl_batch_enum_features(crf_train_batch_t *self, const crf_instance_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance)
+static int crf1dl_batch_enum_features(crf_train_data_t *self, const crf_instance_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance)
 {
-    batch_internal_t *batch = (batch_internal_t*)self->internal;
+    data_internal_t *batch = (data_internal_t*)self->internal;
     crf1dl_enum_features(&batch->crf1dt, seq, labels, func, instance);
     return 0;
 }
 
-static int crf1dl_batch_save_model(crf_train_batch_t *self, const char *filename, const floatval_t *w, crf_dictionary_t* attrs, crf_dictionary_t* labels, logging_t *lg)
+static int crf1dl_batch_save_model(crf_train_data_t *self, const char *filename, const floatval_t *w, crf_dictionary_t* attrs, crf_dictionary_t* labels, logging_t *lg)
 {
-    batch_internal_t *batch = (batch_internal_t*)self->internal;
+    data_internal_t *batch = (data_internal_t*)self->internal;
     return crf1dl_save_model(&batch->crf1dt, filename, w, attrs, labels, lg);
 }
 
-static int crf1dl_batch_tag(crf_train_batch_t *self, const floatval_t *w, const crf_instance_t *inst, int *viterbi, floatval_t *ptr_score)
+static int crf1dl_batch_tag(crf_train_data_t *self, const floatval_t *w, const crf_instance_t *inst, int *viterbi, floatval_t *ptr_score)
 {
-    batch_internal_t *batch = (batch_internal_t*)self->internal;
+    data_internal_t *batch = (data_internal_t*)self->internal;
     return crf1dl_tag(&batch->crf1dt, w, inst, viterbi, ptr_score);
 }
 
-crf_train_batch_t *crf1dl_create_instance_batch()
+crf_train_data_t *crf1dl_create_instance_batch()
 {
-    crf_train_batch_t* self = (crf_train_batch_t*)calloc(1, sizeof(crf_train_batch_t));
+    crf_train_data_t* self = (crf_train_data_t*)calloc(1, sizeof(crf_train_data_t));
     if (self != NULL) {
-        batch_internal_t *batch = (batch_internal_t*)calloc(1, sizeof(batch_internal_t));
+        data_internal_t *batch = (data_internal_t*)calloc(1, sizeof(data_internal_t));
         if (batch != NULL) {
             crf1dl_init(&batch->crf1dt);
 

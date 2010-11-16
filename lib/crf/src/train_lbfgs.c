@@ -47,8 +47,12 @@
 
 #include "logging.h"
 #include "params.h"
+#include "vecmath.h"
 #include <lbfgs.h>
 
+/**
+ * Training parameters (configurable with crf_params_t interface).
+ */
 typedef struct {
     char*       regularization;
     floatval_t  regularization_sigma;
@@ -59,10 +63,13 @@ typedef struct {
     int         max_iterations;
     char*       linesearch;
     int         linesearch_max_iterations;
-} crf1dl_lbfgs_option_t;
+} training_option_t;
 
+/**
+ * Internal data structure for the callback function of lbfgs().
+ */
 typedef struct {
-    crf_train_batch_t *batch;
+    crf_train_data_t *data;
     logging_t *lg;
     int l2_regularization;
     floatval_t sigma2inv;
@@ -83,10 +90,10 @@ static lbfgsfloatval_t lbfgs_evaluate(
     int i;
     floatval_t f, norm = 0.;
     lbfgs_internal_t *lbfgsi = (lbfgs_internal_t*)instance;
-    crf_train_batch_t *batch = lbfgsi->batch;
+    crf_train_data_t *data = lbfgsi->data;
 
     /* Compute the objective value and gradients. */
-    batch->objective_and_gradients(batch, x, &f, g);
+    data->objective_and_gradients(data, x, &f, g);
     
     /* L2 regularization. */
     if (lbfgsi->l2_regularization) {
@@ -115,14 +122,14 @@ static int lbfgs_progress(
     int i, num_active_features = 0;
     clock_t duration, clk = clock();
     lbfgs_internal_t *lbfgsi = (lbfgs_internal_t*)instance;
-    crf_train_batch_t *batch = lbfgsi->batch;
+    crf_train_data_t *data = lbfgsi->data;
     logging_t *lg = lbfgsi->lg;
 
     /* Compute the duration required for this iteration. */
     duration = clk = lbfgsi->begin;
     lbfgsi->begin = clk;
 
-    /* Set feature weights from the L-BFGS solver. */
+	/* Store the feature weight in case L-BFGS terminates with an error. */
     for (i = 0;i < n;++i) {
         lbfgsi->best_w[i] = x[i];
         if (x[i] != 0.) ++num_active_features;
@@ -152,7 +159,7 @@ static int lbfgs_progress(
     return 0;
 }
 
-int crf1dl_lbfgs_options(crf_params_t* params, crf1dl_lbfgs_option_t* opt, int mode)
+static int exchange_options(crf_params_t* params, training_option_t* opt, int mode)
 {
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_STRING(
@@ -202,11 +209,11 @@ int crf1dl_lbfgs_options(crf_params_t* params, crf1dl_lbfgs_option_t* opt, int m
 
 void crf_train_lbfgs_init(crf_params_t* params)
 {
-    crf1dl_lbfgs_options(params, NULL, 0);
+    exchange_options(params, NULL, 0);
 }
 
 int crf_train_lbfgs(
-    crf_train_batch_t *batch,
+    crf_train_data_t *data,
     crf_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w,
@@ -214,31 +221,38 @@ int crf_train_lbfgs(
     void *cbe_instance
     )
 {
-    int i, ret;
+    int i, ret = 0, lbret;
     floatval_t *w = NULL;
     clock_t begin = clock();
-    const int N = batch->num_instances;
-    const int L = batch->num_labels;
-    const int A = batch->num_attributes;
-    const int K = batch->num_features;
+    const int N = data->num_instances;
+    const int L = data->num_labels;
+    const int A = data->num_attributes;
+    const int K = data->num_features;
     lbfgs_internal_t lbfgsi;
     lbfgs_parameter_t lbfgsparam;
-    crf1dl_lbfgs_option_t opt;
+    training_option_t opt;
+
+	/* Initialize the variables. */
+	memset(&lbfgsi, 0, sizeof(lbfgsi));
+	memset(&opt, 0, sizeof(opt));
+    lbfgs_parameter_init(&lbfgsparam);
 
     /* Allocate an array that stores the current weights. */ 
     w = (floatval_t*)calloc(sizeof(floatval_t), K);
     if (w == NULL) {
-        return CRFERR_OUTOFMEMORY;
+		ret = CRFERR_OUTOFMEMORY;
+		goto error_exit;
     }
  
     /* Allocate an array that stores the best weights. */ 
     lbfgsi.best_w = (floatval_t*)calloc(sizeof(floatval_t), K);
     if (lbfgsi.best_w == NULL) {
-        return CRFERR_OUTOFMEMORY;
+		ret = CRFERR_OUTOFMEMORY;
+		goto error_exit;
     }
 
     /* Read the L-BFGS parameters. */
-    crf1dl_lbfgs_options(params, &opt, -1);
+    exchange_options(params, &opt, -1);
     logging(lg, "L-BFGS optimization\n");
     logging(lg, "regularization: %s\n", opt.regularization);
     logging(lg, "regularization.sigma: %f\n", opt.regularization_sigma);
@@ -252,7 +266,6 @@ int crf_train_lbfgs(
     logging(lg, "\n");
 
     /* Set parameters for L-BFGS. */
-    lbfgs_parameter_init(&lbfgsparam);
     lbfgsparam.m = opt.memory;
     lbfgsparam.epsilon = opt.epsilon;
     lbfgsparam.past = opt.stop;
@@ -282,14 +295,14 @@ int crf_train_lbfgs(
     }
 
     /* Set other callback data. */
-    lbfgsi.batch = batch;
+    lbfgsi.data = data;
     lbfgsi.lg = lg;
     lbfgsi.cbe_proc = cbe_proc;
     lbfgsi.cbe_instance = cbe_instance;
 
     /* Call the L-BFGS solver. */
     lbfgsi.begin = clock();
-    ret = lbfgs(
+    lbret = lbfgs(
         K,
         w,
         NULL,
@@ -298,24 +311,31 @@ int crf_train_lbfgs(
         &lbfgsi,
         &lbfgsparam
         );
-    if (ret == LBFGS_CONVERGENCE) {
+    if (lbret == LBFGS_CONVERGENCE) {
         logging(lg, "L-BFGS resulted in convergence\n");
-    } else if (ret == LBFGS_STOP) {
+    } else if (lbret == LBFGS_STOP) {
         logging(lg, "L-BFGS terminated with the stopping criteria\n");
-    } else if (ret == LBFGSERR_MAXIMUMITERATION) {
+    } else if (lbret == LBFGSERR_MAXIMUMITERATION) {
         logging(lg, "L-BFGS terminated with the maximum number of iterations\n");
     } else {
-        logging(lg, "L-BFGS terminated with error code (%d)\n", ret);
+        logging(lg, "L-BFGS terminated with error code (%d)\n", lbret);
     }
 
+	/* Restore the feature weights of the last call of lbfgs_progress(). */
+	veccopy(w, lbfgsi.best_w, K);
 
-    for (i = 0;i < K;++i) {
-        w[i] = lbfgsi.best_w[i];
-    }
-
+	/* Report the run-time for the training. */
     logging(lg, "Total seconds required for training: %.3f\n", (clock() - begin) / (double)CLOCKS_PER_SEC);
     logging(lg, "\n");
 
+	/* Exit with success. */
+	free(lbfgsi.best_w);
     *ptr_w = w;
     return 0;
+
+error_exit:
+	free(lbfgsi.best_w);
+	free(w);
+	*ptr_w = NULL;
+	return ret;
 }
