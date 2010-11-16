@@ -75,6 +75,7 @@ typedef struct {
     floatval_t sigma2inv;
     floatval_t* best_w;
     clock_t begin;
+    int holdout;
 } lbfgs_internal_t;
 
 static lbfgsfloatval_t lbfgs_evaluate(
@@ -124,7 +125,7 @@ static int lbfgs_progress(
     logging_t *lg = lbfgsi->lg;
 
     /* Compute the duration required for this iteration. */
-    duration = clk = lbfgsi->begin;
+    duration = clk - lbfgsi->begin;
     lbfgsi->begin = clk;
 
 	/* Store the feature weight in case L-BFGS terminates with an error. */
@@ -144,12 +145,9 @@ static int lbfgs_progress(
     logging(lg, "Seconds required for this iteration: %.3f\n", duration / (double)CLOCKS_PER_SEC);
 
     /* Send the tagger with the current parameters. */
-#if 0
-    if (crf1dt->cbe_proc != NULL) {
-        /* Callback notification with the tagger object. */
-        int ret = crf1dt->cbe_proc(crf1dt->cbe_instance, &crf1dt->tagger);
+    if (0 <= data->holdout) {
+        data->holdout_evaluation(data, x);
     }
-#endif
 
     logging(lg, "\n");
 

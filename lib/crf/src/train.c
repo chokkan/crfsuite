@@ -140,7 +140,8 @@ static int crf_train_batch(
     int num_instances,
     crf_dictionary_t* attrs,
     crf_dictionary_t* labels,
-    const char *filename
+    const char *filename,
+    int holdout
     )
 {
     char *algorithm = NULL;
@@ -168,7 +169,7 @@ static int crf_train_batch(
 
     /* Set the training set to the CRF, and generate features. */
     data->set_data(data, seqs, N, attrs, labels, lg);
-    data->holdout = 1;
+    data->holdout = holdout;
 
     switch (tr->algorithm) {
     case TRAIN_LBFGS:

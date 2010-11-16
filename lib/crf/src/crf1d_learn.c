@@ -768,7 +768,6 @@ static int crf1dl_batch_holdout_evaluation(crf_train_data_t *self, const floatva
 
     /* Initialize the evaluation table. */
     crf_evaluation_init(&eval, self->labels->num(self->labels));
-    crf_evaluation_clear(&eval);
 
     /*
         Set the scores (weights) of transition features here because
@@ -797,6 +796,7 @@ static int crf1dl_batch_holdout_evaluation(crf_train_data_t *self, const floatva
     }
 
     /* Report the performance. */
+    crf_evaluation_compute(&eval);
     crf_evaluation_output(&eval, self->labels, stdout);
 }
 
@@ -894,6 +894,7 @@ crf_train_data_t *crf1dl_create_instance_batch()
             self->objective_and_gradients = crf1dl_batch_objective_and_gradients;
             self->save_model = crf1dl_batch_save_model;
             self->tag = crf1dl_batch_tag;
+            self->holdout_evaluation = crf1dl_batch_holdout_evaluation;
             self->internal = batch;
         }
     }

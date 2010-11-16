@@ -118,6 +118,7 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
             /* Put the training instance. */
             crf_data_append(data, &inst);
             crf_instance_finish(&inst);
+            inst.group = group;
             break;
         case IWA_COMMENT:
             break;

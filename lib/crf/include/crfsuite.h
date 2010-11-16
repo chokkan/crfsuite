@@ -209,7 +209,7 @@ struct tag_crf_trainer {
 
     void (*set_message_callback)(crf_trainer_t* trainer, void *instance, crf_logging_callback cbm);
 
-    int (*train)(crf_trainer_t* trainer, const crf_instance_t* seqs, int num_instances, crf_dictionary_t* attrs, crf_dictionary_t* labels, const char *filename);
+    int (*train)(crf_trainer_t* trainer, const crf_instance_t* seqs, int num_instances, crf_dictionary_t* attrs, crf_dictionary_t* labels, const char *filename, int holdout);
 };
 
 struct tag_crf_tagger {

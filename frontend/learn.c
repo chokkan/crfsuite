@@ -47,11 +47,10 @@
 
 typedef struct {
     char *model;
-    char *training;
-    char *evaluation;
     char *algorithm;
     char *type;
 
+    int holdout;
     int help;
 
     int num_params;
@@ -71,6 +70,7 @@ static void learn_option_init(learn_option_t* opt)
 {
     memset(opt, 0, sizeof(*opt));
     opt->num_params = 0;
+    opt->holdout = -1;
     opt->model = mystrdup("crfsuite.model");
     opt->algorithm = mystrdup("lbfgs");
     opt->type = mystrdup("dyad");
@@ -81,8 +81,6 @@ static void learn_option_finish(learn_option_t* opt)
     int i;
 
     free(opt->model);
-    free(opt->training);
-    free(opt->evaluation);
 
     for (i = 0;i < opt->num_params;++i) {
         free(opt->params[i]);
@@ -97,8 +95,7 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
         opt->model = mystrdup(arg);
 
     ON_OPTION_WITH_ARG(SHORTOPT('t') || LONGOPT("test"))
-        free(opt->evaluation);
-        opt->evaluation = mystrdup(arg);
+        opt->holdout = atoi(arg)-1;
 
     ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
         opt->help = 1;
@@ -148,7 +145,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
     clock_t clk_begin, clk_current;
     learn_option_t opt;
     const char *command = argv[0];
-    FILE *fp = NULL, *fpi = stdin, *fpo = stdout, *fpe = stderr;
+    FILE *fpi = stdin, *fpo = stdout, *fpe = stderr;
     crf_data_t data;
     crf_trainer_t *trainer = NULL;
     crf_dictionary_t *attrs = NULL, *labels = NULL;
@@ -170,13 +167,6 @@ int main_learn(int argc, char *argv[], const char *argv0)
         goto force_exit;
     }
 
-    /* Set a training file. */
-    if (arg_used < argc) {
-        opt.training = mystrdup(argv[arg_used]);
-    } else {
-        opt.training = mystrdup("-");    /* STDIN. */
-    }
-
     /* Create dictionaries for attributes and labels. */
     ret = crf_create_instance("dictionary", (void**)&attrs);
     if (!ret) {
@@ -192,7 +182,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
     }
 
     /* Create a trainer instance. */
-    ret = crf_create_instance("train/crf1d/averaged-perceptron", (void**)&trainer);
+    ret = crf_create_instance("train/crf1d/lbfgs", (void**)&trainer);
     if (!ret) {
         fprintf(fpe, "ERROR: Failed to create a trainer instance.\n");
         ret = 1;
@@ -215,14 +205,6 @@ int main_learn(int argc, char *argv[], const char *argv0)
         params->release(params);
     }
 
-    /* Open the training data. */
-    fp = (strcmp(opt.training, "-") == 0) ? fpi : fopen(opt.training, "r");
-    if (fp == NULL) {
-        fprintf(fpe, "ERROR: Failed to open the training data.\n");
-        ret = 1;
-        goto force_exit;        
-    }
-
     /* Log the start time. */
     time(&ts);
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", gmtime(&ts));
@@ -230,11 +212,21 @@ int main_learn(int argc, char *argv[], const char *argv0)
     fprintf(fpo, "\n");
 
     /* Read the training data. */
-    fprintf(fpo, "Reading the training data\n");
+    fprintf(fpo, "Reading the data set(s)\n");
     clk_begin = clock();
-    read_data(fp, fpo, &data, attrs, labels, 0);
+    for (i = arg_used;i < argc;++i) {
+        FILE *fp = (strcmp(argv[i], "-") == 0) ? fpi : fopen(argv[i], "r");
+        if (fp == NULL) {
+            fprintf(fpe, "ERROR: Failed to open the data set: %s\n", argv[i]);
+            ret = 1;
+            goto force_exit;        
+        }
+
+        fprintf(fpo, "%d - %s\n", i-arg_used+1, argv[i]);
+        read_data(fp, fpo, &data, attrs, labels, i-arg_used);
+        fclose(fp);
+    }
     clk_current = clock();
-    if (fp != fpi) fclose(fp);
 
     /* Report the statistics of the training data. */
     fprintf(fpo, "Number of instances: %d\n", data.num_instances);
@@ -244,30 +236,6 @@ int main_learn(int argc, char *argv[], const char *argv0)
     fprintf(fpo, "Seconds required: %.3f\n", (clk_current - clk_begin) / (double)CLOCKS_PER_SEC);
     fprintf(fpo, "\n");
     fflush(fpo);
-
-    /* Read a test data if necessary */
-    if (opt.evaluation != NULL) {
-        fp = fopen(opt.evaluation, "r");
-        if (fp == NULL) {
-            fprintf(fpe, "ERROR: Failed to open the evaluation data.\n");
-            ret = 1;
-            goto force_exit;        
-        }
-
-        /* Read the test data. */
-        fprintf(fpo, "Reading the evaluation data\n");
-        clk_begin = clock();
-        read_data(fp, fpo, &data, attrs, labels, 1);
-        clk_current = clock();
-        fclose(fp);
-
-        /* Report the statistics of the test data. */
-        fprintf(fpo, "Number of instances: %d\n", data.num_instances);
-        fprintf(fpo, "Number of total items: %d\n", crf_data_totalitems(&data));
-        fprintf(fpo, "Seconds required: %.3f\n", (clk_current - clk_begin) / (double)CLOCKS_PER_SEC);
-        fprintf(fpo, "\n");
-        fflush(fpo);
-    }
 
     /* Set callback procedures that receive messages and taggers. */
     trainer->set_message_callback(trainer, NULL, message_callback);
@@ -279,7 +247,8 @@ int main_learn(int argc, char *argv[], const char *argv0)
         data.num_instances,
         attrs,
         labels,
-        opt.model
+        opt.model,
+        opt.holdout
         )) {
         goto force_exit;
     }

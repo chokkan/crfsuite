@@ -211,6 +211,10 @@ int crf_train_averaged_perceptron(
         logging(lg, "Seconds required for this iteration: %.3f\n", (clock() - iteration_begin) / (double)CLOCKS_PER_SEC);
         logging(lg, "\n");
 
+        if (0 <= batch->holdout) {
+            batch->holdout_evaluation(batch, wa);
+        }
+
         /* Convergence test. */
         if (loss / N < opt.epsilon) {
             logging(lg, "Terminated with the stopping criterion\n");
