@@ -158,6 +158,7 @@ crf1df_feature_t* crf1df_generate(
     int num_sequences,
     int num_labels,
     int num_attributes,
+    int holdout,
     int connect_all_attrs,
     int connect_all_edges,
     floatval_t minfreq,
@@ -188,6 +189,11 @@ crf1df_feature_t* crf1df_generate(
         const crf_item_t* item = NULL;
         const crf_instance_t* seq = &seqs[s];
         const int T = seq->num_items;
+
+        /* Skip holdout data. */
+        if (seq->group == holdout) {
+            continue;
+        }
 
         /* Loop over the items in the sequence. */
         for (t = 0;t < T;++t) {

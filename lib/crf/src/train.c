@@ -168,8 +168,7 @@ static int crf_train_batch(
     logging(lg, "\n");
 
     /* Set the training set to the CRF, and generate features. */
-    data->set_data(data, seqs, N, attrs, labels, lg);
-    data->holdout = holdout;
+    data->set_data(data, seqs, N, attrs, labels, holdout, lg);
 
     switch (tr->algorithm) {
     case TRAIN_LBFGS:

@@ -105,7 +105,7 @@ void crf_train_averaged_perceptron_init(crf_params_t* params)
 }
 
 int crf_train_averaged_perceptron(
-    crf_train_data_t *batch,
+    crf_train_data_t *data,
     crf_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
@@ -117,10 +117,10 @@ int crf_train_averaged_perceptron(
     floatval_t *w = NULL;
     floatval_t *ws = NULL;
     floatval_t *wa = NULL;
-    const int N = batch->num_instances;
-    const int K = batch->num_features;
-    const int T = batch->cap_items;
-    const crf_instance_t *seqs = batch->seqs;
+    const int N = data->num_instances;
+    const int K = data->num_features;
+    const int T = data->cap_items;
+    const crf_instance_t *seqs = data->seqs;
     training_option_t opt;
     update_data ud;
     clock_t begin = clock();
@@ -167,12 +167,12 @@ int crf_train_averaged_perceptron(
             const crf_instance_t *seq = &seqs[perm[n]];
 
             /* Ignore holdout data. */
-            if (seq->group == batch->holdout) {
+            if (seq->group == data->holdout) {
                 continue;
             }
 
             /* Tag the sequence with the current model. */
-            batch->tag(batch, w, seq, viterbi, &score);
+            data->tag(data, w, seq, viterbi, &score);
 
             /* Compute the number of different labels. */
             d = diff(seq->labels, viterbi, seq->num_items);
@@ -183,7 +183,7 @@ int crf_train_averaged_perceptron(
                  */
                 ud.c = 1;
                 ud.cs = c;
-                batch->enum_features(batch, seq, seq->labels, update_weights, &ud);
+                data->enum_features(data, seq, seq->labels, update_weights, &ud);
 
                 /*
                     For every feature k on the Viterbi path:
@@ -191,7 +191,7 @@ int crf_train_averaged_perceptron(
                  */
                 ud.c = -1;
                 ud.cs = -c;
-                batch->enum_features(batch, seq, viterbi, update_weights, &ud);
+                data->enum_features(data, seq, viterbi, update_weights, &ud);
 
                 /* We define the loss as the ratio of wrongly predicted labels. */
                 loss += d / (floatval_t)seq->num_items;
@@ -211,8 +211,8 @@ int crf_train_averaged_perceptron(
         logging(lg, "Seconds required for this iteration: %.3f\n", (clock() - iteration_begin) / (double)CLOCKS_PER_SEC);
         logging(lg, "\n");
 
-        if (0 <= batch->holdout) {
-            batch->holdout_evaluation(batch, wa);
+        if (0 <= data->holdout) {
+            data->holdout_evaluation(data, wa);
         }
 
         /* Convergence test. */

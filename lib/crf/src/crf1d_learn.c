@@ -453,6 +453,7 @@ crf1dl_set_data(
     int num_instances,
     int num_labels,
     int num_attributes,
+    int holdout,
     logging_t *lg
     )
 {
@@ -496,6 +497,7 @@ crf1dl_set_data(
         N,
         L,
         A,
+        holdout,
         opt->feature_possible_states ? 1 : 0,
         opt->feature_possible_transitions ? 1 : 0,
         opt->feature_minfreq,
@@ -743,11 +745,15 @@ static int crf1dl_batch_set_data(
     int num_instances,
     crf_dictionary_t *attrs,
     crf_dictionary_t *labels,
+    int holdout,
     logging_t *lg
     )
 {
+    int ret;
     data_internal_t *batch = (data_internal_t*)self->internal;
-    int ret = crf1dl_set_data(&batch->crf1dt, seqs, num_instances, labels->num(labels), attrs->num(attrs), lg);
+
+    self->holdout = holdout;
+    ret = crf1dl_set_data(&batch->crf1dt, seqs, num_instances, labels->num(labels), attrs->num(attrs), self->holdout, lg);
     self->seqs = seqs;
     self->num_instances = num_instances;
     self->attrs = attrs;

@@ -282,6 +282,7 @@ crf1df_feature_t* crf1df_generate(
     int num_sequences,
     int num_labels,
     int num_attributes,
+    int holdout,
     int connect_all_attrs,
     int connect_all_edges,
     floatval_t minfreq,
