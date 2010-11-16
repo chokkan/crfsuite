@@ -1,5 +1,5 @@
 /*
- *      Batch training with L-BFGS method.
+ *      Batch training with L-BFGS.
  *
  * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.
@@ -75,8 +75,6 @@ typedef struct {
     floatval_t sigma2inv;
     floatval_t* best_w;
     clock_t begin;
-    crf_evaluate_callback cbe_proc;
-    void *cbe_instance;
 } lbfgs_internal_t;
 
 static lbfgsfloatval_t lbfgs_evaluate(
@@ -216,17 +214,15 @@ int crf_train_lbfgs(
     crf_train_data_t *data,
     crf_params_t *params,
     logging_t *lg,
-    floatval_t **ptr_w,
-    crf_evaluate_callback cbe_proc,
-    void *cbe_instance
+    floatval_t **ptr_w
     )
 {
-    int i, ret = 0, lbret;
+    int ret = 0, lbret;
     floatval_t *w = NULL;
     clock_t begin = clock();
     const int N = data->num_instances;
-    const int L = data->num_labels;
-    const int A = data->num_attributes;
+    const int L = data->labels->num(data->labels);
+    const int A = data->attrs->num(data->attrs);
     const int K = data->num_features;
     lbfgs_internal_t lbfgsi;
     lbfgs_parameter_t lbfgsparam;
@@ -297,8 +293,6 @@ int crf_train_lbfgs(
     /* Set other callback data. */
     lbfgsi.data = data;
     lbfgsi.lg = lg;
-    lbfgsi.cbe_proc = cbe_proc;
-    lbfgsi.cbe_instance = cbe_instance;
 
     /* Call the L-BFGS solver. */
     lbfgsi.begin = clock();

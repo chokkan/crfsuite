@@ -47,27 +47,17 @@
 #include "mt19937ar.h"
 #include "vecmath.h"
 
+/**
+ * Training parameters (configurable with crf_params_t interface).
+ */
 typedef struct {
     int max_iterations;
     floatval_t epsilon;
-} option_t;
+} training_option_t;
 
-static int exchange_options(crf_params_t* params, option_t* opt, int mode)
-{
-    BEGIN_PARAM_MAP(params, mode)
-        DDX_PARAM_INT(
-            "ap.max_iterations", opt->max_iterations, 10,
-            "The maximum number of iterations."
-            )
-        DDX_PARAM_FLOAT(
-            "ap.epsilon", opt->epsilon, 0.,
-            "The stopping criterion (the average number of errors)."
-            )
-    END_PARAM_MAP()
-
-    return 0;
-}
-
+/**
+ * Internal data structure for updating (averaging) feature weights.
+ */
 typedef struct {
     floatval_t *w;
     floatval_t *ws;
@@ -93,6 +83,22 @@ static int diff(int *x, int *y, int n)
     return d;
 }
 
+static int exchange_options(crf_params_t* params, training_option_t* opt, int mode)
+{
+    BEGIN_PARAM_MAP(params, mode)
+        DDX_PARAM_INT(
+            "ap.max_iterations", opt->max_iterations, 10,
+            "The maximum number of iterations."
+            )
+        DDX_PARAM_FLOAT(
+            "ap.epsilon", opt->epsilon, 0.,
+            "The stopping criterion (the average number of errors)."
+            )
+    END_PARAM_MAP()
+
+    return 0;
+}
+
 void crf_train_averaged_perceptron_init(crf_params_t* params)
 {
     exchange_options(params, NULL, 0);
@@ -102,9 +108,7 @@ int crf_train_averaged_perceptron(
     crf_train_data_t *batch,
     crf_params_t *params,
     logging_t *lg,
-    floatval_t **ptr_w,
-    crf_evaluate_callback cbe_proc,
-    void *cbe_instance
+    floatval_t **ptr_w
     )
 {
     int n, i, c, ret = 0;
@@ -117,9 +121,12 @@ int crf_train_averaged_perceptron(
     const int K = batch->num_features;
     const int T = batch->cap_items;
     const crf_instance_t *seqs = batch->seqs;
-    option_t opt;
+    training_option_t opt;
     update_data ud;
     clock_t begin = clock();
+
+	/* Initialize the variable. */
+	memset(&ud, 0, sizeof(ud));
 
     /* Obtain parameter values. */
     exchange_options(params, &opt, -1);
@@ -145,6 +152,7 @@ int crf_train_averaged_perceptron(
     ud.w = w;
     ud.ws = ws;
 
+	/* Loop for epoch. */
     for (i = 0;i < opt.max_iterations;++i) {
         floatval_t norm = 0., loss = 0.;
         clock_t iteration_begin = clock();
@@ -152,10 +160,16 @@ int crf_train_averaged_perceptron(
         /* Shuffle the instances. */
         mt_shuffle(perm, N, 1);
 
+		/* Loop for each instance. */
         for (n = 0;n < N;++n) {
             int d = 0;
             floatval_t score;
             const crf_instance_t *seq = &seqs[perm[n]];
+
+            /* Ignore holdout data. */
+            if (seq->group == batch->holdout) {
+                continue;
+            }
 
             /* Tag the sequence with the current model. */
             batch->tag(batch, w, seq, viterbi, &score);
@@ -179,7 +193,7 @@ int crf_train_averaged_perceptron(
                 ud.cs = -c;
                 batch->enum_features(batch, seq, viterbi, update_weights, &ud);
 
-                /* The loss is the ratio of wrongly predicted labels. */
+                /* We define the loss as the ratio of wrongly predicted labels. */
                 loss += d / (floatval_t)seq->num_items;
             }
 
@@ -216,7 +230,6 @@ int crf_train_averaged_perceptron(
     return ret;
 
 error_exit:
-
     free(viterbi);
     free(wa);
     free(ws);

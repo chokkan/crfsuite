@@ -102,6 +102,7 @@ typedef struct {
     int         cap_items;          /**< Maximum number of items/labels (internal use). */
     crf_item_t  *items;             /**< Array of the item sequence. */
     int         *labels;            /**< Array of the label sequence. */
+	int         group;              /**< Group ID of the instance. */
 } crf_instance_t;
 
 /**
@@ -152,7 +153,6 @@ typedef struct {
 
 
 typedef int (*crf_logging_callback)(void *instance, const char *format, va_list args);
-typedef int (*crf_evaluate_callback)(void *instance, crf_tagger_t* tagger);
 
 
 struct tag_crf_model {
@@ -208,7 +208,6 @@ struct tag_crf_trainer {
     crf_params_t* (*params)(crf_trainer_t* trainer);
 
     void (*set_message_callback)(crf_trainer_t* trainer, void *instance, crf_logging_callback cbm);
-    void (*set_evaluate_callback)(crf_trainer_t* trainer, void *instance, crf_evaluate_callback cbe);
 
     int (*train)(crf_trainer_t* trainer, const crf_instance_t* seqs, int num_instances, crf_dictionary_t* attrs, crf_dictionary_t* labels, const char *filename);
 };

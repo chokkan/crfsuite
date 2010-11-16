@@ -185,6 +185,7 @@ void crf_instance_copy(crf_instance_t* dst, const crf_instance_t* src)
     dst->cap_items = src->cap_items;
     dst->items = (crf_item_t*)calloc(dst->num_items, sizeof(crf_item_t));
     dst->labels = (int*)calloc(dst->num_items, sizeof(int));
+    dst->group = src->group;
     for (i = 0;i < dst->num_items;++i) {
         crf_item_copy(&dst->items[i], &src->items[i]);
         dst->labels[i] = src->labels[i];
@@ -198,10 +199,12 @@ void crf_instance_swap(crf_instance_t* x, crf_instance_t* y)
     x->cap_items = y->cap_items;
     x->items = y->items;
     x->labels = y->labels;
+    x->group = y->group;
     y->num_items = tmp.num_items;
     y->cap_items = tmp.cap_items;
     y->items = tmp.items;
     y->labels = tmp.labels;
+    y->group = tmp.group;
 }
 
 int crf_instance_append(crf_instance_t* inst, const crf_item_t* item, int label)

@@ -55,7 +55,7 @@ static int progress(FILE *fpo, int prev, int current)
     return prev;
 }
 
-void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, crf_dictionary_t* labels)
+void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, crf_dictionary_t* labels, int group)
 {
     int lid = -1;
     crf_instance_t inst;
@@ -68,6 +68,7 @@ void read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, 
 
     /* Initialize the instance.*/
     crf_instance_init(&inst);
+    inst.group = group;
 
     /* Obtain the file size. */
     begin = ftell(fpi);

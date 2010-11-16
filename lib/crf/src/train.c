@@ -126,13 +126,6 @@ static void crf_train_set_message_callback(crf_trainer_t* self, void *instance, 
     tr->lg->instance = instance;
 }
 
-static void crf_train_set_evaluate_callback(crf_trainer_t* self, void *instance, crf_evaluate_callback cbe)
-{
-    crf_train_internal_t *tr = (crf_train_internal_t*)self->internal;
-    tr->cbe_instance = instance;
-    tr->cbe_proc = cbe;
-}
-
 static crf_params_t* crf_train_params(crf_trainer_t* self)
 {
     crf_train_internal_t *tr = (crf_train_internal_t*)self->internal;
@@ -174,7 +167,8 @@ static int crf_train_batch(
     logging(lg, "\n");
 
     /* Set the training set to the CRF, and generate features. */
-    data->set_data(data, seqs, N, L, A, lg);
+    data->set_data(data, seqs, N, attrs, labels, lg);
+    data->holdout = 1;
 
     switch (tr->algorithm) {
     case TRAIN_LBFGS:
@@ -182,9 +176,7 @@ static int crf_train_batch(
             data,
             tr->params,
             lg,
-            &w,
-            tr->cbe_proc,
-            tr->cbe_instance
+            &w
             );
         break;
     case TRAIN_AVERAGED_PERCEPTRON:
@@ -192,9 +184,7 @@ static int crf_train_batch(
             data,
             tr->params,
             lg,
-            &w,
-            tr->cbe_proc,
-            tr->cbe_instance
+            &w
             );
         break;
     }
@@ -243,7 +233,6 @@ int crf1dl_create_instance(const char *interface, void **ptr)
                 trainer->release = crf_train_release;
                 trainer->params = crf_train_params;
                 trainer->set_message_callback = crf_train_set_message_callback;
-                trainer->set_evaluate_callback = crf_train_set_evaluate_callback;
                 trainer->train = crf_train_batch;
 
                 *ptr = trainer;

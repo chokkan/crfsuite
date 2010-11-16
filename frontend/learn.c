@@ -133,61 +133,10 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
 
 
 
-typedef struct {
-    FILE *fpo;
-    crf_data_t* data;
-    crf_evaluation_t* eval;
-    crf_dictionary_t* attrs;
-    crf_dictionary_t* labels;
-} callback_data_t;
-
 static int message_callback(void *instance, const char *format, va_list args)
 {
-    callback_data_t* cd = (callback_data_t*)instance;
-    FILE *fpo = cd->fpo;
-    vfprintf(fpo, format, args);
-    fflush(fpo);
-    return 0;
-}
-
-static int evaluate_callback(void *instance, crf_tagger_t* tagger)
-{
-    int i, ret = 0;
-    callback_data_t* cd = (callback_data_t*)instance;
-    FILE *fpo = cd->fpo;
-    crf_data_t* data = cd->data;
-    crf_dictionary_t* labels = cd->labels;
-
-    /* Do nothing if no test data was given. */
-    if (data->num_instances == 0) {
-        return 0;
-    }
-
-    /* Clear the evaluation table. */
-    crf_evaluation_clear(cd->eval);
-
-    /* Tag the evaluation instances and accumulate the performance. */
-    for (i = 0;i < data->num_instances;++i) {
-        /* An instance to be tagged. */
-        floatval_t score = 0;
-        crf_instance_t* instance = &data->instances[i];
-        int *output = calloc(sizeof(int), instance->num_items);
-
-        /* Tag an instance (ignoring any error occurrence). */
-        ret = tagger->tag(tagger, instance, output, &score);
-
-        /* Accumulate the tagging performance. */
-        crf_evaluation_accmulate(cd->eval, instance, output);
-
-        free(output);
-    }
-
-    /* Compute the performance. */
-    crf_evaluation_compute(cd->eval);
-
-    /* Report the performance. */
-    crf_evaluation_output(cd->eval, labels, fpo);
-
+    vfprintf(stdout, format, args);
+    fflush(stdout);
     return 0;
 }
 
@@ -200,17 +149,13 @@ int main_learn(int argc, char *argv[], const char *argv0)
     learn_option_t opt;
     const char *command = argv[0];
     FILE *fp = NULL, *fpi = stdin, *fpo = stdout, *fpe = stderr;
-    callback_data_t cd;
-    crf_data_t data_train, data_test;
-    crf_evaluation_t eval;
+    crf_data_t data;
     crf_trainer_t *trainer = NULL;
     crf_dictionary_t *attrs = NULL, *labels = NULL;
 
     /* Initializations. */
     learn_option_init(&opt);
-    crf_data_init(&data_train);
-    crf_data_init(&data_test);
-    crf_evaluation_init(&eval, 0);
+    crf_data_init(&data);
 
     /* Parse the command-line option. */
     arg_used = option_parse(++argv, --argc, parse_learn_options, &opt);
@@ -287,13 +232,13 @@ int main_learn(int argc, char *argv[], const char *argv0)
     /* Read the training data. */
     fprintf(fpo, "Reading the training data\n");
     clk_begin = clock();
-    read_data(fp, fpo, &data_train, attrs, labels);
+    read_data(fp, fpo, &data, attrs, labels, 0);
     clk_current = clock();
     if (fp != fpi) fclose(fp);
 
     /* Report the statistics of the training data. */
-    fprintf(fpo, "Number of instances: %d\n", data_train.num_instances);
-    fprintf(fpo, "Total number of items: %d\n", crf_data_totalitems(&data_train));
+    fprintf(fpo, "Number of instances: %d\n", data.num_instances);
+    fprintf(fpo, "Total number of items: %d\n", crf_data_totalitems(&data));
     fprintf(fpo, "Number of attributes: %d\n", labels->num(attrs));
     fprintf(fpo, "Number of labels: %d\n", labels->num(labels));
     fprintf(fpo, "Seconds required: %.3f\n", (clk_current - clk_begin) / (double)CLOCKS_PER_SEC);
@@ -312,38 +257,26 @@ int main_learn(int argc, char *argv[], const char *argv0)
         /* Read the test data. */
         fprintf(fpo, "Reading the evaluation data\n");
         clk_begin = clock();
-        read_data(fp, fpo, &data_test, attrs, labels);
+        read_data(fp, fpo, &data, attrs, labels, 1);
         clk_current = clock();
         fclose(fp);
 
         /* Report the statistics of the test data. */
-        fprintf(fpo, "Number of instances: %d\n", data_test.num_instances);
-        fprintf(fpo, "Number of total items: %d\n", crf_data_totalitems(&data_test));
+        fprintf(fpo, "Number of instances: %d\n", data.num_instances);
+        fprintf(fpo, "Number of total items: %d\n", crf_data_totalitems(&data));
         fprintf(fpo, "Seconds required: %.3f\n", (clk_current - clk_begin) / (double)CLOCKS_PER_SEC);
         fprintf(fpo, "\n");
         fflush(fpo);
     }
 
-    /* Initialize an evaluation object. */
-    crf_evaluation_finish(&eval);
-    crf_evaluation_init(&eval, labels->num(labels));
-
-    /* Fill the callback data. */
-    cd.fpo = fpo;
-    cd.eval = &eval;
-    cd.attrs = attrs;
-    cd.labels = labels;
-    cd.data = &data_test;
-
     /* Set callback procedures that receive messages and taggers. */
-    trainer->set_message_callback(trainer, &cd, message_callback);
-    trainer->set_evaluate_callback(trainer, &cd, evaluate_callback);
+    trainer->set_message_callback(trainer, NULL, message_callback);
 
     /* Start training. */
     if (ret = trainer->train(
         trainer,
-        data_train.instances,
-        data_train.num_instances,
+        data.instances,
+        data.num_instances,
         attrs,
         labels,
         opt.model
@@ -362,9 +295,7 @@ force_exit:
     SAFE_RELEASE(labels);
     SAFE_RELEASE(attrs);
 
-    crf_data_finish(&data_test);
-    crf_data_finish(&data_train);
-    crf_evaluation_finish(&eval);
+    crf_data_finish(&data);
     learn_option_finish(&opt);
 
     return ret;
