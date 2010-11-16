@@ -211,7 +211,7 @@ int crf_train_averaged_perceptron(
         logging(lg, "Seconds required for this iteration: %.3f\n", (clock() - iteration_begin) / (double)CLOCKS_PER_SEC);
 
         if (0 <= data->holdout) {
-            data->holdout_evaluation(data, wa);
+            data->holdout_evaluation(data, wa, lg);
         }
 
         logging(lg, "\n");

@@ -236,8 +236,14 @@ output_instance(
     }
     fprintf(fpo, "\n");
 }
-    
 
+static int message_callback(void *instance, const char *format, va_list args)
+{
+    FILE *fp = (FILE*)instance;
+    vfprintf(fp, format, args);
+    fflush(fp);
+    return 0;
+}
 
 static int tag(tagger_option_t* opt, crf_model_t* model)
 {
@@ -370,7 +376,7 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
     if (opt->evaluate) {
         double sec = (clk1 - clk0) / (double)CLOCKS_PER_SEC;
         crf_evaluation_compute(&eval);
-        crf_evaluation_output(&eval, labels, fpo);
+        crf_evaluation_output(&eval, labels, message_callback, stdout);
         fprintf(fpo, "Elapsed time: %f [sec] (%.1f [instance/sec])\n", sec, N / sec);
     }
 

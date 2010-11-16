@@ -763,7 +763,7 @@ static int crf1dl_batch_set_data(
     return ret;
 }
 
-static int crf1dl_batch_holdout_evaluation(crf_train_data_t *self, const floatval_t *w)
+static int crf1dl_batch_holdout_evaluation(crf_train_data_t *self, const floatval_t *w, logging_t *lg)
 {
     int i;
     crf_evaluation_t eval;
@@ -803,7 +803,7 @@ static int crf1dl_batch_holdout_evaluation(crf_train_data_t *self, const floatva
 
     /* Report the performance. */
     crf_evaluation_compute(&eval);
-    crf_evaluation_output(&eval, self->labels, stdout);
+    crf_evaluation_output(&eval, self->labels, lg->func, lg->instance);
 }
 
 static int crf1dl_batch_objective_and_gradients(crf_train_data_t *self, const floatval_t *w, floatval_t *f, floatval_t *g)

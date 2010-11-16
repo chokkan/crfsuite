@@ -347,7 +347,7 @@ void crf_evaluation_finish(crf_evaluation_t* eval);
 void crf_evaluation_clear(crf_evaluation_t* eval);
 int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_instance_t* reference, const int* target);
 void crf_evaluation_compute(crf_evaluation_t* eval);
-void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FILE *fpo);
+void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, crf_logging_callback cbm, void *instance);
 
 
 int crf_interlocked_increment(int *count);

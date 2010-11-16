@@ -38,6 +38,7 @@
 #include <string.h>
 
 #include <crfsuite.h>
+#include "logging.h"
 
 int crf1dl_create_instance(const char *iid, void **ptr);
 int crf_dictionary_create_instance(const char *interface, void **ptr);
@@ -440,12 +441,16 @@ void crf_evaluation_compute(crf_evaluation_t* eval)
     }
 }
 
-void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FILE *fpo)
+void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, crf_logging_callback cbm, void *instance)
 {
     int i;
     const char *lstr = NULL;
+    logging_t lg;
 
-    fprintf(fpo, "Performance by label (#match, #model, #ref) (precision, recall, F1):\n");
+    lg.func = cbm;
+    lg.instance = instance;
+
+    logging(&lg, "Performance by label (#match, #model, #ref) (precision, recall, F1):\n");
 
     for (i = 0;i < eval->num_labels;++i) {
         const crf_label_evaluation_t* lev = &eval->tbl[i];
@@ -454,24 +459,24 @@ void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, FIL
         if (lstr == NULL) lstr = "[UNKNOWN]";
 
         if (lev->num_observation == 0) {
-            fprintf(fpo, "    %s: (%d, %d, %d) (******, ******, ******)\n",
+            logging(&lg, "    %s: (%d, %d, %d) (******, ******, ******)\n",
                 lstr, lev->num_correct, lev->num_model, lev->num_observation
                 );
         } else {
-            fprintf(fpo, "    %s: (%d, %d, %d) (%1.4f, %1.4f, %1.4f)\n",
+            logging(&lg, "    %s: (%d, %d, %d) (%1.4f, %1.4f, %1.4f)\n",
                 lstr, lev->num_correct, lev->num_model, lev->num_observation,
                 lev->precision, lev->recall, lev->fmeasure
                 );
         }
         labels->free(labels, lstr);
     }
-    fprintf(fpo, "Macro-average precision, recall, F1: (%f, %f, %f)\n",
+    logging(&lg, "Macro-average precision, recall, F1: (%f, %f, %f)\n",
         eval->macro_precision, eval->macro_recall, eval->macro_fmeasure
         );
-    fprintf(fpo, "Item accuracy: %d / %d (%1.4f)\n",
+    logging(&lg, "Item accuracy: %d / %d (%1.4f)\n",
         eval->item_total_correct, eval->item_total_num, eval->item_accuracy
         );
-    fprintf(fpo, "Instance accuracy: %d / %d (%1.4f)\n",
+    logging(&lg, "Instance accuracy: %d / %d (%1.4f)\n",
         eval->inst_total_correct, eval->inst_total_num, eval->inst_accuracy
         );
 }

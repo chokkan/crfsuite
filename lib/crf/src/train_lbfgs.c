@@ -146,7 +146,7 @@ static int lbfgs_progress(
 
     /* Send the tagger with the current parameters. */
     if (0 <= data->holdout) {
-        data->holdout_evaluation(data, x);
+        data->holdout_evaluation(data, x, lg);
     }
 
     logging(lg, "\n");
