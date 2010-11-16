@@ -87,11 +87,11 @@ static int exchange_options(crf_params_t* params, training_option_t* opt, int mo
 {
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_INT(
-            "ap.max_iterations", opt->max_iterations, 10,
+            "max_iterations", opt->max_iterations, 100,
             "The maximum number of iterations."
             )
         DDX_PARAM_FLOAT(
-            "ap.epsilon", opt->epsilon, 0.,
+            "epsilon", opt->epsilon, 0.,
             "The stopping criterion (the average number of errors)."
             )
     END_PARAM_MAP()
@@ -144,8 +144,8 @@ int crf_train_averaged_perceptron(
 
     /* Show the parameters. */
     logging(lg, "Averaged perceptron\n");
-    logging(lg, "ap.max_iterations: %d\n", opt.max_iterations);
-    logging(lg, "ap.epsilon: %f\n", opt.epsilon);
+    logging(lg, "max_iterations: %d\n", opt.max_iterations);
+    logging(lg, "epsilon: %f\n", opt.epsilon);
     logging(lg, "\n");
 
     c = 1;
