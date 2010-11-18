@@ -104,6 +104,9 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
         if (strcmp(arg, "lbfgs") == 0) {
             free(opt->algorithm);
             opt->algorithm = mystrdup("lbfgs");
+        } else if (strcmp(arg, "l2sgd") == 0) {
+            free(opt->algorithm);
+            opt->algorithm = mystrdup("l2sgd");
         } else if (strcmp(arg, "ap") == 0 || strcmp(arg, "averaged-perceptron") == 0) {
             free(opt->algorithm);
             opt->algorithm = mystrdup("averaged-perceptron");
@@ -177,13 +180,13 @@ int main_learn(int argc, char *argv[], const char *argv0)
     }
 
     /* Create dictionaries for attributes and labels. */
-    ret = crf_create_instance("dictionary", (void**)&attrs);
+    ret = crf_create_instance("dictionary", (void**)&data.attrs);
     if (!ret) {
         fprintf(fpe, "ERROR: Failed to create a dictionary instance.\n");
         ret = 1;
         goto force_exit;
     }
-    ret = crf_create_instance("dictionary", (void**)&labels);
+    ret = crf_create_instance("dictionary", (void**)&data.labels);
     if (!ret) {
         fprintf(fpe, "ERROR: Failed to create a dictionary instance.\n");
         ret = 1;
@@ -233,7 +236,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
 
         fprintf(fpo, "[%d] %s\n", i-arg_used+1, argv[i]);
         clk_begin = clock();
-        n = read_data(fp, fpo, &data, attrs, labels, i-arg_used);
+        n = read_data(fp, fpo, &data, i-arg_used);
         clk_current = clock();
         fprintf(fpo, "Number of instances: %d\n", n);
         fprintf(fpo, "Seconds required: %.3f\n", (clk_current - clk_begin) / (double)CLOCKS_PER_SEC);
@@ -246,21 +249,21 @@ int main_learn(int argc, char *argv[], const char *argv0)
     fprintf(fpo, "Number of data sets (groups): %d\n", argc-arg_used);
     fprintf(fpo, "Number of instances: %d\n", data.num_instances);
     fprintf(fpo, "Number of items: %d\n", crf_data_totalitems(&data));
-    fprintf(fpo, "Number of attributes: %d\n", labels->num(attrs));
-    fprintf(fpo, "Number of labels: %d\n", labels->num(labels));
+    fprintf(fpo, "Number of attributes: %d\n", data.attrs->num(data.attrs));
+    fprintf(fpo, "Number of labels: %d\n", data.labels->num(data.labels));
     fprintf(fpo, "\n");
     fflush(fpo);
 
     /* Set callback procedures that receive messages and taggers. */
     trainer->set_message_callback(trainer, NULL, message_callback);
 
+    /* Set attrs and labels to the data set. */
+    
+
     /* Start training. */
     if (ret = trainer->train(
         trainer,
-        data.instances,
-        data.num_instances,
-        attrs,
-        labels,
+        &data,
         opt.model,
         opt.holdout
         )) {
@@ -275,8 +278,8 @@ int main_learn(int argc, char *argv[], const char *argv0)
 
 force_exit:
     SAFE_RELEASE(trainer);
-    SAFE_RELEASE(labels);
-    SAFE_RELEASE(attrs);
+    SAFE_RELEASE(data.labels);
+    SAFE_RELEASE(data.attrs);
 
     crf_data_finish(&data);
     learn_option_finish(&opt);

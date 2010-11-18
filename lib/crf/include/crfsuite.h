@@ -109,9 +109,12 @@ typedef struct {
  * A data set.
  */
 typedef struct {
-    int                num_instances;        /**< Number of instances. */
-    int                cap_instances;        /**< Maximum number of instances (internal use). */
-    crf_instance_t*    instances;            /**< Array of instances. */
+    int                 num_instances;        /**< Number of instances. */
+    int                 cap_instances;        /**< Maximum number of instances (internal use). */
+    crf_instance_t*     instances;            /**< Array of instances. */
+
+    crf_dictionary_t    *attrs;
+    crf_dictionary_t    *labels;
 } crf_data_t;
 
 /**
@@ -209,7 +212,7 @@ struct tag_crf_trainer {
 
     void (*set_message_callback)(crf_trainer_t* trainer, void *instance, crf_logging_callback cbm);
 
-    int (*train)(crf_trainer_t* trainer, const crf_instance_t* seqs, int num_instances, crf_dictionary_t* attrs, crf_dictionary_t* labels, const char *filename, int holdout);
+    int (*train)(crf_trainer_t* trainer, const crf_data_t *data, const char *filename, int holdout);
 };
 
 struct tag_crf_tagger {

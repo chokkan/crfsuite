@@ -69,7 +69,9 @@ typedef struct {
  * Internal data structure for the callback function of lbfgs().
  */
 typedef struct {
-    crf_train_data_t *data;
+    graphical_model_t *gm;
+    dataset_t *trainset;
+    dataset_t *testset;
     logging_t *lg;
     int l2_regularization;
     floatval_t sigma2inv;
@@ -89,10 +91,12 @@ static lbfgsfloatval_t lbfgs_evaluate(
     int i;
     floatval_t f, norm = 0.;
     lbfgs_internal_t *lbfgsi = (lbfgs_internal_t*)instance;
-    crf_train_data_t *data = lbfgsi->data;
+    graphical_model_t *gm = lbfgsi->gm;
+    dataset_t *trainset = lbfgsi->trainset;
 
     /* Compute the objective value and gradients. */
-    data->objective_and_gradients(data, x, &f, g);
+    gm->set_weights(gm, x);
+    gm->objective_and_gradients_batch(gm, trainset, &f, g);
     
     /* L2 regularization. */
     if (lbfgsi->l2_regularization) {
@@ -121,7 +125,8 @@ static int lbfgs_progress(
     int i, num_active_features = 0;
     clock_t duration, clk = clock();
     lbfgs_internal_t *lbfgsi = (lbfgs_internal_t*)instance;
-    crf_train_data_t *data = lbfgsi->data;
+    dataset_t *testset = lbfgsi->testset;
+    graphical_model_t *gm = lbfgsi->gm;
     logging_t *lg = lbfgsi->lg;
 
     /* Compute the duration required for this iteration. */
@@ -145,8 +150,8 @@ static int lbfgs_progress(
     logging(lg, "Seconds required for this iteration: %.3f\n", duration / (double)CLOCKS_PER_SEC);
 
     /* Send the tagger with the current parameters. */
-    if (0 <= data->holdout) {
-        data->holdout_evaluation(data, x, lg);
+    if (testset != NULL) {
+        holdout_evaluation(gm, testset, x, lg);
     }
 
     logging(lg, "\n");
@@ -209,7 +214,9 @@ void crf_train_lbfgs_init(crf_params_t* params)
 }
 
 int crf_train_lbfgs(
-    crf_train_data_t *data,
+    graphical_model_t *gm,
+    dataset_t *trainset,
+    dataset_t *testset,
     crf_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
@@ -218,10 +225,10 @@ int crf_train_lbfgs(
     int ret = 0, lbret;
     floatval_t *w = NULL;
     clock_t begin = clock();
-    const int N = data->num_instances;
-    const int L = data->labels->num(data->labels);
-    const int A = data->attrs->num(data->attrs);
-    const int K = data->num_features;
+    const int N = trainset->num_instances;
+    const int L = trainset->data->labels->num(trainset->data->labels);
+    const int A =  trainset->data->attrs->num( trainset->data->attrs);
+    const int K = gm->num_features;
     lbfgs_internal_t lbfgsi;
     lbfgs_parameter_t lbfgsparam;
     training_option_t opt;
@@ -289,7 +296,9 @@ int crf_train_lbfgs(
     }
 
     /* Set other callback data. */
-    lbfgsi.data = data;
+    lbfgsi.gm = gm;
+    lbfgsi.trainset = trainset;
+    lbfgsi.testset = testset;
     lbfgsi.lg = lg;
 
     /* Call the L-BFGS solver. */

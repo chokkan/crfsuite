@@ -33,6 +33,6 @@
 #ifndef    __READDATA_H__
 #define    __READDATA_H__
 
-int read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, crf_dictionary_t* labels, int group);
+int read_data(FILE *fpi, FILE *fpo, crf_data_t* data, int group);
 
 #endif/*__READDATA_H__*/

@@ -44,7 +44,6 @@
 #include "crfsuite_internal.h"
 #include "logging.h"
 #include "params.h"
-#include "mt19937ar.h"
 #include "vecmath.h"
 
 /**
@@ -105,7 +104,9 @@ void crf_train_averaged_perceptron_init(crf_params_t* params)
 }
 
 int crf_train_averaged_perceptron(
-    crf_train_data_t *data,
+    graphical_model_t *gm,
+    dataset_t *trainset,
+    dataset_t *testset,
     crf_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
@@ -113,14 +114,12 @@ int crf_train_averaged_perceptron(
 {
     int n, i, c, ret = 0;
     int *viterbi = NULL;
-    int *perm = NULL;
     floatval_t *w = NULL;
     floatval_t *ws = NULL;
     floatval_t *wa = NULL;
-    const int N = data->num_instances;
-    const int K = data->num_features;
-    const int T = data->cap_items;
-    const crf_instance_t *seqs = data->seqs;
+    const int N = trainset->num_instances;
+    const int K = gm->num_features;
+    const int T = gm->cap_items;
     training_option_t opt;
     update_data ud;
     clock_t begin = clock();
@@ -132,12 +131,11 @@ int crf_train_averaged_perceptron(
     exchange_options(params, &opt, -1);
 
     /* Allocate arrays. */
-    perm = (int*)calloc(sizeof(int), N);
     w = (floatval_t*)calloc(sizeof(floatval_t), K);
     ws = (floatval_t*)calloc(sizeof(floatval_t), K);
     wa = (floatval_t*)calloc(sizeof(floatval_t), K);
     viterbi = (int*)calloc(sizeof(int), T);
-    if (perm == NULL || w == NULL || ws == NULL || wa == NULL || viterbi == NULL) {
+    if (w == NULL || ws == NULL || wa == NULL || viterbi == NULL) {
         ret = CRFERR_OUTOFMEMORY;
         goto error_exit;
     }
@@ -158,21 +156,19 @@ int crf_train_averaged_perceptron(
         clock_t iteration_begin = clock();
 
         /* Shuffle the instances. */
-        mt_shuffle(perm, N, 1);
+        dataset_shuffle(trainset);
 
 		/* Loop for each instance. */
         for (n = 0;n < N;++n) {
             int d = 0;
             floatval_t score;
-            const crf_instance_t *seq = &seqs[perm[n]];
+            const crf_instance_t *seq = dataset_get(trainset, n);
 
-            /* Ignore holdout data. */
-            if (seq->group == data->holdout) {
-                continue;
-            }
+            /* Set the feature weights to the graphical model. */
+            gm->set_weights(gm, w);
 
             /* Tag the sequence with the current model. */
-            data->tag(data, w, seq, viterbi, &score);
+            gm->tag(gm, seq, viterbi, &score);
 
             /* Compute the number of different labels. */
             d = diff(seq->labels, viterbi, seq->num_items);
@@ -183,7 +179,7 @@ int crf_train_averaged_perceptron(
                  */
                 ud.c = 1;
                 ud.cs = c;
-                data->enum_features(data, seq, seq->labels, update_weights, &ud);
+                gm->enum_features(gm, seq, seq->labels, update_weights, &ud);
 
                 /*
                     For every feature k on the Viterbi path:
@@ -191,7 +187,7 @@ int crf_train_averaged_perceptron(
                  */
                 ud.c = -1;
                 ud.cs = -c;
-                data->enum_features(data, seq, viterbi, update_weights, &ud);
+                gm->enum_features(gm, seq, viterbi, update_weights, &ud);
 
                 /* We define the loss as the ratio of wrongly predicted labels. */
                 loss += d / (floatval_t)seq->num_items;
@@ -210,8 +206,9 @@ int crf_train_averaged_perceptron(
         logging(lg, "Feature norm: %f\n", sqrt(vecdot(wa, wa, K)));
         logging(lg, "Seconds required for this iteration: %.3f\n", (clock() - iteration_begin) / (double)CLOCKS_PER_SEC);
 
-        if (0 <= data->holdout) {
-            data->holdout_evaluation(data, wa, lg);
+        /* Holdout evaluation if necessary. */
+        if (testset != NULL) {
+            holdout_evaluation(gm, testset, wa, lg);
         }
 
         logging(lg, "\n");
@@ -230,7 +227,6 @@ int crf_train_averaged_perceptron(
     free(viterbi);
     free(ws);
     free(w);
-    free(perm);
     *ptr_w = wa;
     return ret;
 
@@ -239,6 +235,6 @@ error_exit:
     free(wa);
     free(ws);
     free(w);
-    free(perm);
+
     return ret;
 }

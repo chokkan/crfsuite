@@ -63,8 +63,6 @@ typedef struct {
     int num_labels;                 /**< Number of distinct output labels (L). */
     int num_attributes;             /**< Number of distinct attributes (A). */
 
-    int num_sequences;              /**< The number of instances (N). */
-    const crf_instance_t* seqs;     /**< Data set (an array of instances) [N]. */
     int cap_items;                  /**< Maximum length of sequences in the data set. */
 
     int num_features;               /**< Number of distinct features (K). */
@@ -329,6 +327,60 @@ crf1dl_enum_features(
     }
 }
 
+static void
+crf1dl_observation_expectation(
+    crf1dl_t* trainer,
+    const crf_instance_t* seq,
+    const int *labels,
+    floatval_t *w,
+    const floatval_t scale
+    )
+{
+    int c, i = -1, t, r;
+    crf1d_context_t* ctx = trainer->ctx;
+    const int T = seq->num_items;
+    const int L = trainer->num_labels;
+
+    /* Loop over the items in the sequence. */
+    for (t = 0;t < T;++t) {
+        const crf_item_t *item = &seq->items[t];
+        const int j = labels[t];
+
+        /* Loop over the contents (attributes) attached to the item. */
+        for (c = 0;c < item->num_contents;++c) {
+            /* Access the list of state features associated with the attribute. */
+            int a = item->contents[c].aid;
+            const feature_refs_t *attr = ATTRIBUTE(trainer, a);
+            floatval_t value = item->contents[c].scale;
+
+            /* Loop over the state features associated with the attribute. */
+            for (r = 0;r < attr->num_features;++r) {
+                /* State feature associates the attribute #a with the label #(f->dst). */
+                int fid = attr->fids[r];
+                const crf1df_feature_t *f = FEATURE(trainer, fid);
+                if (f->dst == j) {
+                    w[fid] += value * scale;
+                    //printf("o[%d] = %f\n", fid, value * scale);
+                }
+            }
+        }
+
+        if (i != -1) {
+            const feature_refs_t *edge = TRANSITION(trainer, i);
+            for (r = 0;r < edge->num_features;++r) {
+                /* Transition feature from #i to #(f->dst). */
+                int fid = edge->fids[r];
+                const crf1df_feature_t *f = FEATURE(trainer, fid);
+                if (f->dst == j) {
+                    w[fid] += scale;
+                }
+            }
+        }
+
+        i = j;
+    }
+}
+
 /**
  * Accumulates the model expectations of features.
  *  @param  trainer     The trainer.
@@ -339,7 +391,8 @@ static void
 crf1dl_model_expectation(
     crf1dl_t* trainer,
     const crf_instance_t* seq,
-    floatval_t *w
+    floatval_t *w,
+    const floatval_t scale
     )
 {
     int a, c, i, t, r;
@@ -356,7 +409,7 @@ crf1dl_model_expectation(
         item = &seq->items[t];
         for (c = 0;c < item->num_contents;++c) {
             /* Access the attribute. */
-            floatval_t scale = item->contents[c].scale;
+            floatval_t value = item->contents[c].scale;
             a = item->contents[c].aid;
             attr = ATTRIBUTE(trainer, a);
 
@@ -364,7 +417,8 @@ crf1dl_model_expectation(
             for (r = 0;r < attr->num_features;++r) {
                 int fid = attr->fids[r];
                 crf1df_feature_t *f = FEATURE(trainer, fid);
-                w[fid] += prob[f->dst] * scale;
+                //printf("m[%d] = %f\n", fid, prob[f->dst] * value * scale);
+                w[fid] += prob[f->dst] * value * scale;
             }
         }
     }
@@ -377,7 +431,8 @@ crf1dl_model_expectation(
             /* Transition feature from #i to #(f->dst). */
             int fid = edge->fids[r];
             crf1df_feature_t *f = FEATURE(trainer, fid);
-            w[fid] += prob[f->dst];
+            w[fid] += prob[f->dst] * scale;
+            //printf("m[%d] = %f\n", fid, prob[f->dst] * scale);
         }
     }
 }
@@ -449,11 +504,9 @@ static int crf1dl_exchange_options(crf_params_t* params, crf1dl_option_t* opt, i
 static int
 crf1dl_set_data(
     crf1dl_t *crf1dt,
-    const crf_instance_t *seqs,
-    int num_instances,
+    dataset_t *ds,
     int num_labels,
     int num_attributes,
-    int holdout,
     logging_t *lg
     )
 {
@@ -462,18 +515,17 @@ crf1dl_set_data(
     int T = 0;
     const int L = num_labels;
     const int A = num_attributes;
-    const int N = num_instances;
+    const int N = ds->num_instances;
     crf1dl_option_t *opt = &crf1dt->opt;
 
-    crf1dt->seqs = seqs;
-    crf1dt->num_sequences = N;
     crf1dt->num_attributes = A;
     crf1dt->num_labels = L;
 
     /* Find the maximum length of items. */
     for (i = 0;i < N;++i) {
-        if (T < seqs[i].num_items) {
-            T = seqs[i].num_items;
+        const crf_instance_t *inst = dataset_get(ds, i);
+        if (T < inst->num_items) {
+            T = inst->num_items;
         }
     }
 
@@ -493,11 +545,9 @@ crf1dl_set_data(
     begin = clock();
     crf1dt->features = crf1df_generate(
         &crf1dt->num_features,
-        seqs,
-        N,
+        ds,
         L,
         A,
-        holdout,
         opt->feature_possible_states ? 1 : 0,
         opt->feature_possible_transitions ? 1 : 0,
         opt->feature_minfreq,
@@ -733,87 +783,133 @@ error_exit:
 
 
 
-static int crf1dl_batch_exchange_options(crf_train_data_t *self, crf_params_t* params, int mode)
+static int crf1dl_batch_exchange_options(graphical_model_t *self, crf_params_t* params, int mode)
 {
     data_internal_t *batch = (data_internal_t*)self->internal;
     return crf1dl_exchange_options(params, &batch->crf1dt.opt, mode);
 }
 
 static int crf1dl_batch_set_data(
-    crf_train_data_t *self,
-    const crf_instance_t *seqs,
-    int num_instances,
-    crf_dictionary_t *attrs,
-    crf_dictionary_t *labels,
-    int holdout,
+    graphical_model_t *self,
+    dataset_t *ds,
     logging_t *lg
     )
 {
     int ret;
     data_internal_t *batch = (data_internal_t*)self->internal;
 
-    self->holdout = holdout;
-    ret = crf1dl_set_data(&batch->crf1dt, seqs, num_instances, labels->num(labels), attrs->num(attrs), self->holdout, lg);
-    self->seqs = seqs;
-    self->num_instances = num_instances;
-    self->attrs = attrs;
-    self->labels = labels;
+    ret = crf1dl_set_data(
+        &batch->crf1dt,
+        ds,
+        ds->data->labels->num(ds->data->labels),
+        ds->data->attrs->num(ds->data->attrs),
+        lg);
+    self->ds = ds;
     self->num_features = batch->crf1dt.num_features;
     self->cap_items = batch->crf1dt.ctx->cap_items;
     return ret;
 }
 
-static int crf1dl_batch_holdout_evaluation(crf_train_data_t *self, const floatval_t *w, logging_t *lg)
+static int crf1dl_batch_set_weights(
+    graphical_model_t *self,
+    const floatval_t *w
+    )
 {
-    int i;
-    crf_evaluation_t eval;
-    data_internal_t *batch = (data_internal_t*)self->internal;
-    crf1dl_t* crf1dt = &batch->crf1dt;
-    const crf_instance_t* seqs = crf1dt->seqs;
-    const int N = crf1dt->num_sequences;
-
-    /* Initialize the evaluation table. */
-    crf_evaluation_init(&eval, self->labels->num(self->labels));
-
-    /*
-        Set the scores (weights) of transition features here because
-        these are independent of input label sequences.
-     */
-    crf1dc_reset(crf1dt->ctx, RF_TRANS);
-    crf1dl_transition_score(crf1dt, w);
-
-    for (i = 0;i < N;++i) {
-        const crf_instance_t* seq = &seqs[i];
-
-        /* Use holdout data only. */
-        if (seq->group != self->holdout) {
-            continue;
-        }
-
-        /* Set label sequences and state scores. */
-        crf1dc_set_num_items(crf1dt->ctx, seq->num_items);
-        crf1dc_reset(crf1dt->ctx, RF_STATE);
-        crf1dl_state_score(crf1dt, seq, w);
-
-        /* Tag the current instance. */
-        crf1dc_viterbi(crf1dt->ctx);
-
-        crf_evaluation_accmulate(&eval, seq, crf1dt->ctx->labels);
-    }
-
-    /* Report the performance. */
-    crf_evaluation_compute(&eval);
-    crf_evaluation_output(&eval, self->labels, lg->func, lg->instance);
+    self->w = w;
+    return 0;
 }
 
-static int crf1dl_batch_objective_and_gradients(crf_train_data_t *self, const floatval_t *w, floatval_t *f, floatval_t *g)
+static int crf1dl_batch_objective(
+    graphical_model_t *self,
+    const crf_instance_t *inst,
+    floatval_t *f
+    )
+{
+    int i, j;
+    floatval_t logp = 0, logl = 0;
+    data_internal_t *batch = (data_internal_t*)self->internal;
+    const floatval_t *w = self->w;
+    crf1dl_t* crf1dt = &batch->crf1dt;
+
+    crf1dc_reset(crf1dt->ctx, RF_TRANS | RF_STATE);
+
+    /* Set */
+    crf1dl_transition_score_scaled(crf1dt, w, 1.);
+    crf1dc_exp_transition(crf1dt->ctx);
+
+    /* Set label sequences and state scores. */
+    crf1dc_set_num_items(crf1dt->ctx, inst->num_items);
+    crf1dl_state_score_scaled(crf1dt, inst, w, 1.);
+    crf1dc_exp_state(crf1dt->ctx);
+
+    /* Compute forward/backward scores. */
+    crf1dc_alpha_score(crf1dt->ctx);
+    crf1dc_beta_score(crf1dt->ctx);
+    crf1dc_marginal(crf1dt->ctx);
+
+    /* Compute the probability of the input sequence on the model. */
+    logp = crf1dc_score(crf1dt->ctx, inst->labels) - crf1dc_lognorm(crf1dt->ctx);
+    *f = -logp;
+    return 0;
+}
+
+
+static int crf1dl_batch_objective_and_gradients(
+    graphical_model_t *self,
+    const crf_instance_t *inst,
+    floatval_t *f,
+    floatval_t *g,
+    floatval_t scale,
+    floatval_t gain
+    )
+{
+    int i, j;
+    floatval_t logp = 0, logl = 0;
+    data_internal_t *batch = (data_internal_t*)self->internal;
+    const floatval_t *w = self->w;
+    crf1dl_t* crf1dt = &batch->crf1dt;
+
+    crf1dc_reset(crf1dt->ctx, RF_TRANS | RF_STATE);
+
+    /* Set */
+    crf1dl_transition_score_scaled(crf1dt, w, scale);
+    crf1dc_exp_transition(crf1dt->ctx);
+
+    /* Set label sequences and state scores. */
+    crf1dc_set_num_items(crf1dt->ctx, inst->num_items);
+    crf1dl_state_score_scaled(crf1dt, inst, w, scale);
+    crf1dc_exp_state(crf1dt->ctx);
+
+    /* Compute forward/backward scores. */
+    crf1dc_alpha_score(crf1dt->ctx);
+    crf1dc_beta_score(crf1dt->ctx);
+    crf1dc_marginal(crf1dt->ctx);
+
+    /* Compute the probability of the input sequence on the model. */
+    logp = crf1dc_score(crf1dt->ctx, inst->labels) - crf1dc_lognorm(crf1dt->ctx);
+
+    /* Update the model expectations of features. */
+    crf1dl_observation_expectation(crf1dt, inst, inst->labels, g, gain);
+    /*for (i = 0;i < crf1dt->num_features;++i) {
+        printf("o[%d] = %f\n", i, g[i]);
+    }*/
+    crf1dl_model_expectation(crf1dt, inst, g, -gain);
+    /*for (i = 0;i < crf1dt->num_features;++i) {
+        printf("w[%d] = %f\n", i, g[i]);
+    }*/
+
+    *f = -logp;
+    return 0;
+}
+
+static int crf1dl_batch_objective_and_gradients_batch(graphical_model_t *self, dataset_t *ds, floatval_t *f, floatval_t *g)
 {
     int i;
     floatval_t logp = 0, logl = 0;
     data_internal_t *batch = (data_internal_t*)self->internal;
+    const floatval_t *w = self->w;
     crf1dl_t* crf1dt = &batch->crf1dt;
-    const crf_instance_t* seqs = crf1dt->seqs;
-    const int N = crf1dt->num_sequences;
+    const int N = ds->num_instances;
     const int K = crf1dt->num_features;
 
     /*
@@ -836,12 +932,7 @@ static int crf1dl_batch_objective_and_gradients(crf_train_data_t *self, const fl
         Compute model expectations.
      */
     for (i = 0;i < N;++i) {
-        const crf_instance_t* seq = &seqs[i];
-
-        /* Ignore holdout data. */
-        if (seq->group == self->holdout) {
-            continue;
-        }
+        const crf_instance_t *seq = dataset_get(ds, i);
 
         /* Set label sequences and state scores. */
         crf1dc_set_num_items(crf1dt->ctx, seq->num_items);
@@ -860,35 +951,35 @@ static int crf1dl_batch_objective_and_gradients(crf_train_data_t *self, const fl
         logl += logp;
 
         /* Update the model expectations of features. */
-        crf1dl_model_expectation(crf1dt, seq, g);
+        crf1dl_model_expectation(crf1dt, seq, g, 1.);
     }
 
     *f = -logl;
     return 0;
 }
 
-static int crf1dl_batch_enum_features(crf_train_data_t *self, const crf_instance_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance)
+static int crf1dl_batch_enum_features(graphical_model_t *self, const crf_instance_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance)
 {
     data_internal_t *batch = (data_internal_t*)self->internal;
     crf1dl_enum_features(&batch->crf1dt, seq, labels, func, instance);
     return 0;
 }
 
-static int crf1dl_batch_save_model(crf_train_data_t *self, const char *filename, const floatval_t *w, logging_t *lg)
+static int crf1dl_batch_save_model(graphical_model_t *self, const char *filename, const floatval_t *w, logging_t *lg)
 {
     data_internal_t *batch = (data_internal_t*)self->internal;
-    return crf1dl_save_model(&batch->crf1dt, filename, w, self->attrs, self->labels, lg);
+    return crf1dl_save_model(&batch->crf1dt, filename, w, self->ds->data->attrs,  self->ds->data->labels, lg);
 }
 
-static int crf1dl_batch_tag(crf_train_data_t *self, const floatval_t *w, const crf_instance_t *inst, int *viterbi, floatval_t *ptr_score)
+static int crf1dl_batch_tag(graphical_model_t *self,const crf_instance_t *inst, int *viterbi, floatval_t *ptr_score)
 {
     data_internal_t *batch = (data_internal_t*)self->internal;
-    return crf1dl_tag(&batch->crf1dt, w, inst, viterbi, ptr_score);
+    return crf1dl_tag(&batch->crf1dt, self->w, inst, viterbi, ptr_score);
 }
 
-crf_train_data_t *crf1dl_create_instance_batch()
+graphical_model_t *crf1dl_create_instance_batch()
 {
-    crf_train_data_t* self = (crf_train_data_t*)calloc(1, sizeof(crf_train_data_t));
+    graphical_model_t* self = (graphical_model_t*)calloc(1, sizeof(graphical_model_t));
     if (self != NULL) {
         data_internal_t *batch = (data_internal_t*)calloc(1, sizeof(data_internal_t));
         if (batch != NULL) {
@@ -896,11 +987,13 @@ crf_train_data_t *crf1dl_create_instance_batch()
 
             self->exchange_options = crf1dl_batch_exchange_options;
             self->set_data = crf1dl_batch_set_data;
+            self->set_weights = crf1dl_batch_set_weights;
             self->enum_features = crf1dl_batch_enum_features;
+            self->objective = crf1dl_batch_objective;
             self->objective_and_gradients = crf1dl_batch_objective_and_gradients;
+            self->objective_and_gradients_batch = crf1dl_batch_objective_and_gradients_batch;
             self->save_model = crf1dl_batch_save_model;
             self->tag = crf1dl_batch_tag;
-            self->holdout_evaluation = crf1dl_batch_holdout_evaluation;
             self->internal = batch;
         }
     }

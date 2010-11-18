@@ -154,11 +154,9 @@ featureset_generate(
 
 crf1df_feature_t* crf1df_generate(
     int *ptr_num_features,
-    const crf_instance_t *seqs,
-    int num_sequences,
+    dataset_t *ds,
     int num_labels,
     int num_attributes,
-    int holdout,
     int connect_all_attrs,
     int connect_all_edges,
     floatval_t minfreq,
@@ -170,7 +168,7 @@ crf1df_feature_t* crf1df_generate(
     crf1df_feature_t f;
     crf1df_feature_t *features = NULL;
     featureset_t* set = NULL;
-    const int N = num_sequences;
+    const int N = ds->num_instances;
     const int L = num_labels;
     logging_t lg;
 
@@ -187,13 +185,8 @@ crf1df_feature_t* crf1df_generate(
     for (s = 0;s < N;++s) {
         int prev = L, cur = 0;
         const crf_item_t* item = NULL;
-        const crf_instance_t* seq = &seqs[s];
+        const crf_instance_t* seq = dataset_get(ds, s);
         const int T = seq->num_items;
-
-        /* Skip holdout data. */
-        if (seq->group == holdout) {
-            continue;
-        }
 
         /* Loop over the items in the sequence. */
         for (t = 0;t < T;++t) {

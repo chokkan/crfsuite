@@ -47,10 +47,113 @@
 #include <crfsuite.h>
 #include "crfsuite_internal.h"
 #include "params.h"
-#include "mt19937ar.h"
 
 #include "logging.h"
 #include "crf1d.h"
+
+void dataset_init_trainset(dataset_t *ds, crf_data_t *data, int holdout)
+{
+    int i, n = 0;
+
+    for (i = 0;i < data->num_instances;++i) {
+        if (data->instances[i].group != holdout) {
+            ++n;
+        }
+    }
+
+    ds->data = data;
+    ds->num_instances = n;
+    ds->perm = (int*)malloc(sizeof(int) * n);
+
+    n = 0;
+    for (i = 0;i < data->num_instances;++i) {
+        if (data->instances[i].group != holdout) {
+            ds->perm[n++] = i;
+        }
+    }    
+}
+
+void dataset_init_testset(dataset_t *ds, crf_data_t *data, int holdout)
+{
+    int i, n = 0;
+
+    for (i = 0;i < data->num_instances;++i) {
+        if (data->instances[i].group == holdout) {
+            ++n;
+        }
+    }
+
+    ds->data = data;
+    ds->num_instances = n;
+    ds->perm = (int*)malloc(sizeof(int) * n);
+
+    n = 0;
+    for (i = 0;i < data->num_instances;++i) {
+        if (data->instances[i].group == holdout) {
+            ds->perm[n++] = i;
+        }
+    }
+}
+
+void dataset_finish(dataset_t *ds)
+{
+    free(ds->perm);
+}
+
+void dataset_shuffle(dataset_t *ds)
+{
+    int i;
+    for (i = 0;i < ds->num_instances;++i) {
+        int j = rand() % ds->num_instances;
+        int tmp = ds->perm[j];
+        ds->perm[j] = ds->perm[i];
+        ds->perm[i] = tmp;
+    }
+}
+
+crf_instance_t *dataset_get(dataset_t *ds, int i)
+{
+    return &ds->data->instances[ds->perm[i]];
+}
+
+
+void holdout_evaluation(
+    graphical_model_t *gm,
+    dataset_t *ds,
+    const floatval_t *w,
+    logging_t *lg
+    )
+{
+    int i;
+    crf_evaluation_t eval;
+    const int N = ds->num_instances;
+    int *viterbi = NULL;
+    int max_length = 0;
+
+    /* Initialize the evaluation table. */
+    crf_evaluation_init(&eval, ds->data->labels->num(ds->data->labels));
+
+    gm->set_weights(gm, w);
+
+    for (i = 0;i < N;++i) {
+        floatval_t score;
+        const crf_instance_t *inst = dataset_get(ds, i);
+
+        if (max_length < inst->num_items) {
+            free(viterbi);
+            viterbi = (int*)malloc(sizeof(int) * inst->num_items);
+        }
+
+        gm->tag(gm, inst, viterbi, &score);
+
+        crf_evaluation_accmulate(&eval, inst, viterbi);
+    }
+
+    /* Report the performance. */
+    crf_evaluation_compute(&eval);
+    crf_evaluation_output(&eval, ds->data->labels, lg->func, lg->instance);
+}
+
 
 static int crf_tag_notimplemented(crf_tagger_t *tagger)
 {
@@ -61,7 +164,7 @@ static int
 crf_tag_tag(crf_tagger_t* tagger, crf_instance_t *inst, int *labels, floatval_t *ptr_score)
 {
     crf_train_internal_t *tr = (crf_train_internal_t*)tagger->internal;
-    crf_train_data_t *batch = tr->data;
+    graphical_model_t *batch = tr->data;
     return CRFERR_NOTIMPLEMENTED;
     //return batch->tag(batch, w, inst, labels, ptr_score);
 }
@@ -83,6 +186,9 @@ static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
         switch (algorithm) {
         case TRAIN_LBFGS:
             crf_train_lbfgs_init(tr->params);
+            break;
+        case TRAIN_L2SGD:
+            crf_train_l2sgd_init(tr->params);
             break;
         case TRAIN_AVERAGED_PERCEPTRON:
             crf_train_averaged_perceptron_init(tr->params);
@@ -136,10 +242,7 @@ static crf_params_t* crf_train_params(crf_trainer_t* self)
 
 static int crf_train_batch(
     crf_trainer_t* self,
-    const crf_instance_t* seqs,
-    int num_instances,
-    crf_dictionary_t* attrs,
-    crf_dictionary_t* labels,
+    const crf_data_t *data,
     const char *filename,
     int holdout
     )
@@ -147,26 +250,39 @@ static int crf_train_batch(
     char *algorithm = NULL;
     crf_train_internal_t *tr = (crf_train_internal_t*)self->internal;
     logging_t *lg = tr->lg;
-    crf_train_data_t *data = tr->data;
+    graphical_model_t *gm = tr->data;
     floatval_t *w = NULL;
-    const int N = num_instances;
-    const int L = labels->num(labels);
-    const int A = attrs->num(attrs);
+    dataset_t trainset;
+    dataset_t testset;
 
-    /* Report the holdout group. */
+    /* Prepare the data set(s) for training (and holdout evaluation). */
+    dataset_init_trainset(&trainset, (crf_data_t*)data, holdout);
     if (0 <= holdout) {
+        dataset_init_testset(&testset, (crf_data_t*)data, holdout);
         logging(lg, "Holdout group: %d\n", holdout+1);
         logging(lg, "\n");
     }
 
     /* Set the training set to the CRF, and generate features. */
-    data->set_data(data, seqs, N, attrs, labels, holdout, lg);
+    gm->set_data(gm, &trainset, lg);
 
     /* Call the training algorithm. */
     switch (tr->algorithm) {
     case TRAIN_LBFGS:
         crf_train_lbfgs(
-            data,
+            gm,
+            &trainset,
+            (holdout != -1 ? &testset : NULL),
+            tr->params,
+            lg,
+            &w
+            );
+        break;
+    case TRAIN_L2SGD:
+        crf_train_l2sgd(
+            gm,
+            &trainset,
+            (holdout != -1 ? &testset : NULL),
             tr->params,
             lg,
             &w
@@ -174,7 +290,9 @@ static int crf_train_batch(
         break;
     case TRAIN_AVERAGED_PERCEPTRON:
         crf_train_averaged_perceptron(
-            data,
+            gm,
+            &trainset,
+            (holdout != -1 ? &testset : NULL),
             tr->params,
             lg,
             &w
@@ -184,7 +302,7 @@ static int crf_train_batch(
 
     /* Store the model file. */
     if (filename != NULL && *filename != '\0') {
-        data->save_model(data, filename, w, lg);
+        gm->save_model(gm, filename, w, lg);
     }
 
     free(w);
@@ -214,6 +332,8 @@ int crf1dl_create_instance(const char *interface, void **ptr)
     /* Obtain the training algorithm. */
     if (strcmp(interface, "lbfgs") == 0) {
         algorithm = TRAIN_LBFGS;
+    } else if (strcmp(interface, "l2sgd") == 0) {
+        algorithm = TRAIN_L2SGD;
     } else if (strcmp(interface, "averaged-perceptron") == 0) {
         algorithm = TRAIN_AVERAGED_PERCEPTRON;
     } else {

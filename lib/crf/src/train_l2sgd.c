@@ -1,5 +1,5 @@
 /*
- *      Online training with Pegasos.
+ *      Online training with L2-regularized Stochastic Gradient Descent (SGD).
  *
  * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.
@@ -109,74 +109,24 @@
 #include "logging.h"
 #include "params.h"
 #include "crf1d.h"
+#include "vecmath.h"
 
 #define MIN(a, b)   ((a) < (b) ? (a) : (b))
 
 typedef struct {
-    /** The square of the feature L2 norm. */
-    floatval_t  norm2;
-    /** Scaling factor for updating weights. */
-    floatval_t  gain;
-} sgd_internal_t;
+    floatval_t  sigma;
+    floatval_t  lambda;
+    floatval_t  t0;
+    int         max_iterations;
+    int         period;
+    floatval_t  delta;
+    floatval_t  calibration_eta;
+    floatval_t  calibration_rate;
+    int         calibration_samples;
+    int         calibration_candidates;
+} training_option_t;
 
-#define SGD_INTERNAL(crf1ml)    ((sgd_internal_t*)((crf1ml)->solver_data))
-
-inline void initialize_weights(crf1ml_t* crf1ml)
-{
-    int i;
-    floatval_t *w = crf1ml->w;
-    sgd_internal_t *sgdi = SGD_INTERNAL(crf1ml);
-
-    for (i = 0;i < crf1ml->num_features;++i) {
-        w[i] = 0.;
-    }
-    sgdi->norm2 = 0;
-}
-
-inline void
-update_weight(
-    sgd_internal_t* sgdi,
-    floatval_t* w,
-    const int fid,
-    floatval_t a
-    )
-{
-    floatval_t w0 = w[fid];
-    w[fid] += a;
-    sgdi->norm2 += a * (a + w0 + w0);
-}
-
-inline static void update_feature_weights(
-    crf1ml_feature_t* f,
-    const int fid,
-    floatval_t prob,
-    floatval_t scale,
-    crf1ml_t* trainer,
-    const crf_sequence_t* seq,
-    int t
-    )
-{
-    floatval_t *w = trainer->w;
-    sgd_internal_t* sgdi = SGD_INTERNAL(trainer);
-
-    /* Subtract the model expectation from the weight. */
-    update_weight(sgdi, w, fid, -sgdi->gain * prob * scale);
-
-    switch (f->type) {
-    case FT_STATE:      /**< State features. */
-        if (f->dst == seq->items[t].label) {
-            update_weight(sgdi, w, fid, sgdi->gain * scale);
-        }
-        break;
-    case FT_TRANS:      /**< Transition features. */
-        if (f->src == seq->items[t].label &&
-            f->dst == seq->items[t+1].label) {
-            update_weight(sgdi, w, fid, sgdi->gain * scale);
-        }
-        break;
-    }
-}
-
+#if 0
 static floatval_t
 compute_loglikelihood(
     crf1ml_t* crf1mt,
@@ -221,12 +171,15 @@ compute_loglikelihood(
 
     return logp - 0.5 * lambda * norm * N;
 }
-
+#endif
 
 
 static int l2sgd(
-    crf1ml_t* crf1mt,
-    int *perm,
+    graphical_model_t *gm,
+    dataset_t *trainset,
+    dataset_t *testset,
+    floatval_t *w,
+    logging_t *lg,
     const int N,
     const floatval_t t0,
     const floatval_t lambda,
@@ -237,19 +190,18 @@ static int l2sgd(
     floatval_t *ptr_logp
     )
 {
-    int i, epoch, ret = 0;
+    int i, j, epoch, ret = 0, s = 0;
     floatval_t t = 0;
-    floatval_t logp = 0;
-    floatval_t best_logp = -DBL_MAX;
+    floatval_t loss = 0, sum_loss = 0;
+    floatval_t best_sum_loss = DBL_MAX;
     clock_t clk_prev;
-    crf_sequence_t *seq, *seqs = crf1mt->seqs;
-    floatval_t* w = crf1mt->w;
+    const crf_instance_t *seq;
     floatval_t* best_w = NULL;
-    const int K = crf1mt->num_features;
-    floatval_t eta, scale, boundary;
+    const int K = gm->num_features;
+    floatval_t eta, scale, gain;
     floatval_t decay = 1., proj = 1.;
-    sgd_internal_t* sgdi = SGD_INTERNAL(crf1mt);
     floatval_t improvement = 0.;
+    floatval_t norm2 = 0.;
     floatval_t *pf = NULL;
 
     if (!calibration) {
@@ -263,112 +215,96 @@ static int l2sgd(
     /* Loop for epochs. */
     for (epoch = 1;epoch <= num_epochs;++epoch) {
         if (!calibration) {
-            logging(crf1mt->lg, "***** Epoch #%d *****\n", epoch);
+            logging(lg, "***** Epoch #%d *****\n", epoch);
         }
         clk_prev = clock();
 
         if (!calibration) {
-            /* Generate a permutation that shuffles the instances. */
-            crf1ml_shuffle(perm, N, 0);
+            /* Shuffle the instances. */
+            dataset_shuffle(trainset);
         }
 
         /* Loop for instances. */
-        logp = 0.;
+        sum_loss = 0.;
         for (i = 0;i < N;++i) {
-            seq = &seqs[perm[i]];
+            const crf_instance_t *seq = dataset_get(trainset, i);
 
             /* Update various factors. */
             eta = 1 / (lambda * (t0 + t));
             decay *= (1.0 - eta * lambda);
             scale = decay * proj;
-            sgdi->gain = eta / scale;
+            gain = eta / scale;
 
-            /* Set transition scores. */
-            crf1mc_reset(crf1mt->ctx, RF_TRANS);
-            crf1ml_transition_score_scaled(crf1mt, w, K, scale);
-            crf1mc_exp_transition(crf1mt->ctx);
-
-            /* Set label sequences and state scores. */
-            crf1ml_set_labels(crf1mt, seq);
-            crf1mc_reset(crf1mt->ctx, RF_STATE);
-            crf1ml_state_score_scaled(crf1mt, seq, w, K, scale);
-            crf1mc_exp_state(crf1mt->ctx);
-
-            /* Compute forward/backward scores. */
-            crf1mc_alpha_score(crf1mt->ctx);
-            crf1mc_beta_score(crf1mt->ctx);
-            crf1mc_marginal(crf1mt->ctx);
-
-            /* Compute the probability of the input sequence on the model. */
-            logp += crf1mc_score(crf1mt->ctx) - crf1mc_lognorm(crf1mt->ctx);
-
-            /* Update the feature weights. */
-            crf1ml_enum_features(crf1mt, seq, update_feature_weights);
-
-            /* Project feature weights in the L2-ball. */
-            boundary = sgdi->norm2 * scale * scale * lambda;
-            if (1. < boundary) {
-                proj = 1.0 / sqrt(boundary);
+            /*
+            if (!calibration) {
+                for (j = 0;j < K;++j) {
+                    printf("w[%d] = %f\n", j, w[j]);
+                }
             }
+            */
 
+            gm->set_weights(gm, w);
+            gm->objective_and_gradients(gm, seq, &loss, w, scale, gain);
+
+            /*
+            if (!calibration) {
+                for (j = 0;j < K;++j) {
+                    printf("weight[%d] = %f\n", j, w[j]);
+                }
+            }
+            */
+
+            sum_loss += loss;
             ++t;
         }
 
+
         /* Terminate when the log probability is abnormal (NaN, -Inf, +Inf). */
-        if (!isfinite(logp)) {
+        if (!isfinite(loss)) {
             ret = CRFERR_OVERFLOW;
             break;
         }
 
+        vecscale(w, scale, K);
+        scale = 1.;
+        decay = 1.;
+
         /* Include the L2 norm of feature weights to the objective. */
         /* The factor N is necessary because lambda = 2 * C / N. */
-        logp -= 0.5 * lambda * sgdi->norm2 * scale * scale * N;
-
-        /* Prevent the scale factor being too small. */
-        if (scale < 1e-20) {
-            for (i = 0;i < K;++i) {
-                w[i] *= scale;
-            }
-            decay = 1.;
-            proj = 1.;
-        }
+        norm2 =  vecdot(w, w, K);
+        sum_loss += 0.5 * lambda * norm2 * N;
 
         /* One epoch finished. */
         if (!calibration) {
             /* Check if the current epoch is the best. */
-            if (best_logp < logp) {
-                best_logp = logp;
-                for (i = 0;i < K;++i) {
-                    best_w[i] = w[i];
-                }
+            if (sum_loss < best_sum_loss) {
+                best_sum_loss = sum_loss;
+                veccopy(best_w, w, K);
             }
 
             /* We don't test the stopping criterion while period < epoch. */
             if (period < epoch) {
-                improvement = (pf[(epoch-1) % period] - logp) / logp;
+                improvement = (pf[(epoch-1) % period] - sum_loss) / sum_loss;
             } else {
                 improvement = epsilon;
             }
 
             /* Store the current value of the objective function. */
-            pf[(epoch-1) % period] = logp;
+            pf[(epoch-1) % period] = sum_loss;
 
-            logging(crf1mt->lg, "Log-likelihood: %f\n", logp);
+            logging(lg, "Loss: %f\n", sum_loss);
             if (period < epoch) {
-                logging(crf1mt->lg, "Improvement ratio: %f\n", improvement);
+                logging(lg, "Improvement ratio: %f\n", improvement);
             }
-            logging(crf1mt->lg, "Feature L2-norm: %f\n", sqrt(sgdi->norm2) * scale);
-            logging(crf1mt->lg, "Learning rate (eta): %f\n", eta);
-            logging(crf1mt->lg, "Total number of feature updates: %.0f\n", t);
-            logging(crf1mt->lg, "Seconds required for this iteration: %.3f\n", (clock() - clk_prev) / (double)CLOCKS_PER_SEC);
+            logging(lg, "Feature L2-norm: %f\n", sqrt(norm2));
+            logging(lg, "Learning rate (eta): %f\n", eta);
+            logging(lg, "Total number of feature updates: %.0f\n", t);
+            logging(lg, "Seconds required for this iteration: %.3f\n", (clock() - clk_prev) / (double)CLOCKS_PER_SEC);
 
-            /* Send the tagger with the current parameters. */
-            if (crf1mt->cbe_proc != NULL) {
-                /* Callback notification with the tagger object. */
-                int ret = crf1mt->cbe_proc(crf1mt->cbe_instance, &crf1mt->tagger);
+            if (testset != NULL) {
+                holdout_evaluation(gm, testset, w, lg);
             }
-
-            logging(crf1mt->lg, "\n");
+            logging(lg, "\n");
 
             /* Check for the stopping criterion. */
             if (improvement < epsilon) {
@@ -379,90 +315,108 @@ static int l2sgd(
 
     /* Restore the best weights. */
     if (best_w != NULL) {
-        logp = best_logp;
-        for (i = 0;i < K;++i) {
-            w[i] = best_w[i];
-        }
+        sum_loss = best_sum_loss;
+        veccopy(w, best_w, K);
     }
 
     free(best_w);
     free(pf);
 
     if (ptr_logp != NULL) {
-        *ptr_logp = logp;
+        *ptr_logp = sum_loss;
     }
     return ret;
 }
 
 static floatval_t
 l2sgd_calibration(
-    crf1ml_t* crf1mt,
-    const crf1ml_sgd_option_t* opt
+    graphical_model_t *gm,
+    dataset_t *ds,
+    floatval_t *w,
+    logging_t *lg,
+    const training_option_t* opt
     )
 {
+    int i, s;
     int *perm = NULL;
     int dec = 0, ok, trials = 1;
-    int num_candidates = opt->calibration_candidates;
+    int num = opt->calibration_candidates;
     clock_t clk_begin = clock();
-    floatval_t logp;
-    floatval_t init_logp = 0.;
-    floatval_t best_logp = -DBL_MAX;
+    floatval_t loss;
+    floatval_t init_loss = 0.;
+    floatval_t best_loss = DBL_MAX;
     floatval_t eta = opt->calibration_eta;
     floatval_t best_eta = opt->calibration_eta;
-    floatval_t *w = crf1mt->w;
-    const int N = crf1mt->num_sequences;
-    const int M = MIN(N, opt->calibration_samples);
+    const int N = ds->num_instances;
+    const int S = MIN(N, opt->calibration_samples);
+    const int K = gm->num_features;
     const floatval_t init_eta = opt->calibration_eta;
     const floatval_t rate = opt->calibration_rate;
     const floatval_t lambda = opt->lambda;
 
-    logging(crf1mt->lg, "Calibrating the learning rate (eta)\n");
-    logging(crf1mt->lg, "sgd.calibration.eta: %f\n", eta);
-    logging(crf1mt->lg, "sgd.calibration.rate: %f\n", rate);
-    logging(crf1mt->lg, "sgd.calibration.samples: %d\n", M);
-    logging(crf1mt->lg, "sgd.calibration.candidates: %d\n", num_candidates);
+    logging(lg, "Calibrating the learning rate (eta)\n");
+    logging(lg, "sgd.calibration.eta: %f\n", eta);
+    logging(lg, "sgd.calibration.rate: %f\n", rate);
+    logging(lg, "sgd.calibration.samples: %d\n", S);
+    logging(lg, "sgd.calibration.candidates: %d\n", num);
 
     /* Initialize a permutation that shuffles the instances. */
-    perm = (int*)malloc(sizeof(int) * N);
-    crf1ml_shuffle(perm, N, 1);
+    dataset_shuffle(ds);
 
     /* Initialize feature weights as zero. */
-    initialize_weights(crf1mt);
+    memset(w, 0, sizeof(w[0]) * K);
 
     /* Compute the initial log likelihood. */
-    init_logp = compute_loglikelihood(crf1mt, perm, M, lambda);
-    logging(crf1mt->lg, "Initial Log-likelihood: %f\n", init_logp);
+    gm->set_weights(gm, w);
+    s = 0;
+    init_loss = 0;
+    for (i = 0;i < S;++i) {
+        floatval_t loss = 0;
+        const crf_instance_t *inst = dataset_get(ds, i);
+        gm->objective(gm, inst, &loss);
+        init_loss += loss;
+    }
+    init_loss += 0.5 * lambda * vecdot(w, w, K) * N;
 
-    while (num_candidates > 0 || !dec) {
-        logging(crf1mt->lg, "Trial #%d (eta = %f): ", trials, eta);
+    logging(lg, "Initial loss: %f\n", init_loss);
+
+    while (num > 0 || !dec) {
+        logging(lg, "Trial #%d (eta = %f): ", trials, eta);
 
         /* Initialize feature weights as zero. */
-        initialize_weights(crf1mt);
+        memset(w, 0, sizeof(w[0]) * K);
 
         /* Perform SGD for one epoch. */
-        l2sgd(crf1mt, perm, M, 1.0 / (lambda * eta), lambda, 1, 1, 1, 0., &logp);
+        l2sgd(
+            gm,
+            ds,
+            NULL,
+            w,
+            lg,
+            S, 1.0 / (lambda * eta), lambda, 1, 1, 1, 0., &loss);
 
         /* Make sure that the learning rate decreases the log-likelihood. */
-        ok = isfinite(logp) && (init_logp < logp);
+        ok = isfinite(loss) && (loss < init_loss);
         if (ok) {
-            logging(crf1mt->lg, "%f\n", logp);
+            logging(lg, "%f\n", loss);
         } else {
-            logging(crf1mt->lg, "%f (worse)\n", logp);
+            logging(lg, "%f (worse)\n", loss);
         }
 
         if (ok) {
-            --num_candidates;
-            if (best_logp < logp) {
-                best_logp = logp;
+            --num;
+            if (loss < best_loss) {
+                best_loss = loss;
                 best_eta = eta;
             }
         }
 
         if (!dec) {
-            if (ok) {
+            if (ok && 0 < num) {
                 eta *= rate;
             } else {
                 dec = 1;
+                num = opt->calibration_candidates;
                 eta = init_eta / rate;
             }
         } else {
@@ -473,50 +427,48 @@ l2sgd_calibration(
     }
 
     eta = best_eta;
-    logging(crf1mt->lg, "Best learning rate (eta): %f\n", eta);
-    logging(crf1mt->lg, "Seconds required: %.3f\n", (clock() - clk_begin) / (double)CLOCKS_PER_SEC);
-    logging(crf1mt->lg, "\n");
+    logging(lg, "Best learning rate (eta): %f\n", eta);
+    logging(lg, "Seconds required: %.3f\n", (clock() - clk_begin) / (double)CLOCKS_PER_SEC);
+    logging(lg, "\n");
 
     free(perm);
 
     return 1.0 / (lambda * eta);
 }
 
-int crf1ml_sgd_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
+int exchange_options(crf_params_t* params, training_option_t* opt, int mode)
 {
-    crf1ml_sgd_option_t* sgd = &opt->sgd;
-
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_FLOAT(
-            "regularization.sigma", sgd->sigma, 1.,
+            "regularization.sigma", opt->sigma, 1.,
             ""
             )
         DDX_PARAM_INT(
-            "sgd.max_iterations", sgd->max_iterations, 1000,
+            "sgd.max_iterations", opt->max_iterations, 1000,
             ""
             )
         DDX_PARAM_INT(
-            "sgd.period", sgd->period, 10,
+            "sgd.period", opt->period, 10,
             ""
             )
         DDX_PARAM_FLOAT(
-            "sgd.delta", sgd->delta, 1e-6,
+            "sgd.delta", opt->delta, 1e-6,
             ""
             )
         DDX_PARAM_FLOAT(
-            "sgd.calibration.eta", sgd->calibration_eta, 0.1,
+            "sgd.calibration.eta", opt->calibration_eta, 0.1,
             ""
             )
         DDX_PARAM_FLOAT(
-            "sgd.calibration.rate", sgd->calibration_rate, 2.,
+            "sgd.calibration.rate", opt->calibration_rate, 2.,
             ""
             )
         DDX_PARAM_INT(
-            "sgd.calibration.samples", sgd->calibration_samples, 1000,
+            "sgd.calibration.samples", opt->calibration_samples, 1000,
             ""
             )
         DDX_PARAM_INT(
-            "sgd.calibration.candidates", sgd->calibration_candidates, 10,
+            "sgd.calibration.candidates", opt->calibration_candidates, 10,
             ""
             )
     END_PARAM_MAP()
@@ -524,61 +476,76 @@ int crf1ml_sgd_options(crf_params_t* params, crf1ml_option_t* opt, int mode)
     return 0;
 }
 
-int crf1ml_sgd(
-    crf1ml_t* crf1mt,
-    crf1ml_option_t *opt
+void crf_train_l2sgd_init(crf_params_t* params)
+{
+    exchange_options(params, NULL, 0);
+}
+
+int crf_train_l2sgd(
+    graphical_model_t *gm,
+    dataset_t *trainset,
+    dataset_t *testset,
+    crf_params_t *params,
+    logging_t *lg,
+    floatval_t **ptr_w
     )
 {
     int ret = 0;
     int *perm = NULL;
+    floatval_t *w = NULL;
     clock_t clk_begin;
     floatval_t logp = 0;
-    const int N = crf1mt->num_sequences;
-    const int K = crf1mt->num_features;
-    crf1ml_sgd_option_t* sgdopt = &opt->sgd;
-    sgd_internal_t sgd_internal;
+    const int N = trainset->num_instances;
+    const int K = gm->num_features;
+    const int T = gm->cap_items;
+    training_option_t opt;
 
-    /* Set the solver-specific information. */
-    crf1mt->solver_data = &sgd_internal;
+    /* Obtain parameter values. */
+    exchange_options(params, &opt, -1);
 
-    sgdopt->lambda = 1.0 / (sgdopt->sigma * sgdopt->sigma * N);
+    /* Allocate arrays. */
+    w = (floatval_t*)calloc(sizeof(floatval_t), K);
 
-    logging(crf1mt->lg, "Stochastic Gradient Descent (SGD)\n");
-    logging(crf1mt->lg, "regularization.sigma: %f\n", sgdopt->sigma);
-    logging(crf1mt->lg, "sgd.max_iterations: %d\n", sgdopt->max_iterations);
-    logging(crf1mt->lg, "sgd.period: %d\n", sgdopt->period);
-    logging(crf1mt->lg, "sgd.delta: %f\n", sgdopt->delta);
-    logging(crf1mt->lg, "\n");
+    opt.lambda = 1.0 / (opt.sigma * opt.sigma * N);
+
+    logging(lg, "Stochastic Gradient Descent (SGD)\n");
+    logging(lg, "regularization.sigma: %f\n", opt.sigma);
+    logging(lg, "sgd.max_iterations: %d\n", opt.max_iterations);
+    logging(lg, "sgd.period: %d\n", opt.period);
+    logging(lg, "sgd.delta: %f\n", opt.delta);
+    logging(lg, "\n");
     clk_begin = clock();
 
     /* Calibrate the training rate (eta). */
-    sgdopt->t0 = l2sgd_calibration(crf1mt, sgdopt);
+    opt.t0 = l2sgd_calibration(gm, trainset, w, lg, &opt);
 
     /* Initialize a permutation that shuffles the instances. */
     perm = (int*)malloc(sizeof(int) * N);
-    crf1ml_shuffle(perm, N, 1);
 
-    /* Initialize feature weights as zero. */
-    initialize_weights(crf1mt);
+    memset(w, 0, sizeof(w[0]) * K);
 
     /* Perform stochastic gradient descent. */
     ret = l2sgd(
-        crf1mt,
-        perm,
+        gm,
+        trainset,
+        testset,
+        w,
+        lg,
         N,
-        sgdopt->t0,
-        sgdopt->lambda,
-        sgdopt->max_iterations,
+        opt.t0,
+        opt.lambda,
+        opt.max_iterations,
         0,
-        sgdopt->period,
-        sgdopt->delta,
+        opt.period,
+        opt.delta,
         &logp
         );
 
-    logging(crf1mt->lg, "Log-likelihood: %f\n", logp);
-    logging(crf1mt->lg, "Total seconds required for SGD: %.3f\n", (clock() - clk_begin) / (double)CLOCKS_PER_SEC);
-    logging(crf1mt->lg, "\n");
+    logging(lg, "Log-likelihood: %f\n", logp);
+    logging(lg, "Total seconds required for SGD: %.3f\n", (clock() - clk_begin) / (double)CLOCKS_PER_SEC);
+    logging(lg, "\n");
 
+    *ptr_w = w;
     free(perm);
 
     return ret;

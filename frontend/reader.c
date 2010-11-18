@@ -55,7 +55,7 @@ static int progress(FILE *fpo, int prev, int current)
     return prev;
 }
 
-int read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, crf_dictionary_t* labels, int group)
+int read_data(FILE *fpi, FILE *fpo, crf_data_t* data, int group)
 {
     int n = 0;
     int lid = -1;
@@ -63,7 +63,9 @@ int read_data(FILE *fpi, FILE *fpo, crf_data_t* data, crf_dictionary_t* attrs, c
     crf_item_t item;
     crf_content_t cont;
     iwa_t* iwa = NULL;
-    const iwa_token_t* token = NULL;
+    crf_dictionary_t *attrs = data->attrs;
+    crf_dictionary_t *labels = data->labels;
+    const iwa_token_t *token = NULL;
     long filesize = 0, begin = 0, offset = 0;
     int prev = 0, current = 0;
 

@@ -278,11 +278,9 @@ typedef struct {
 
 crf1df_feature_t* crf1df_generate(
     int *ptr_num_features,
-    const crf_instance_t *seqs,
-    int num_sequences,
+    dataset_t *ds,
     int num_labels,
     int num_attributes,
-    int holdout,
     int connect_all_attrs,
     int connect_all_edges,
     floatval_t minfreq,
@@ -377,7 +375,7 @@ int crf1dt_tag(crf1dt_t* crf1dt, crf_instance_t *inst, int* output, floatval_t *
  */
 /** @{ */
 
-crf_train_data_t *crf1dl_create_instance_batch();
+graphical_model_t *crf1dl_create_instance_batch();
 
 /** @} */
 

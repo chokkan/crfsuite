@@ -97,7 +97,6 @@
     <ClCompile Include="src\crf.c" />
     <ClCompile Include="src\dictionary.c" />
     <ClCompile Include="src\logging.c" />
-    <ClCompile Include="src\mt19937ar.c" />
     <ClCompile Include="src\params.c" />
     <ClCompile Include="src\quark.c" />
     <ClCompile Include="src\rumavl.c" />
@@ -109,13 +108,13 @@
     <ClCompile Include="src\crf1d_tag.c" />
     <ClCompile Include="src\train.c" />
     <ClCompile Include="src\train_averaged_perceptron.c" />
+    <ClCompile Include="src\train_l2sgd.c" />
     <ClCompile Include="src\train_lbfgs.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\crfsuite.h" />
     <ClInclude Include="src\crfsuite_internal.h" />
     <ClInclude Include="src\logging.h" />
-    <ClInclude Include="src\mt19937ar.h" />
     <ClInclude Include="src\params.h" />
     <ClInclude Include="src\quark.h" />
     <ClInclude Include="src\rumavl.h" />

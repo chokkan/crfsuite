@@ -45,23 +45,32 @@ enum {
 enum {
     TRAIN_NONE = 0,             /**< Unselected. */
     TRAIN_LBFGS,                /**< L-BFGS batch training. */
-    TRAIN_PEGASOS,              /**< Pegasos online training. */
+    TRAIN_L2SGD,                /**< Pegasos online training. */
     TRAIN_AVERAGED_PERCEPTRON,  /**< Averaged perceptron. */
 };
 
 struct tag_crf_train_internal;
 typedef struct tag_crf_train_internal crf_train_internal_t;
 
-struct tag_crf_train_data;
-typedef struct tag_crf_train_data crf_train_data_t;
+struct tag_graphical_model;
+typedef struct tag_graphical_model graphical_model_t;
 
-struct tag_crf_train_online;
-typedef struct tag_crf_train_online crf_train_online_t;
+typedef struct {
+    crf_data_t *data;
+    int *perm;
+    int num_instances;
+} dataset_t;
+
+void dataset_init_trainset(dataset_t *ds, crf_data_t *data, int holdout);
+void dataset_init_testset(dataset_t *ds, crf_data_t *data, int holdout);
+void dataset_finish(dataset_t *ds);
+void dataset_shuffle(dataset_t *ds);
+crf_instance_t *dataset_get(dataset_t *ds, int i);
 
 typedef void (*crf_train_enum_features_callback)(void *instance, int fid, floatval_t value);
 
 struct tag_crf_train_internal {
-    crf_train_data_t *data;       /**< Batch training interface. */
+    graphical_model_t *data;       /**< Batch training interface. */
     crf_params_t *params;           /**< Parameter interface. */
     logging_t* lg;                  /**< Logging interface. */
     int feature_type;               /**< Feature type. */
@@ -70,33 +79,34 @@ struct tag_crf_train_internal {
 };
 
 /**
- * Data set for training.
+ * Interface for a graphical model.
  */
-struct tag_crf_train_data
+struct tag_graphical_model
 {
     void *internal;
 
-    const crf_instance_t *seqs;
-    int num_instances;
-
-    crf_dictionary_t *attrs;
-    crf_dictionary_t *labels;
+    const floatval_t *w;
+    dataset_t *ds;
 
     int num_features;
     int cap_items;
-    int holdout;
 
-    int (*exchange_options)(crf_train_data_t *self, crf_params_t* params, int mode);
-    int (*set_data)(crf_train_data_t *self, const crf_instance_t *seqs, int num_instances, crf_dictionary_t *attrs, crf_dictionary_t *labels, int holdout, logging_t *lg);
-    int (*tag)(crf_train_data_t *self, const floatval_t *w, const crf_instance_t *inst, int *viterbi, floatval_t *ptr_score);
-    int (*objective_and_gradients)(crf_train_data_t *self, const floatval_t *w, floatval_t *f, floatval_t *g);
-    int (*holdout_evaluation)(crf_train_data_t *self, const floatval_t *w, logging_t *lg);
-    int (*enum_features)(crf_train_data_t *self, const crf_instance_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance);
-    int (*save_model)(crf_train_data_t *self, const char *filename, const floatval_t *w, logging_t *lg);
+    int (*exchange_options)(graphical_model_t *self, crf_params_t* params, int mode);
+    int (*set_data)(graphical_model_t *self, dataset_t *ds, logging_t *lg);
+    int (*set_weights)(graphical_model_t *self, const floatval_t *w);
+    int (*objective)(graphical_model_t *self, const crf_instance_t *inst, floatval_t *f);
+    int (*objective_and_gradients)(graphical_model_t *self, const crf_instance_t *inst, floatval_t *f, floatval_t *g, floatval_t scale, floatval_t gain);
+    int (*objective_and_gradients_batch)(graphical_model_t *self, dataset_t *ds, floatval_t *f, floatval_t *g);
+
+    int (*tag)(graphical_model_t *self, const crf_instance_t *inst, int *viterbi, floatval_t *ptr_score);
+    int (*enum_features)(graphical_model_t *self, const crf_instance_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance);
+    int (*save_model)(graphical_model_t *self, const char *filename, const floatval_t *w, logging_t *lg);
 };
 
 int crf_train_lbfgs(
-    crf_train_data_t *data,
+    graphical_model_t *gm,
+    dataset_t *trainset,
+    dataset_t *testset,
     crf_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
@@ -107,11 +117,31 @@ void crf_train_lbfgs_init(crf_params_t* params);
 void crf_train_averaged_perceptron_init(crf_params_t* params);
 
 int crf_train_averaged_perceptron(
-    crf_train_data_t *data,
+    graphical_model_t *gm,
+    dataset_t *trainset,
+    dataset_t *testset,
     crf_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
     );
 
+void crf_train_l2sgd_init(crf_params_t* params);
+
+int crf_train_l2sgd(
+    graphical_model_t *gm,
+    dataset_t *trainset,
+    dataset_t *testset,
+    crf_params_t *params,
+    logging_t *lg,
+    floatval_t **ptr_w
+    );
+
+void holdout_evaluation(
+    graphical_model_t *gm,
+    dataset_t *testset,
+    const floatval_t *w,
+    logging_t *lg
+    );
+    
 
 #endif/*__CRFSUITE_INTERNAL_H__*/
