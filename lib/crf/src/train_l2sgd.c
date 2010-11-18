@@ -111,7 +111,7 @@
 #define MIN(a, b)   ((a) < (b) ? (a) : (b))
 
 typedef struct {
-    floatval_t  sigma;
+    floatval_t  c2;
     floatval_t  lambda;
     floatval_t  t0;
     int         max_iterations;
@@ -381,35 +381,35 @@ int exchange_options(crf_params_t* params, training_option_t* opt, int mode)
 {
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_FLOAT(
-            "regularization.sigma", opt->sigma, 1.,
+            "c2", opt->c2, 1.,
             ""
             )
         DDX_PARAM_INT(
-            "sgd.max_iterations", opt->max_iterations, 1000,
+            "max_iterations", opt->max_iterations, 1000,
             ""
             )
         DDX_PARAM_INT(
-            "sgd.period", opt->period, 10,
+            "period", opt->period, 10,
             ""
             )
         DDX_PARAM_FLOAT(
-            "sgd.delta", opt->delta, 1e-6,
+            "delta", opt->delta, 1e-6,
             ""
             )
         DDX_PARAM_FLOAT(
-            "sgd.calibration.eta", opt->calibration_eta, 0.1,
+            "calibration.eta", opt->calibration_eta, 0.1,
             ""
             )
         DDX_PARAM_FLOAT(
-            "sgd.calibration.rate", opt->calibration_rate, 2.,
+            "calibration.rate", opt->calibration_rate, 2.,
             ""
             )
         DDX_PARAM_INT(
-            "sgd.calibration.samples", opt->calibration_samples, 1000,
+            "calibration.samples", opt->calibration_samples, 1000,
             ""
             )
         DDX_PARAM_INT(
-            "sgd.calibration.candidates", opt->calibration_candidates, 10,
+            "calibration.candidates", opt->calibration_candidates, 10,
             ""
             )
     END_PARAM_MAP()
@@ -450,13 +450,13 @@ int crf_train_l2sgd(
         goto error_exit;
     }
 
-    opt.lambda = 1.0 / (opt.sigma * opt.sigma * N);
+    opt.lambda = 2. * opt.c2 / N;
 
     logging(lg, "Stochastic Gradient Descent (SGD)\n");
-    logging(lg, "regularization.sigma: %f\n", opt.sigma);
-    logging(lg, "sgd.max_iterations: %d\n", opt.max_iterations);
-    logging(lg, "sgd.period: %d\n", opt.period);
-    logging(lg, "sgd.delta: %f\n", opt.delta);
+    logging(lg, "c2: %f\n", opt.c2);
+    logging(lg, "max_iterations: %d\n", opt.max_iterations);
+    logging(lg, "period: %d\n", opt.period);
+    logging(lg, "delta: %f\n", opt.delta);
     logging(lg, "\n");
     clk_begin = clock();
 
