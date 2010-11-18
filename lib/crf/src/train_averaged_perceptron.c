@@ -162,16 +162,16 @@ int crf_train_averaged_perceptron(
         for (n = 0;n < N;++n) {
             int d = 0;
             floatval_t score;
-            const crf_instance_t *seq = dataset_get(trainset, n);
+            const crf_instance_t *inst = dataset_get(trainset, n);
 
             /* Set the feature weights to the graphical model. */
             gm->set_weights(gm, w);
 
             /* Tag the sequence with the current model. */
-            gm->tag(gm, seq, viterbi, &score);
+            gm->tag(gm, inst, viterbi, &score);
 
             /* Compute the number of different labels. */
-            d = diff(seq->labels, viterbi, seq->num_items);
+            d = diff(inst->labels, viterbi, inst->num_items);
             if (0 < d) {
                 /*
                     For every feature k on the correct path:
@@ -179,7 +179,7 @@ int crf_train_averaged_perceptron(
                  */
                 ud.c = 1;
                 ud.cs = c;
-                gm->enum_features(gm, seq, seq->labels, update_weights, &ud);
+                gm->enum_features(gm, inst, inst->labels, update_weights, &ud);
 
                 /*
                     For every feature k on the Viterbi path:
@@ -187,10 +187,10 @@ int crf_train_averaged_perceptron(
                  */
                 ud.c = -1;
                 ud.cs = -c;
-                gm->enum_features(gm, seq, viterbi, update_weights, &ud);
+                gm->enum_features(gm, inst, viterbi, update_weights, &ud);
 
                 /* We define the loss as the ratio of wrongly predicted labels. */
-                loss += d / (floatval_t)seq->num_items;
+                loss += d / (floatval_t)inst->num_items;
             }
 
             ++c;
@@ -235,6 +235,7 @@ error_exit:
     free(wa);
     free(ws);
     free(w);
+    *ptr_w = NULL;
 
     return ret;
 }
