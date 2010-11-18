@@ -75,8 +75,7 @@
     1) Computing various factors
         eta = 1 / (lambda * t)
         decay *= (1 - eta * lambda)
-        scale = decay
-        gain = (eta / k) / scale
+        gain = (eta / k) / decay
     2) Updating feature weights
         Updating feature weights from observation expectation:
             delta = gain * (1.0) * f(x,y)

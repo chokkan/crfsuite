@@ -54,8 +54,8 @@
  * Training parameters (configurable with crf_params_t interface).
  */
 typedef struct {
-    char*       regularization;
-    floatval_t  regularization_sigma;
+    floatval_t  c1;
+    floatval_t  c2;
     int         memory;
     floatval_t  epsilon;
     int         stop;
@@ -73,11 +73,9 @@ typedef struct {
     dataset_t *trainset;
     dataset_t *testset;
     logging_t *lg;
-    int l2_regularization;
-    floatval_t sigma2inv;
+    floatval_t c2;
     floatval_t* best_w;
     clock_t begin;
-    int holdout;
 } lbfgs_internal_t;
 
 static lbfgsfloatval_t lbfgs_evaluate(
@@ -99,12 +97,13 @@ static lbfgsfloatval_t lbfgs_evaluate(
     gm->objective_and_gradients_batch(gm, trainset, &f, g);
     
     /* L2 regularization. */
-    if (lbfgsi->l2_regularization) {
+    if (0 < lbfgsi->c2) {
+        const floatval_t c22 = lbfgsi->c2 * 2.;
         for (i = 0;i < n;++i) {
-            g[i] += (lbfgsi->sigma2inv * x[i]);
+            g[i] += (c22 * x[i]);
             norm += x[i] * x[i];
         }
-        f += (lbfgsi->sigma2inv * norm * 0.5);
+        f += (lbfgsi->c2 * norm);
     }
 
     return f;
@@ -163,43 +162,43 @@ static int lbfgs_progress(
 static int exchange_options(crf_params_t* params, training_option_t* opt, int mode)
 {
     BEGIN_PARAM_MAP(params, mode)
-        DDX_PARAM_STRING(
-            "regularization", opt->regularization, "L2",
-            "Specify the regularization type."
+        DDX_PARAM_FLOAT(
+            "c1", opt->c1, 0,
+            "Coefficient for L1 regularization."
             )
         DDX_PARAM_FLOAT(
-            "regularization.sigma", opt->regularization_sigma, 10.0,
-            "Specify the regularization constant."
+            "c2", opt->c2, 1.0,
+            "Coefficient for L2 regularization."
             )
         DDX_PARAM_INT(
-            "lbfgs.max_iterations", opt->max_iterations, INT_MAX,
+            "max_iterations", opt->max_iterations, INT_MAX,
             "The maximum number of L-BFGS iterations."
             )
         DDX_PARAM_INT(
-            "lbfgs.num_memories", opt->memory, 6,
+            "num_memories", opt->memory, 6,
             "The number of corrections to approximate the inverse hessian matrix."
             )
         DDX_PARAM_FLOAT(
-            "lbfgs.epsilon", opt->epsilon, 1e-5,
+            "epsilon", opt->epsilon, 1e-5,
             "Epsilon for testing the convergence of the objective."
             )
         DDX_PARAM_INT(
-            "lbfgs.stop", opt->stop, 10,
+            "stop", opt->stop, 10,
             "The duration of iterations to test the stopping criterion."
             )
         DDX_PARAM_FLOAT(
-            "lbfgs.delta", opt->delta, 1e-5,
+            "delta", opt->delta, 1e-5,
             "The threshold for the stopping criterion; an L-BFGS iteration stops when the\n"
             "improvement of the log likelihood over the last ${lbfgs.stop} iterations is\n"
             "no greater than this threshold."
             )
         DDX_PARAM_STRING(
-            "lbfgs.linesearch", opt->linesearch, "MoreThuente",
+            "linesearch", opt->linesearch, "MoreThuente",
             "The line search algorithm used in L-BFGS updates:\n"
             "{'MoreThuente': More and Thuente's method, 'Backtracking': backtracking}"
             )
         DDX_PARAM_INT(
-            "lbfgs.linesearch.max_iterations", opt->linesearch_max_iterations, 20,
+            "linesearch.max_iterations", opt->linesearch_max_iterations, 20,
             "The maximum number of trials for the line search algorithm."
             )
     END_PARAM_MAP()
@@ -227,7 +226,7 @@ int crf_train_lbfgs(
     clock_t begin = clock();
     const int N = trainset->num_instances;
     const int L = trainset->data->labels->num(trainset->data->labels);
-    const int A =  trainset->data->attrs->num( trainset->data->attrs);
+    const int A =  trainset->data->attrs->num(trainset->data->attrs);
     const int K = gm->num_features;
     lbfgs_internal_t lbfgsi;
     lbfgs_parameter_t lbfgsparam;
@@ -255,15 +254,15 @@ int crf_train_lbfgs(
     /* Read the L-BFGS parameters. */
     exchange_options(params, &opt, -1);
     logging(lg, "L-BFGS optimization\n");
-    logging(lg, "regularization: %s\n", opt.regularization);
-    logging(lg, "regularization.sigma: %f\n", opt.regularization_sigma);
-    logging(lg, "lbfgs.num_memories: %d\n", opt.memory);
-    logging(lg, "lbfgs.max_iterations: %d\n", opt.max_iterations);
-    logging(lg, "lbfgs.epsilon: %f\n", opt.epsilon);
-    logging(lg, "lbfgs.stop: %d\n", opt.stop);
-    logging(lg, "lbfgs.delta: %f\n", opt.delta);
-    logging(lg, "lbfgs.linesearch: %s\n", opt.linesearch);
-    logging(lg, "lbfgs.linesearch.max_iterations: %d\n", opt.linesearch_max_iterations);
+    logging(lg, "c1: %f\n", opt.c1);
+    logging(lg, "c2: %f\n", opt.c2);
+    logging(lg, "num_memories: %d\n", opt.memory);
+    logging(lg, "max_iterations: %d\n", opt.max_iterations);
+    logging(lg, "epsilon: %f\n", opt.epsilon);
+    logging(lg, "stop: %d\n", opt.stop);
+    logging(lg, "delta: %f\n", opt.delta);
+    logging(lg, "linesearch: %s\n", opt.linesearch);
+    logging(lg, "linesearch.max_iterations: %d\n", opt.linesearch_max_iterations);
     logging(lg, "\n");
 
     /* Set parameters for L-BFGS. */
@@ -282,23 +281,18 @@ int crf_train_lbfgs(
     lbfgsparam.max_linesearch = opt.linesearch_max_iterations;
 
     /* Set regularization parameters. */
-    if (strcmp(opt.regularization, "L1") == 0) {
-        lbfgsi.l2_regularization = 0;
-        lbfgsparam.orthantwise_c = 1.0 / opt.regularization_sigma;
+    if (0 < opt.c1) {
+        lbfgsparam.orthantwise_c = opt.c1;
         lbfgsparam.linesearch = LBFGS_LINESEARCH_BACKTRACKING;
-    } else if (strcmp(opt.regularization, "L2") == 0) {
-        lbfgsi.l2_regularization = 1;
-        lbfgsi.sigma2inv = 1.0 / (opt.regularization_sigma * opt.regularization_sigma);
-        lbfgsparam.orthantwise_c = 0.;
     } else {
-        lbfgsi.l2_regularization = 0;
-        lbfgsparam.orthantwise_c = 0.;
+        lbfgsparam.orthantwise_c = 0;
     }
 
     /* Set other callback data. */
     lbfgsi.gm = gm;
     lbfgsi.trainset = trainset;
     lbfgsi.testset = testset;
+    lbfgsi.c2 = opt.c2;
     lbfgsi.lg = lg;
 
     /* Call the L-BFGS solver. */
