@@ -52,8 +52,8 @@ enum {
 struct tag_crf_train_internal;
 typedef struct tag_crf_train_internal crf_train_internal_t;
 
-struct tag_graphical_model;
-typedef struct tag_graphical_model graphical_model_t;
+struct tag_encoder;
+typedef struct tag_encoder encoder_t;
 
 typedef struct {
     crf_data_t *data;
@@ -69,42 +69,97 @@ crf_instance_t *dataset_get(dataset_t *ds, int i);
 
 typedef void (*crf_train_enum_features_callback)(void *instance, int fid, floatval_t value);
 
+/**
+ * Internal data structure for 
+ */
 struct tag_crf_train_internal {
-    graphical_model_t *data;       /**< Batch training interface. */
-    crf_params_t *params;           /**< Parameter interface. */
-    logging_t* lg;                  /**< Logging interface. */
-    int feature_type;               /**< Feature type. */
-    int algorithm;                  /**< Training algorithm. */
-    void *cbe_instance;
+    encoder_t *gm;      /** Interface to the graphical model. */
+    crf_params_t *params;       /**< Parameter interface. */
+    logging_t* lg;              /**< Logging interface. */
+    int feature_type;           /**< Feature type. */
+    int algorithm;              /**< Training algorithm. */
 };
 
 /**
  * Interface for a graphical model.
  */
-struct tag_graphical_model
+struct tag_encoder
 {
     void *internal;
 
     const floatval_t *w;
+    floatval_t scale;
+
     dataset_t *ds;
+    const crf_instance_t *inst;
+    int level;
 
     int num_features;
     int cap_items;
 
-    int (*exchange_options)(graphical_model_t *self, crf_params_t* params, int mode);
-    int (*set_data)(graphical_model_t *self, dataset_t *ds, logging_t *lg);
-    int (*set_weights)(graphical_model_t *self, const floatval_t *w);
-    int (*objective)(graphical_model_t *self, const crf_instance_t *inst, floatval_t *f);
-    int (*objective_and_gradients)(graphical_model_t *self, const crf_instance_t *inst, floatval_t *f, floatval_t *g, floatval_t scale, floatval_t gain);
-    int (*objective_and_gradients_batch)(graphical_model_t *self, dataset_t *ds, floatval_t *f, floatval_t *g);
+    /**
+     * Exchanges options.
+     *  @param  self        The encoder instance.
+     *  @param  params      The parameter interface.
+     *  @param  mode        The direction of parameter exchange.
+     *  @return             A status code.
+     */
+    int (*exchange_options)(encoder_t *self, crf_params_t* params, int mode);
 
-    int (*tag)(graphical_model_t *self, const crf_instance_t *inst, int *viterbi, floatval_t *ptr_score);
-    int (*enum_features)(graphical_model_t *self, const crf_instance_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance);
-    int (*save_model)(graphical_model_t *self, const char *filename, const floatval_t *w, logging_t *lg);
+    /**
+     * Initializes the encoder with a training data set.
+     *  @param  self        The encoder instance.
+     *  @param  ds          The data set for training.
+     *  @param  lg          The logging interface.
+     *  @return             A status code.
+     */
+    int (*initialize)(encoder_t *self, dataset_t *ds, logging_t *lg);
+
+    /**
+     * Compute the objective value and gradients for the whole data set.
+     *  @param  self        The encoder instance.
+     *  @param  ds          The data set.
+     *  @param  w           The feature weights.
+     *  @param  f           The pointer to a floatval_t variable to which the
+     *                      objective value is stored by this function.
+     *  @param  g           The pointer to the array that receives gradients.
+     *  @return             A status code.
+     */
+    int (*objective_and_gradients_batch)(encoder_t *self, dataset_t *ds, const floatval_t *w, floatval_t *f, floatval_t *g);
+
+    int (*features_on_path)(encoder_t *self, const crf_instance_t *inst, const int *path, crf_train_enum_features_callback func, void *instance);
+
+    /**
+     * Sets the feature weights (and their scale factor).
+     *  @param  self        The encoder instance.
+     *  @param  w           The array of feature weights.
+     *  @param  scale       The scale factor that should be applied to the
+     *                      feature weights.
+     *  @return             A status code.
+     */
+    int (*set_weights)(encoder_t *self, const floatval_t *w, floatval_t scale);
+
+    /* Instance-wise operations. */
+    int (*set_instance)(encoder_t *self, const crf_instance_t *inst);
+
+    /* Level 0. */
+
+    /* Level 1 (feature weights). */
+    int (*score)(encoder_t *self, const int *path, floatval_t *ptr_score);
+    int (*viterbi)(encoder_t *self, int *path, floatval_t *ptr_score);
+
+    /* Level 2 (forward-backward). */
+    int (*partition_factor)(encoder_t *self, floatval_t *ptr_pf);
+
+    /* Level 3 (marginals). */
+    int (*objective_and_gradients)(encoder_t *self, floatval_t *f, floatval_t *g, floatval_t gain);
+
+    int (*save_model)(encoder_t *self, const char *filename, const floatval_t *w, logging_t *lg);
+
 };
 
 int crf_train_lbfgs(
-    graphical_model_t *gm,
+    encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
     crf_params_t *params,
@@ -117,7 +172,7 @@ void crf_train_lbfgs_init(crf_params_t* params);
 void crf_train_averaged_perceptron_init(crf_params_t* params);
 
 int crf_train_averaged_perceptron(
-    graphical_model_t *gm,
+    encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
     crf_params_t *params,
@@ -128,7 +183,7 @@ int crf_train_averaged_perceptron(
 void crf_train_l2sgd_init(crf_params_t* params);
 
 int crf_train_l2sgd(
-    graphical_model_t *gm,
+    encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
     crf_params_t *params,
@@ -137,7 +192,7 @@ int crf_train_l2sgd(
     );
 
 void holdout_evaluation(
-    graphical_model_t *gm,
+    encoder_t *gm,
     dataset_t *testset,
     const floatval_t *w,
     logging_t *lg

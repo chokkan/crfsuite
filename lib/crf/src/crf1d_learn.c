@@ -47,6 +47,15 @@
 #include "params.h"
 #include "logging.h"
 
+enum {
+    LEVEL_NONE      = 0x0000,
+    LEVEL_WEIGHT    = 0x0001,
+    LEVEL_INSTANCE  = 0x0002,
+    LEVEL_ALPHABETA = 0x0004,
+    LEVEL_MARGINAL  = 0x0008,
+};
+
+
 /**
  * Parameters for feature generation.
  */
@@ -74,15 +83,6 @@ typedef struct {
     crf1dl_option_t opt;            /**< CRF1d options. */
 
 } crf1dl_t;
-
-typedef struct {
-    crf1dl_t crf1dt;
-} data_internal_t;
-
-typedef struct {
-    crf1dl_t crf1dt;
-} online_internal_t;
-
 
 #define    FEATURE(trainer, k) \
     (&(trainer)->features[(k)])
@@ -780,143 +780,95 @@ error_exit:
     return ret;
 }
 
-
-
-
-static int crf1dl_batch_exchange_options(graphical_model_t *self, crf_params_t* params, int mode)
+static void set_level(encoder_t *self, int level)
 {
-    data_internal_t *batch = (data_internal_t*)self->internal;
-    return crf1dl_exchange_options(params, &batch->crf1dt.opt, mode);
+    int prev = self->level;
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
+
+    /*
+        Each training algorithm has a different requirement for an encoder.
+        For example, the perceptron algorithm need Viterbi paths whereas
+        gradient-based algorithms requires marginal probabilities.
+     */
+
+    /* LEVEL_WEIGHT: set transition scores. */
+    if (LEVEL_WEIGHT <= level && prev < LEVEL_WEIGHT) {
+        crf1dc_reset(enc->ctx, RF_TRANS);
+        crf1dl_transition_score_scaled(enc, self->w, self->scale);
+    }
+
+    /* LEVEL_INSTANCE: set state scores. */
+    if (LEVEL_INSTANCE <= level && prev < LEVEL_INSTANCE) {
+        crf1dc_set_num_items(enc->ctx, self->inst->num_items);
+        crf1dc_reset(enc->ctx, RF_STATE);
+        crf1dl_state_score_scaled(enc, self->inst, self->w, self->scale);
+    }
+
+    /* LEVEL_ALPHABETA: perform the forward-backward algorithm. */
+    if (LEVEL_ALPHABETA <= level && prev < LEVEL_ALPHABETA) {
+        crf1dc_exp_transition(enc->ctx);
+        crf1dc_exp_state(enc->ctx);
+        crf1dc_alpha_score(enc->ctx);
+        crf1dc_beta_score(enc->ctx);
+    }
+
+    /* LEVEL_MARGINAL: compute the marginal probability. */
+    if (LEVEL_MARGINAL <= level && prev < LEVEL_MARGINAL) {
+        crf1dc_marginal(enc->ctx);
+    }
+
+    self->level = level;
 }
 
-static int crf1dl_batch_set_data(
-    graphical_model_t *self,
-    dataset_t *ds,
-    logging_t *lg
-    )
+
+
+static int encoder_exchange_options(encoder_t *self, crf_params_t* params, int mode)
+{
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
+    return crf1dl_exchange_options(params, &enc->opt, mode);
+}
+
+static int encoder_initialize(encoder_t *self, dataset_t *ds, logging_t *lg)
 {
     int ret;
-    data_internal_t *batch = (data_internal_t*)self->internal;
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
 
     ret = crf1dl_set_data(
-        &batch->crf1dt,
+        enc,
         ds,
         ds->data->labels->num(ds->data->labels),
         ds->data->attrs->num(ds->data->attrs),
         lg);
     self->ds = ds;
-    self->num_features = batch->crf1dt.num_features;
-    self->cap_items = batch->crf1dt.ctx->cap_items;
+    self->num_features = enc->num_features;
+    self->cap_items = enc->ctx->cap_items;
     return ret;
 }
 
-static int crf1dl_batch_set_weights(
-    graphical_model_t *self,
-    const floatval_t *w
-    )
+static int encoder_set_weights(encoder_t *self, const floatval_t *w, floatval_t scale)
 {
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
+
     self->w = w;
+    self->scale = scale;
+    self->level = LEVEL_WEIGHT-1;
+    set_level(self, LEVEL_WEIGHT);
     return 0;
 }
 
-static int crf1dl_batch_objective(
-    graphical_model_t *self,
-    const crf_instance_t *inst,
-    floatval_t *f
-    )
-{
-    int i, j;
-    floatval_t logp = 0, logl = 0;
-    data_internal_t *batch = (data_internal_t*)self->internal;
-    const floatval_t *w = self->w;
-    crf1dl_t* crf1dt = &batch->crf1dt;
-
-    crf1dc_reset(crf1dt->ctx, RF_TRANS | RF_STATE);
-
-    /* Set */
-    crf1dl_transition_score_scaled(crf1dt, w, 1.);
-    crf1dc_exp_transition(crf1dt->ctx);
-
-    /* Set label sequences and state scores. */
-    crf1dc_set_num_items(crf1dt->ctx, inst->num_items);
-    crf1dl_state_score_scaled(crf1dt, inst, w, 1.);
-    crf1dc_exp_state(crf1dt->ctx);
-
-    /* Compute forward/backward scores. */
-    crf1dc_alpha_score(crf1dt->ctx);
-    crf1dc_beta_score(crf1dt->ctx);
-    crf1dc_marginal(crf1dt->ctx);
-
-    /* Compute the probability of the input sequence on the model. */
-    logp = crf1dc_score(crf1dt->ctx, inst->labels) - crf1dc_lognorm(crf1dt->ctx);
-    *f = -logp;
-    return 0;
-}
-
-
-static int crf1dl_batch_objective_and_gradients(
-    graphical_model_t *self,
-    const crf_instance_t *inst,
-    floatval_t *f,
-    floatval_t *g,
-    floatval_t scale,
-    floatval_t gain
-    )
-{
-    int i, j;
-    floatval_t logp = 0, logl = 0;
-    data_internal_t *batch = (data_internal_t*)self->internal;
-    const floatval_t *w = self->w;
-    crf1dl_t* crf1dt = &batch->crf1dt;
-
-    crf1dc_reset(crf1dt->ctx, RF_TRANS | RF_STATE);
-
-    /* Set */
-    crf1dl_transition_score_scaled(crf1dt, w, scale);
-    crf1dc_exp_transition(crf1dt->ctx);
-
-    /* Set label sequences and state scores. */
-    crf1dc_set_num_items(crf1dt->ctx, inst->num_items);
-    crf1dl_state_score_scaled(crf1dt, inst, w, scale);
-    crf1dc_exp_state(crf1dt->ctx);
-
-    /* Compute forward/backward scores. */
-    crf1dc_alpha_score(crf1dt->ctx);
-    crf1dc_beta_score(crf1dt->ctx);
-    crf1dc_marginal(crf1dt->ctx);
-
-    /* Compute the probability of the input sequence on the model. */
-    logp = crf1dc_score(crf1dt->ctx, inst->labels) - crf1dc_lognorm(crf1dt->ctx);
-
-    /* Update the model expectations of features. */
-    crf1dl_observation_expectation(crf1dt, inst, inst->labels, g, gain);
-    /*for (i = 0;i < crf1dt->num_features;++i) {
-        printf("o[%d] = %f\n", i, g[i]);
-    }*/
-    crf1dl_model_expectation(crf1dt, inst, g, -gain);
-    /*for (i = 0;i < crf1dt->num_features;++i) {
-        printf("w[%d] = %f\n", i, g[i]);
-    }*/
-
-    *f = -logp;
-    return 0;
-}
-
-static int crf1dl_batch_objective_and_gradients_batch(graphical_model_t *self, dataset_t *ds, floatval_t *f, floatval_t *g)
+static int encoder_objective_and_gradients_batch(encoder_t *self, dataset_t *ds, const floatval_t *w, floatval_t *f, floatval_t *g)
 {
     int i;
     floatval_t logp = 0, logl = 0;
-    data_internal_t *batch = (data_internal_t*)self->internal;
-    const floatval_t *w = self->w;
-    crf1dl_t* crf1dt = &batch->crf1dt;
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
     const int N = ds->num_instances;
-    const int K = crf1dt->num_features;
+    const int K = enc->num_features;
 
     /*
         Initialize the gradients with observation expectations.
      */
     for (i = 0;i < K;++i) {
-        crf1df_feature_t* f = &crf1dt->features[i];
+        crf1df_feature_t* f = &enc->features[i];
         g[i] = -f->freq;
     }
 
@@ -924,9 +876,9 @@ static int crf1dl_batch_objective_and_gradients_batch(graphical_model_t *self, d
         Set the scores (weights) of transition features here because
         these are independent of input label sequences.
      */
-    crf1dc_reset(crf1dt->ctx, RF_TRANS);
-    crf1dl_transition_score(crf1dt, w);
-    crf1dc_exp_transition(crf1dt->ctx);
+    crf1dc_reset(enc->ctx, RF_TRANS);
+    crf1dl_transition_score(enc, w);
+    crf1dc_exp_transition(enc->ctx);
 
     /*
         Compute model expectations.
@@ -935,66 +887,111 @@ static int crf1dl_batch_objective_and_gradients_batch(graphical_model_t *self, d
         const crf_instance_t *seq = dataset_get(ds, i);
 
         /* Set label sequences and state scores. */
-        crf1dc_set_num_items(crf1dt->ctx, seq->num_items);
-        crf1dc_reset(crf1dt->ctx, RF_STATE);
-        crf1dl_state_score(crf1dt, seq, w);
-        crf1dc_exp_state(crf1dt->ctx);
+        crf1dc_set_num_items(enc->ctx, seq->num_items);
+        crf1dc_reset(enc->ctx, RF_STATE);
+        crf1dl_state_score(enc, seq, w);
+        crf1dc_exp_state(enc->ctx);
 
         /* Compute forward/backward scores. */
-        crf1dc_alpha_score(crf1dt->ctx);
-        crf1dc_beta_score(crf1dt->ctx);
-        crf1dc_marginal(crf1dt->ctx);
+        crf1dc_alpha_score(enc->ctx);
+        crf1dc_beta_score(enc->ctx);
+        crf1dc_marginal(enc->ctx);
 
         /* Compute the probability of the input sequence on the model. */
-        logp = crf1dc_score(crf1dt->ctx, seq->labels) - crf1dc_lognorm(crf1dt->ctx);
+        logp = crf1dc_score(enc->ctx, seq->labels) - crf1dc_lognorm(enc->ctx);
         /* Update the log-likelihood. */
         logl += logp;
 
         /* Update the model expectations of features. */
-        crf1dl_model_expectation(crf1dt, seq, g, 1.);
+        crf1dl_model_expectation(enc, seq, g, 1.);
     }
 
     *f = -logl;
     return 0;
 }
 
-static int crf1dl_batch_enum_features(graphical_model_t *self, const crf_instance_t *seq, const int *labels, crf_train_enum_features_callback func, void *instance)
+static int encoder_set_instance(encoder_t *self, const crf_instance_t *inst)
 {
-    data_internal_t *batch = (data_internal_t*)self->internal;
-    crf1dl_enum_features(&batch->crf1dt, seq, labels, func, instance);
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
+
+    self->inst = inst;
+    self->level = LEVEL_INSTANCE-1;
+    set_level(self, LEVEL_INSTANCE);
+}
+
+static int encoder_features_on_path(encoder_t *self, const crf_instance_t *inst, const int *path, crf_train_enum_features_callback func, void *instance)
+{
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
+    crf1dl_enum_features(enc, inst, path, func, instance);
     return 0;
 }
 
-static int crf1dl_batch_save_model(graphical_model_t *self, const char *filename, const floatval_t *w, logging_t *lg)
+static int encoder_score(encoder_t *self, const int *path, floatval_t *ptr_score)
 {
-    data_internal_t *batch = (data_internal_t*)self->internal;
-    return crf1dl_save_model(&batch->crf1dt, filename, w, self->ds->data->attrs,  self->ds->data->labels, lg);
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
+    *ptr_score = crf1dc_score(enc->ctx, path);
+    return 0;
 }
 
-static int crf1dl_batch_tag(graphical_model_t *self,const crf_instance_t *inst, int *viterbi, floatval_t *ptr_score)
+static int encoder_viterbi(encoder_t *self, int *path, floatval_t *ptr_score)
 {
-    data_internal_t *batch = (data_internal_t*)self->internal;
-    return crf1dl_tag(&batch->crf1dt, self->w, inst, viterbi, ptr_score);
+    int i;
+    floatval_t score;
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
+    score = crf1dc_viterbi(enc->ctx);
+    for (i = 0;i < self->inst->num_items;++i) {
+        path[i] = enc->ctx->labels[i];
+    }
+    if (ptr_score != NULL) {
+        *ptr_score = score;
+    }
+    return 0;
 }
 
-graphical_model_t *crf1dl_create_instance_batch()
+static int encoder_partition_factor(encoder_t *self, floatval_t *ptr_pf)
 {
-    graphical_model_t* self = (graphical_model_t*)calloc(1, sizeof(graphical_model_t));
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
+    set_level(self, LEVEL_ALPHABETA);
+    *ptr_pf = enc->ctx->log_norm;
+    return 0;
+}
+
+static int encoder_objective_and_gradients(encoder_t *self, floatval_t *f, floatval_t *g, floatval_t gain)
+{
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
+    set_level(self, LEVEL_MARGINAL);
+    crf1dl_observation_expectation(enc, self->inst, self->inst->labels, g, gain);
+    crf1dl_model_expectation(enc, self->inst, g, -gain);
+    *f = -crf1dc_score(enc->ctx,  self->inst->labels) + crf1dc_lognorm(enc->ctx);
+    return 0;
+}
+
+static int encoder_save_model(encoder_t *self, const char *filename, const floatval_t *w, logging_t *lg)
+{
+    crf1dl_t *enc = (crf1dl_t*)self->internal;
+    return crf1dl_save_model(enc, filename, w, self->ds->data->attrs,  self->ds->data->labels, lg);
+}
+
+encoder_t *crf1dl_create_instance_batch()
+{
+    encoder_t *self = (encoder_t*)calloc(1, sizeof(encoder_t));
     if (self != NULL) {
-        data_internal_t *batch = (data_internal_t*)calloc(1, sizeof(data_internal_t));
-        if (batch != NULL) {
-            crf1dl_init(&batch->crf1dt);
+        crf1dl_t *enc = (crf1dl_t*)calloc(1, sizeof(crf1dl_t));
+        if (enc != NULL) {
+            crf1dl_init(enc);
 
-            self->exchange_options = crf1dl_batch_exchange_options;
-            self->set_data = crf1dl_batch_set_data;
-            self->set_weights = crf1dl_batch_set_weights;
-            self->enum_features = crf1dl_batch_enum_features;
-            self->objective = crf1dl_batch_objective;
-            self->objective_and_gradients = crf1dl_batch_objective_and_gradients;
-            self->objective_and_gradients_batch = crf1dl_batch_objective_and_gradients_batch;
-            self->save_model = crf1dl_batch_save_model;
-            self->tag = crf1dl_batch_tag;
-            self->internal = batch;
+            self->exchange_options = encoder_exchange_options;
+            self->initialize = encoder_initialize;
+            self->set_weights =  encoder_set_weights;
+            self->objective_and_gradients_batch = encoder_objective_and_gradients_batch;
+            self->set_instance = encoder_set_instance;
+            self->features_on_path = encoder_features_on_path;
+            self->score = encoder_score;
+            self->viterbi = encoder_viterbi;
+            self->partition_factor = encoder_partition_factor;
+            self->objective_and_gradients = encoder_objective_and_gradients;
+            self->save_model = encoder_save_model;
+            self->internal = enc;
         }
     }
 

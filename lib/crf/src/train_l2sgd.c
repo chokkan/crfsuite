@@ -124,7 +124,7 @@ typedef struct {
 } training_option_t;
 
 static int l2sgd(
-    graphical_model_t *gm,
+    encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
     floatval_t *w,
@@ -184,8 +184,9 @@ static int l2sgd(
             gain = eta / decay;
 
             /* Compute the loss and gradients for the instance. */
-            gm->set_weights(gm, w);
-            gm->objective_and_gradients(gm, inst, &loss, w, decay, gain);
+            gm->set_weights(gm, w, decay);
+            gm->set_instance(gm, inst);
+            gm->objective_and_gradients(gm, &loss, w, gain);
 
             sum_loss += loss;
             ++t;
@@ -280,7 +281,7 @@ error_exit:
 
 static floatval_t
 l2sgd_calibration(
-    graphical_model_t *gm,
+    encoder_t *gm,
     dataset_t *ds,
     floatval_t *w,
     logging_t *lg,
@@ -316,12 +317,16 @@ l2sgd_calibration(
     vecset(w, 0, K);
 
     /* Compute the initial loss. */
-    gm->set_weights(gm, w);
+    gm->set_weights(gm, w, 1.);
     init_loss = 0;
     for (i = 0;i < S;++i) {
+        floatval_t score;
         const crf_instance_t *inst = dataset_get(ds, i);
-        gm->objective(gm, inst, &loss);
-        init_loss += loss;
+        gm->set_instance(gm, inst);
+        gm->score(gm, inst->labels, &score);
+        init_loss -= score;
+        gm->partition_factor(gm, &score);
+        init_loss += score;
     }
     init_loss += 0.5 * lambda * vecdot(w, w, K) * N;
     logging(lg, "Initial loss: %f\n", init_loss);
@@ -423,7 +428,7 @@ void crf_train_l2sgd_init(crf_params_t* params)
 }
 
 int crf_train_l2sgd(
-    graphical_model_t *gm,
+    encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
     crf_params_t *params,

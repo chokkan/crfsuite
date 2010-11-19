@@ -375,34 +375,9 @@ int crf1dt_tag(crf1dt_t* crf1dt, crf_instance_t *inst, int* output, floatval_t *
  */
 /** @{ */
 
-graphical_model_t *crf1dl_create_instance_batch();
+encoder_t *crf1dl_create_instance_batch();
 
 /** @} */
-
-
-/*
-typedef struct {
-    floatval_t  sigma;
-    floatval_t  lambda;
-    floatval_t  t0;
-    int         max_iterations;
-    int         period;
-    floatval_t  delta;
-    floatval_t  calibration_eta;
-    floatval_t  calibration_rate;
-    int         calibration_samples;
-    int         calibration_candidates;
-} crf1dl_sgd_option_t;
-
-void crf1dl_shuffle(int *perm, int N, int init);
-
-int crf1dl_sgd(crf1dl_t* crf1dt, crf1dl_option_t *opt);
-int crf1dl_sgd_options(crf_params_t* params, crf1dl_option_t* opt, int mode);
-*/
-
-
-/* crf1m_tag.c */
-
 
 
 #endif/*__CRF1D_H__*/

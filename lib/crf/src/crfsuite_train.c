@@ -36,151 +36,26 @@
 
 #include <os.h>
 
-#include <float.h>
-#include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
-#include <time.h>
 
 #include <crfsuite.h>
 #include "crfsuite_internal.h"
 #include "params.h"
-
 #include "logging.h"
 #include "crf1d.h"
 
-void dataset_init_trainset(dataset_t *ds, crf_data_t *data, int holdout)
-{
-    int i, n = 0;
-
-    for (i = 0;i < data->num_instances;++i) {
-        if (data->instances[i].group != holdout) {
-            ++n;
-        }
-    }
-
-    ds->data = data;
-    ds->num_instances = n;
-    ds->perm = (int*)malloc(sizeof(int) * n);
-
-    n = 0;
-    for (i = 0;i < data->num_instances;++i) {
-        if (data->instances[i].group != holdout) {
-            ds->perm[n++] = i;
-        }
-    }    
-}
-
-void dataset_init_testset(dataset_t *ds, crf_data_t *data, int holdout)
-{
-    int i, n = 0;
-
-    for (i = 0;i < data->num_instances;++i) {
-        if (data->instances[i].group == holdout) {
-            ++n;
-        }
-    }
-
-    ds->data = data;
-    ds->num_instances = n;
-    ds->perm = (int*)malloc(sizeof(int) * n);
-
-    n = 0;
-    for (i = 0;i < data->num_instances;++i) {
-        if (data->instances[i].group == holdout) {
-            ds->perm[n++] = i;
-        }
-    }
-}
-
-void dataset_finish(dataset_t *ds)
-{
-    free(ds->perm);
-}
-
-void dataset_shuffle(dataset_t *ds)
-{
-    int i;
-    for (i = 0;i < ds->num_instances;++i) {
-        int j = rand() % ds->num_instances;
-        int tmp = ds->perm[j];
-        ds->perm[j] = ds->perm[i];
-        ds->perm[i] = tmp;
-    }
-}
-
-crf_instance_t *dataset_get(dataset_t *ds, int i)
-{
-    return &ds->data->instances[ds->perm[i]];
-}
-
-
-void holdout_evaluation(
-    graphical_model_t *gm,
-    dataset_t *ds,
-    const floatval_t *w,
-    logging_t *lg
-    )
-{
-    int i;
-    crf_evaluation_t eval;
-    const int N = ds->num_instances;
-    int *viterbi = NULL;
-    int max_length = 0;
-
-    /* Initialize the evaluation table. */
-    crf_evaluation_init(&eval, ds->data->labels->num(ds->data->labels));
-
-    gm->set_weights(gm, w);
-
-    for (i = 0;i < N;++i) {
-        floatval_t score;
-        const crf_instance_t *inst = dataset_get(ds, i);
-
-        if (max_length < inst->num_items) {
-            free(viterbi);
-            viterbi = (int*)malloc(sizeof(int) * inst->num_items);
-        }
-
-        gm->tag(gm, inst, viterbi, &score);
-
-        crf_evaluation_accmulate(&eval, inst, viterbi);
-    }
-
-    /* Report the performance. */
-    crf_evaluation_compute(&eval);
-    crf_evaluation_output(&eval, ds->data->labels, lg->func, lg->instance);
-}
-
-
-static int crf_tag_notimplemented(crf_tagger_t *tagger)
-{
-    return CRFERR_NOTIMPLEMENTED;
-}
-
-static int
-crf_tag_tag(crf_tagger_t* tagger, crf_instance_t *inst, int *labels, floatval_t *ptr_score)
-{
-    crf_train_internal_t *tr = (crf_train_internal_t*)tagger->internal;
-    graphical_model_t *batch = tr->data;
-    return CRFERR_NOTIMPLEMENTED;
-    //return batch->tag(batch, w, inst, labels, ptr_score);
-}
-
 static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
 {
-    crf_train_internal_t *tr = (crf_train_internal_t*)calloc(
-        1, sizeof(crf_train_internal_t));
+    crf_train_internal_t *tr = (crf_train_internal_t*)calloc(1, sizeof(crf_train_internal_t));
     if (tr != NULL) {
         tr->lg = (logging_t*)calloc(1, sizeof(logging_t));
         tr->params = params_create_instance();
         tr->feature_type = ftype;
         tr->algorithm = algorithm;
 
-        tr->data = crf1dl_create_instance_batch();
-        tr->data->exchange_options(tr->data, tr->params, 0);
+        tr->gm = crf1dl_create_instance_batch();
+        tr->gm->exchange_options(tr->gm, tr->params, 0);
 
         /* Initialize parameters for the training algorithm. */
         switch (algorithm) {
@@ -240,7 +115,7 @@ static crf_params_t* crf_train_params(crf_trainer_t* self)
     return params;
 }
 
-static int crf_train_batch(
+static int crf_train_train(
     crf_trainer_t* self,
     const crf_data_t *data,
     const char *filename,
@@ -250,7 +125,7 @@ static int crf_train_batch(
     char *algorithm = NULL;
     crf_train_internal_t *tr = (crf_train_internal_t*)self->internal;
     logging_t *lg = tr->lg;
-    graphical_model_t *gm = tr->data;
+    encoder_t *gm = tr->gm;
     floatval_t *w = NULL;
     dataset_t trainset;
     dataset_t testset;
@@ -264,7 +139,7 @@ static int crf_train_batch(
     }
 
     /* Set the training set to the CRF, and generate features. */
-    gm->set_data(gm, &trainset, lg);
+    gm->initialize(gm, &trainset, lg);
 
     /* Call the training algorithm. */
     switch (tr->algorithm) {
@@ -351,7 +226,7 @@ int crf1dl_create_instance(const char *interface, void **ptr)
                 trainer->release = crf_train_release;
                 trainer->params = crf_train_params;
                 trainer->set_message_callback = crf_train_set_message_callback;
-                trainer->train = crf_train_batch;
+                trainer->train = crf_train_train;
 
                 *ptr = trainer;
                 return 0;

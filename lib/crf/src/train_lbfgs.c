@@ -69,7 +69,7 @@ typedef struct {
  * Internal data structure for the callback function of lbfgs().
  */
 typedef struct {
-    graphical_model_t *gm;
+    encoder_t *gm;
     dataset_t *trainset;
     dataset_t *testset;
     logging_t *lg;
@@ -89,12 +89,11 @@ static lbfgsfloatval_t lbfgs_evaluate(
     int i;
     floatval_t f, norm = 0.;
     lbfgs_internal_t *lbfgsi = (lbfgs_internal_t*)instance;
-    graphical_model_t *gm = lbfgsi->gm;
+    encoder_t *gm = lbfgsi->gm;
     dataset_t *trainset = lbfgsi->trainset;
 
     /* Compute the objective value and gradients. */
-    gm->set_weights(gm, x);
-    gm->objective_and_gradients_batch(gm, trainset, &f, g);
+    gm->objective_and_gradients_batch(gm, trainset, x, &f, g);
     
     /* L2 regularization. */
     if (0 < lbfgsi->c2) {
@@ -125,7 +124,7 @@ static int lbfgs_progress(
     clock_t duration, clk = clock();
     lbfgs_internal_t *lbfgsi = (lbfgs_internal_t*)instance;
     dataset_t *testset = lbfgsi->testset;
-    graphical_model_t *gm = lbfgsi->gm;
+    encoder_t *gm = lbfgsi->gm;
     logging_t *lg = lbfgsi->lg;
 
     /* Compute the duration required for this iteration. */
@@ -213,7 +212,7 @@ void crf_train_lbfgs_init(crf_params_t* params)
 }
 
 int crf_train_lbfgs(
-    graphical_model_t *gm,
+    encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
     crf_params_t *params,
