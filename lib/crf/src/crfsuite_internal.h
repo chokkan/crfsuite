@@ -48,6 +48,7 @@ enum {
     TRAIN_L2SGD,                /**< Pegasos online training. */
     TRAIN_AVERAGED_PERCEPTRON,  /**< Averaged perceptron. */
     TRAIN_PASSIVE_AGGRESSIVE,
+    TRAIN_AROW,
 };
 
 struct tag_crf_train_internal;
@@ -212,6 +213,17 @@ int crf_train_l2sgd(
 void crf_train_passive_aggressive_init(crf_params_t* params);
 
 int crf_train_passive_aggressive(
+    encoder_t *gm,
+    dataset_t *trainset,
+    dataset_t *testset,
+    crf_params_t *params,
+    logging_t *lg,
+    floatval_t **ptr_w
+    );
+
+void crf_train_arow_init(crf_params_t* params);
+
+int crf_train_arow(
     encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,

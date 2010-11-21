@@ -71,6 +71,9 @@ static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
         case TRAIN_PASSIVE_AGGRESSIVE:
             crf_train_passive_aggressive_init(tr->params);
             break;
+        case TRAIN_AROW:
+            crf_train_arow_init(tr->params);
+            break;
         }
     }
 
@@ -185,6 +188,15 @@ static int crf_train_train(
             lg,
             &w
             );
+    case TRAIN_AROW:
+        crf_train_arow(
+            gm,
+            &trainset,
+            (holdout != -1 ? &testset : NULL),
+            tr->params,
+            lg,
+            &w
+            );
         break;
     }
 
@@ -226,6 +238,8 @@ int crf1de_create_instance(const char *interface, void **ptr)
         algorithm = TRAIN_AVERAGED_PERCEPTRON;
     } else if (strcmp(interface, "passive-aggressive") == 0) {
         algorithm = TRAIN_PASSIVE_AGGRESSIVE;
+    } else if (strcmp(interface, "arow") == 0) {
+        algorithm = TRAIN_AROW;
     } else {
         return 1;
     }

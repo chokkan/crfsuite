@@ -113,6 +113,9 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
         } else if (strcmp(arg, "pa") == 0 || strcmp(arg, "passive-aggressive") == 0) {
             free(opt->algorithm);
             opt->algorithm = mystrdup("passive-aggressive");
+        } else if (strcmp(arg, "arow") == 0) {
+            free(opt->algorithm);
+            opt->algorithm = mystrdup("arow");
         } else {
             fprintf(stderr, "ERROR: Unknown algorithm: %s\n", arg);
             return 1;
