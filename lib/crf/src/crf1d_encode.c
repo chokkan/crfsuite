@@ -158,6 +158,7 @@ crf1de_state_score_scaled(
     /* Forward to the non-scaling version for fast computation when scale == 1. */
     if (scale == 1.) {
         crf1de_state_score(crf1de, inst, w);
+        return;
     }
 
     /* Loop over the items in the sequence. */
@@ -220,6 +221,7 @@ crf1de_transition_score_scaled(
     /* Forward to the non-scaling version for fast computation when scale == 1. */
     if (scale == 1.) {
         crf1de_transition_score(crf1de, w);
+        return;
     }
 
     /* Compute transition scores between two labels. */
