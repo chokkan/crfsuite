@@ -67,7 +67,7 @@ void dataset_finish(dataset_t *ds);
 void dataset_shuffle(dataset_t *ds);
 crf_instance_t *dataset_get(dataset_t *ds, int i);
 
-typedef void (*crf_train_enum_features_callback)(void *instance, int fid, floatval_t value);
+typedef void (*crf_encoder_features_on_path_callback)(void *instance, int fid, floatval_t value);
 
 /**
  * Internal data structure for 
@@ -127,7 +127,7 @@ struct tag_encoder
      */
     int (*objective_and_gradients_batch)(encoder_t *self, dataset_t *ds, const floatval_t *w, floatval_t *f, floatval_t *g);
 
-    int (*features_on_path)(encoder_t *self, const crf_instance_t *inst, const int *path, crf_train_enum_features_callback func, void *instance);
+    int (*features_on_path)(encoder_t *self, const crf_instance_t *inst, const int *path, crf_encoder_features_on_path_callback func, void *instance);
 
     /**
      * Sets the feature weights (and their scale factor).
@@ -157,6 +157,16 @@ struct tag_encoder
     int (*save_model)(encoder_t *self, const char *filename, const floatval_t *w, logging_t *lg);
 
 };
+
+/**
+ * \defgroup crf1d_encode.c
+ */
+/** @{ */
+
+encoder_t *crf1d_create_encoder();
+
+/** @} */
+
 
 int crf_train_lbfgs(
     encoder_t *gm,

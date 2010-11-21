@@ -40,14 +40,14 @@
 #include <crfsuite.h>
 #include "logging.h"
 
-int crf1dl_create_instance(const char *iid, void **ptr);
+int crf1de_create_instance(const char *iid, void **ptr);
 int crf_dictionary_create_instance(const char *interface, void **ptr);
 int crf1m_create_instance_from_file(const char *filename, void **ptr);
 
 int crf_create_instance(const char *iid, void **ptr)
 {
     int ret = 
-        crf1dl_create_instance(iid, ptr) == 0 ||
+        crf1de_create_instance(iid, ptr) == 0 ||
         crf_dictionary_create_instance(iid, ptr) == 0;
 
     return ret;

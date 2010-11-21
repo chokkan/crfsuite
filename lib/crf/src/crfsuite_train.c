@@ -54,7 +54,7 @@ static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
         tr->feature_type = ftype;
         tr->algorithm = algorithm;
 
-        tr->gm = crf1dl_create_instance_batch();
+        tr->gm = crf1d_create_encoder();
         tr->gm->exchange_options(tr->gm, tr->params, 0);
 
         /* Initialize parameters for the training algorithm. */
@@ -185,7 +185,7 @@ static int crf_train_train(
     return 0;
 }
 
-int crf1dl_create_instance(const char *interface, void **ptr)
+int crf1de_create_instance(const char *interface, void **ptr)
 {
     int ftype = FTYPE_NONE;
     int algorithm = TRAIN_NONE;

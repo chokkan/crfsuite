@@ -108,7 +108,6 @@ int crf1dc_set_num_items(crf1d_context_t* ctx, int T)
         free(ctx->row);
         free(ctx->beta_score);
         free(ctx->alpha_score);
-        free(ctx->labels);
 
         ctx->alpha_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
         if (ctx->alpha_score == NULL) return CRFERR_OUTOFMEMORY;
@@ -118,8 +117,6 @@ int crf1dc_set_num_items(crf1d_context_t* ctx, int T)
         if (ctx->scale_factor == NULL) return CRFERR_OUTOFMEMORY;
         ctx->row = (floatval_t*)calloc(L, sizeof(floatval_t));
         if (ctx->row == NULL) return CRFERR_OUTOFMEMORY;
-        ctx->labels = (int*)calloc(T, sizeof(int));
-        if (ctx->labels == NULL) return CRFERR_OUTOFMEMORY;
 
         if (ctx->flag & CTXF_VITERBI) {
             ctx->backward_edge = (int*)calloc(T * L, sizeof(int));
@@ -153,7 +150,6 @@ void crf1dc_delete(crf1d_context_t* ctx)
         free(ctx->row);
         free(ctx->beta_score);
         free(ctx->alpha_score);
-        free(ctx->labels);
         free(ctx->mexp_trans);
         free(ctx->exp_trans);
         free(ctx->trans);
@@ -530,7 +526,8 @@ void crf1dc_debug_context(FILE *fp)
     crf1d_context_t *ctx = crf1dc_new(CTXF_MARGINALS, L, T);
     floatval_t *trans = NULL, *state = NULL;
     floatval_t scores[3][3][3];
-    
+    int labels[3];
+
     /* Initialize the state scores. */
     state = EXP_STATE_SCORE(ctx, 0);
     state[0] = .4;    state[1] = .5;    state[2] = .1;
@@ -587,10 +584,10 @@ void crf1dc_debug_context(FILE *fp)
             for (y3 = 0;y3 < L;++y3) {
                 floatval_t logp;
                 
-                ctx->labels[0] = y1;
-                ctx->labels[1] = y2;
-                ctx->labels[2] = y3;
-                logp = crf1dc_score(ctx, ctx->labels) - crf1dc_lognorm(ctx);
+                labels[0] = y1;
+                labels[1] = y2;
+                labels[2] = y3;
+                logp = crf1dc_score(ctx, labels) - crf1dc_lognorm(ctx);
 
                 fprintf(fp, "Check for the sequence %d-%d-%d... ", y1, y2, y3);
                 check_values(fp, exp(logp), scores[y1][y2][y3] / norm);
