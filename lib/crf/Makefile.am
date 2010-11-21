@@ -26,6 +26,7 @@ libcrf_la_SOURCES = \
 	src/train_averaged_perceptron.c \
 	src/train_l2sgd.c \
 	src/train_lbfgs.c \
+	src/train_passive_aggressive.c \
 	src/crf1d.h \
 	src/crf1d_context.c \
 	src/crf1d_model.c \

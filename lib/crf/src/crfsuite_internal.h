@@ -47,6 +47,7 @@ enum {
     TRAIN_LBFGS,                /**< L-BFGS batch training. */
     TRAIN_L2SGD,                /**< Pegasos online training. */
     TRAIN_AVERAGED_PERCEPTRON,  /**< Averaged perceptron. */
+    TRAIN_PASSIVE_AGGRESSIVE,
 };
 
 struct tag_crf_train_internal;
@@ -168,6 +169,13 @@ encoder_t *crf1d_create_encoder();
 /** @} */
 
 
+void holdout_evaluation(
+    encoder_t *gm,
+    dataset_t *testset,
+    const floatval_t *w,
+    logging_t *lg
+    );
+    
 int crf_train_lbfgs(
     encoder_t *gm,
     dataset_t *trainset,
@@ -201,12 +209,16 @@ int crf_train_l2sgd(
     floatval_t **ptr_w
     );
 
-void holdout_evaluation(
+void crf_train_passive_aggressive_init(crf_params_t* params);
+
+int crf_train_passive_aggressive(
     encoder_t *gm,
+    dataset_t *trainset,
     dataset_t *testset,
-    const floatval_t *w,
-    logging_t *lg
+    crf_params_t *params,
+    logging_t *lg,
+    floatval_t **ptr_w
     );
-    
+
 
 #endif/*__CRFSUITE_INTERNAL_H__*/

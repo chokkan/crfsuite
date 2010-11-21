@@ -111,6 +111,7 @@
     <ClCompile Include="src\train_averaged_perceptron.c" />
     <ClCompile Include="src\train_l2sgd.c" />
     <ClCompile Include="src\train_lbfgs.c" />
+    <ClCompile Include="src\train_passive_agressive.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\crfsuite.h" />
