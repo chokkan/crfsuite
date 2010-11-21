@@ -164,7 +164,7 @@ int crf_train_averaged_perceptron(
             floatval_t score;
             const crf_instance_t *inst = dataset_get(trainset, n);
 
-            /* Set the feature weights to the graphical model. */
+            /* Set the feature weights to the encoder. */
             gm->set_weights(gm, w, 1.);
             gm->set_instance(gm, inst);
 

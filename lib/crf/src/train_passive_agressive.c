@@ -55,6 +55,7 @@ typedef struct {
     int type;
     floatval_t c;
     int error_sensitive;
+    int averaging;
     int max_iterations;
     floatval_t epsilon;
 } training_option_t;
@@ -70,6 +71,7 @@ typedef struct {
 
     /* The number of features. */
     int K;
+    /* Coefficient for collecting feature weights. */
     floatval_t c;
     /* The difference vector [K]. */
     floatval_t *delta;
@@ -132,14 +134,16 @@ static floatval_t delta_norm2(delta_t *dc)
     return norm2;
 }
 
-static void delta_add(delta_t *dc, floatval_t *w, floatval_t tau)
+static void delta_add(delta_t *dc, floatval_t *w, floatval_t *ws, const floatval_t tau, const floatval_t u)
 {
     int i;
-    memset(dc->used, 0, sizeof(char) * dc->K);
+    const floatval_t tauu = tau * u;
+
     for (i = 0;i < dc->num_actives;++i) {
         int k = dc->actives[i];
         if (!dc->used[k]) {
             w[k] += tau * dc->delta[k];
+            ws[k] += tauu * dc->delta[k];
             dc->used[k] = 1;
         }
     }
@@ -213,6 +217,10 @@ static int exchange_options(crf_params_t* params, training_option_t* opt, int mo
             "Cost is sensitive to the number of incorrect labels."
             )
         DDX_PARAM_INT(
+            "averaging", opt->averaging, 1,
+            "Average feature weights."
+            )
+        DDX_PARAM_INT(
             "max_iterations", opt->max_iterations, 100,
             "The maximum number of iterations."
             )
@@ -239,9 +247,9 @@ int crf_train_passive_aggressive(
     floatval_t **ptr_w
     )
 {
-    int n, i, c, ret = 0;
+    int n, i, u, ret = 0;
     int *viterbi = NULL;
-    floatval_t *w = NULL;
+    floatval_t *w = NULL, *ws = NULL, *wa = NULL;
     const int N = trainset->num_instances;
     const int K = gm->num_features;
     const int T = gm->cap_items;
@@ -262,18 +270,22 @@ int crf_train_passive_aggressive(
 
     /* Allocate arrays. */
     w = (floatval_t*)calloc(sizeof(floatval_t), K);
+    ws = (floatval_t*)calloc(sizeof(floatval_t), K);
+    wa = (floatval_t*)calloc(sizeof(floatval_t), K);
     viterbi = (int*)calloc(sizeof(int), T);
-    if (w == NULL || viterbi == NULL) {
+    if (w == NULL || ws == NULL || wa == NULL || viterbi == NULL) {
         ret = CRFERR_OUTOFMEMORY;
         goto error_exit;
     }
 
+    /* Set the cost function for instances. */
     if (opt.error_sensitive) {
         cost_function = cost_sensitive;
     } else {
         cost_function = cost_insensitive;
     }
 
+    /* Set the routine for computing tau (i.e., PA, PA-I, PA-II). */
     if (opt.type == 1) {
         tau_function = tau1;
     } else if (opt.type == 2) {
@@ -287,9 +299,12 @@ int crf_train_passive_aggressive(
     logging(lg, "type: %d\n", opt.type);
     logging(lg, "c: %f\n", opt.c);
     logging(lg, "error_sensitive: %d\n", opt.error_sensitive);
+    logging(lg, "averaging: %d\n", opt.averaging);
     logging(lg, "max_iterations: %d\n", opt.max_iterations);
     logging(lg, "epsilon: %f\n", opt.epsilon);
     logging(lg, "\n");
+
+    u = 1;
 
 	/* Loop for epoch. */
     for (i = 0;i < opt.max_iterations;++i) {
@@ -305,7 +320,7 @@ int crf_train_passive_aggressive(
             floatval_t sv;
             const crf_instance_t *inst = dataset_get(trainset, n);
 
-            /* Set the feature weights to the graphical model. */
+            /* Set the feature weights to the encoder. */
             gm->set_weights(gm, w, 1.);
             gm->set_instance(gm, inst);
 
@@ -318,10 +333,13 @@ int crf_train_passive_aggressive(
                 floatval_t sc, norm2;
                 floatval_t tau, cost;
 
-                /* Compute the loss. */
+                /*
+                    Compute the cost of this instance.
+                 */
                 gm->score(gm, inst->labels, &sc);
                 cost = cost_function(sv - sc, (double)d);
 
+                /* Initialize delta[k] = 0. */
                 delta_reset(&dc);
 
                 /*
@@ -338,13 +356,31 @@ int crf_train_passive_aggressive(
                 dc.c = -1;
                 gm->features_on_path(gm, inst, viterbi, delta_collect, &dc);
 
-                /* Compute the ||delta||^2. */
+                /*
+                    Compute tau (dpending on PA, PA-I, and PA-II).
+                 */
                 norm2 = delta_norm2(&dc);
                 tau = tau_function(cost, norm2, opt.c);
-                delta_add(&dc, w, tau);
+
+                /*
+                    Update the feature weights:
+                        w[k] += tau * delta[k]
+                        ws[k] += tau * u * delta[k]
+                 */
+                delta_add(&dc, w, ws, tau, u);
 
                 sum_loss += cost;
             }
+            ++u;
+        }
+
+        if (opt.averaging) {
+            /* Perform averaging to wa. */
+            veccopy(wa, w, K);
+            vecasub(wa, 1./u, ws, K);
+        } else {
+            /* Simply copy the weights to wa. */
+            veccopy(wa, w, K);
         }
 
         /* Output the progress. */
@@ -355,7 +391,7 @@ int crf_train_passive_aggressive(
 
         /* Holdout evaluation if necessary. */
         if (testset != NULL) {
-            holdout_evaluation(gm, testset, w, lg);
+            holdout_evaluation(gm, testset, wa, lg);
         }
 
         logging(lg, "\n");
@@ -372,15 +408,19 @@ int crf_train_passive_aggressive(
     logging(lg, "\n");
 
     free(viterbi);
-    *ptr_w = w;
+    free(ws);
+    free(w);
+    *ptr_w = wa;
     delta_finish(&dc);
     return ret;
 
 error_exit:
     free(viterbi);
+    free(wa);
+    free(ws);
     free(w);
-    delta_finish(&dc);
     *ptr_w = NULL;
+    delta_finish(&dc);
 
     return ret;
 }
