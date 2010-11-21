@@ -215,7 +215,7 @@ void crf1dc_beta_score(crf1d_context_t* ctx);
 void crf1dc_marginal(crf1d_context_t* ctx);
 floatval_t crf1dc_score(crf1d_context_t* ctx, const int *labels);
 floatval_t crf1dc_lognorm(crf1d_context_t* ctx);
-floatval_t crf1dc_viterbi(crf1d_context_t* ctx);
+floatval_t crf1dc_viterbi(crf1d_context_t* ctx, int *labels);
 void crf1dc_debug_context(FILE *fp);
 
 /** @} */
@@ -353,21 +353,6 @@ void crf1dm_dump(crf1dm_t* model, FILE *fp);
 
 /** @} */
 
-
-
-/**
- * \defgroup crf1d_tag.c
- */
-/** @{ */
-
-struct tag_crf1mt;
-typedef struct tag_crf1mt crf1dt_t;
-
-crf1dt_t *crf1dt_new(crf1dm_t* crf1dm);
-void crf1dt_delete(crf1dt_t* crf1dt);
-int crf1dt_tag(crf1dt_t* crf1dt, crf_instance_t *inst, int* output, floatval_t *ptr_score);
-
-/** @} */
 
 
 /**

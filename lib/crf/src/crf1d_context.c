@@ -444,13 +444,12 @@ floatval_t crf1dc_lognorm(crf1d_context_t* ctx)
     return ctx->log_norm;
 }
 
-floatval_t crf1dc_viterbi(crf1d_context_t* ctx)
+floatval_t crf1dc_viterbi(crf1d_context_t* ctx, int *labels)
 {
     int i, j, t;
     int *back = NULL;
     floatval_t max_score, score, *cur = NULL;
     const floatval_t *prev = NULL, *state = NULL, *trans = NULL;
-    int *labels = ctx->labels;
     const int T = ctx->num_items;
     const int L = ctx->num_labels;
 

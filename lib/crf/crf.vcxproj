@@ -103,7 +103,6 @@
     <ClCompile Include="src\params.c" />
     <ClCompile Include="src\quark.c" />
     <ClCompile Include="src\rumavl.c" />
-    <ClCompile Include="src\crf1d.c" />
     <ClCompile Include="src\crf1d_context.c" />
     <ClCompile Include="src\crf1d_feature.c" />
     <ClCompile Include="src\crf1d_learn.c" />

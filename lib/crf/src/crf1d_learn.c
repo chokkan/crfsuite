@@ -438,42 +438,6 @@ crf1dl_model_expectation(
 }
 
 /**
- * Tags an instance.
- *  @param  trainer     The trainer.
- *  @param  w           The array of feature weights.
- *  @param  seq         The instance to be tagged.
- *  @param  output      The object that receives the predicted label sequence.
- */
-static int
-crf1dl_tag(
-    crf1dl_t* trainer,
-    const floatval_t *w,
-    const crf_instance_t *seq,
-    int *viterbi,
-    floatval_t *ptr_score
-    )
-{
-    int i;
-    floatval_t score = 0;
-    const int T = seq->num_items;
-    crf1d_context_t* ctx = trainer->ctx;
-    
-    crf1dc_reset(trainer->ctx, RF_TRANS | RF_STATE);
-    crf1dl_transition_score(trainer, w);
-    crf1dc_set_num_items(trainer->ctx, T);
-    crf1dl_state_score(trainer, seq, w);
-    score = crf1dc_viterbi(trainer->ctx);
-
-    for (i = 0;i < T;++i) {
-        viterbi[i] = trainer->ctx->labels[i];
-    }
-    if (ptr_score != NULL) {
-        *ptr_score = score;
-    }
-    return 0;
-}
-
-/**
  * Initializes, loads, or stores parameter values from/to a parameter object.
  *  @param  params      The parameter object.
  *  @param  opt         Pointer to the option structure.
@@ -938,10 +902,7 @@ static int encoder_viterbi(encoder_t *self, int *path, floatval_t *ptr_score)
     int i;
     floatval_t score;
     crf1dl_t *enc = (crf1dl_t*)self->internal;
-    score = crf1dc_viterbi(enc->ctx);
-    for (i = 0;i < self->inst->num_items;++i) {
-        path[i] = enc->ctx->labels[i];
-    }
+    score = crf1dc_viterbi(enc->ctx, path);
     if (ptr_score != NULL) {
         *ptr_score = score;
     }
