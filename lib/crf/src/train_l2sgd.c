@@ -121,6 +121,7 @@ typedef struct {
     floatval_t  calibration_rate;
     int         calibration_samples;
     int         calibration_candidates;
+    int         calibration_max_trials;
 } training_option_t;
 
 static int l2sgd(
@@ -305,10 +306,11 @@ l2sgd_calibration(
     const floatval_t lambda = opt->lambda;
 
     logging(lg, "Calibrating the learning rate (eta)\n");
-    logging(lg, "sgd.calibration.eta: %f\n", eta);
-    logging(lg, "sgd.calibration.rate: %f\n", rate);
-    logging(lg, "sgd.calibration.samples: %d\n", S);
-    logging(lg, "sgd.calibration.candidates: %d\n", num);
+    logging(lg, "calibration.eta: %f\n", eta);
+    logging(lg, "calibration.rate: %f\n", rate);
+    logging(lg, "calibration.samples: %d\n", S);
+    logging(lg, "calibration.candidates: %d\n", num);
+    logging(lg, "calibration.max_trials: %d\n", opt->calibration_max_trials);
 
     /* Initialize a permutation that shuffles the instances. */
     dataset_shuffle(ds);
@@ -347,16 +349,14 @@ l2sgd_calibration(
         ok = isfinite(loss) && (loss < init_loss);
         if (ok) {
             logging(lg, "%f\n", loss);
+            --num;
         } else {
             logging(lg, "%f (worse)\n", loss);
         }
 
-        if (ok) {
-            --num;
-            if (loss < best_loss) {
-                best_loss = loss;
-                best_eta = eta;
-            }
+        if (isfinite(loss) && loss < best_loss) {
+            best_loss = loss;
+            best_eta = eta;
         }
 
         if (!dec) {
@@ -372,6 +372,9 @@ l2sgd_calibration(
         }
 
         ++trials;
+        if (opt->calibration_max_trials <= trials) {
+            break;
+        }
     }
 
     eta = best_eta;
@@ -415,6 +418,10 @@ int exchange_options(crf_params_t* params, training_option_t* opt, int mode)
             )
         DDX_PARAM_INT(
             "calibration.candidates", opt->calibration_candidates, 10,
+            ""
+            )
+        DDX_PARAM_INT(
+            "calibration.max_trials", opt->calibration_max_trials, 20,
             ""
             )
     END_PARAM_MAP()
