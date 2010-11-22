@@ -188,6 +188,7 @@ static int crf_train_train(
             lg,
             &w
             );
+        break;
     case TRAIN_AROW:
         crf_train_arow(
             gm,

@@ -275,7 +275,7 @@ int crf_train_arow(
 
     /* Show the parameters. */
     logging(lg, "Adaptive Regularization of Weights (AROW)\n");
-    logging(lg, "variance: %d\n", opt.variance);
+    logging(lg, "variance: %f\n", opt.variance);
     logging(lg, "gamma: %f\n", opt.gamma);
     logging(lg, "max_iterations: %d\n", opt.max_iterations);
     logging(lg, "epsilon: %f\n", opt.epsilon);
