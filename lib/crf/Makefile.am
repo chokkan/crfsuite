@@ -7,7 +7,8 @@ EXTRA_DIST = \
 
 libcrfincludedir = $(includedir)
 libcrfinclude_HEADERS = \
-	include/crfsuite.h
+	include/crfsuite.h \
+	include/crfsuite.hpp 
 
 libcrf_la_SOURCES = \
 	src/dictionary.c \

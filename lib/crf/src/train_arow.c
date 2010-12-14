@@ -358,7 +358,7 @@ int crf_train_arow(
                 for (j = 0;j < dc.num_actives;++j) {
                     k = dc.actives[j];
                     mean[k] += alpha * cov[k] * dc.delta[k];
-                    cov[k] = 1.0 / ((1.0 / cov[k]) + beta * prod[k]);
+                    cov[k] = 1.0 / ((1.0 / cov[k]) + prod[k] / opt.gamma);
                 }
 
                 sum_loss += cost;
@@ -379,7 +379,7 @@ int crf_train_arow(
         logging(lg, "\n");
 
         /* Convergence test. */
-        if (sum_loss / N < opt.epsilon) {
+        if (sum_loss / N <= opt.epsilon) {
             logging(lg, "Terminated with the stopping criterion\n");
             logging(lg, "\n");
             break;
