@@ -24,6 +24,7 @@ libcrf_la_SOURCES = \
 	src/crfsuite_internal.h \
 	src/dataset.c \
 	src/holdout.c \
+	src/train_arow.c \
 	src/train_averaged_perceptron.c \
 	src/train_l2sgd.c \
 	src/train_lbfgs.c \
