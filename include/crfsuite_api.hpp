@@ -77,16 +77,38 @@ public:
     /// Attribute.
     std::string attr;
     /// Attribute value (weight).
-    double scale;
+    double value;
 
-    /// Default constructor.
-    Attribute() : scale(1.) {}
+    /**
+     * Constructs an attribute with the default name and value.
+     */
+    Attribute() : value(1.)
+    {
+    }
 
-    Attribute(const std::string& _attr, double _scale) : attr(_attr), scale(_scale) {}
+    /**
+     * Constructs an attribute with the default value.
+     *  @param  name        The attribute name.
+     */
+    Attribute(const std::string& name) : attr(name), value(1.)
+    {
+    }
+
+    /**
+     * Constructs an attribute.
+     *  @param  name        The attribute name.
+     *  @aram   v           The attribute value.
+     */
+    Attribute(const std::string& name, double v) : attr(name), value(v) {}
 };
 
+/// Type of an item (attribute vector).
 typedef std::vector<Attribute> Item;
+
+/// Type of an item sequence.
 typedef std::vector<Item>  ItemSequence;
+
+/// Type of a label sequence.
 typedef std::vector<std::string> LabelSequence;
 
 
@@ -182,7 +204,7 @@ public:
     bool open(const std::string& name);
 
     /**
-     * Closes a model file.
+     * Closes the model.
      */
     void close();
 
@@ -192,6 +214,12 @@ public:
      *  @return LabelSequence   The label sequence predicted.
      */
     LabelSequence tag(const ItemSequence& xseq);
+
+    /**
+     * Obtains the list of labels.
+     *  @return LabelSequence   The list of labels in the model.
+     */
+    LabelSequence labels();
 };
 
 };

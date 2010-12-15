@@ -128,7 +128,7 @@ void Trainer::append(const ItemSequence& xseq, const LabelSequence& yseq, int gr
         crfsuite_item_init_n(_item, item.size());
         for (size_t i = 0;i < item.size();++i) {
             _item->contents[i].aid = data->attrs->get(data->attrs, item[i].attr.c_str());
-            _item->contents[i].scale = (floatval_t)item[i].scale;
+            _item->contents[i].scale = (floatval_t)item[i].value;
         }
 
         // Set the label of the item.
@@ -184,6 +184,7 @@ bool Tagger::open(const std::string& name)
 {
     int ret;
 
+    // Close the model if it is already opened.
     this->close();
 
     // Open the model file.
@@ -217,11 +218,14 @@ LabelSequence Tagger::tag(const ItemSequence& xseq)
 
     // Obtain the dictionary interface representing the attributes in the model.
     if ((ret = model->get_attrs(model, &attrs))) {
+        labels->release(labels);
         throw std::invalid_argument("Failed to obtain the dictionary interface for attributes");
     }
 
     // Obtain the tagger interface.
     if ((ret = model->get_tagger(model, &tag))) {
+        attrs->release(attrs);
+        labels->release(labels);
         throw std::invalid_argument("Failed to obtain the tagger interface");
     }
 
@@ -237,7 +241,7 @@ LabelSequence Tagger::tag(const ItemSequence& xseq)
             int aid = attrs->to_id(attrs, item[i].attr.c_str());
             if (0 <= aid) {
                 crfsuite_content_t cont;
-                crfsuite_content_set(&cont, aid, item[i].scale);
+                crfsuite_content_set(&cont, aid, item[i].value);
                 crfsuite_item_append_content(_item, &cont);
             }
         }
@@ -246,21 +250,59 @@ LabelSequence Tagger::tag(const ItemSequence& xseq)
     floatval_t score;
     if ((ret = tag->tag(tag, &_inst, _inst.labels, &score))) {
         crfsuite_instance_finish(&_inst);
+        tag->release(tag);
+        attrs->release(attrs);
+        labels->release(labels);
         throw std::invalid_argument("Failed to tag the instance.");
     }
 
     yseq.resize(xseq.size());
     for (size_t t = 0;t < xseq.size();++t) {
         const char *label = NULL;
-        labels->to_string(labels, _inst.labels[t], &label);
+        if (labels->to_string(labels, _inst.labels[t], &label) != 0) {
+            crfsuite_instance_finish(&_inst);
+            tag->release(tag);
+            attrs->release(attrs);
+            labels->release(labels);
+            throw std::runtime_error("Failed to convert a label ID to string.");
+        }
         yseq[t] = label;
         labels->free(labels, label);
     }
 
-    // Finish the instance.
     crfsuite_instance_finish(&_inst);
+    tag->release(tag);
+    attrs->release(attrs);
+    labels->release(labels);
 
     return yseq;
+}
+
+LabelSequence Tagger::labels()
+{
+    int ret;
+    LabelSequence lseq;
+    crfsuite_dictionary_t *labels = NULL;
+
+    // Obtain the dictionary interface representing the labels in the model.
+    if ((ret = model->get_labels(model, &labels))) {
+        throw std::invalid_argument("Failed to obtain the dictionary interface for labels");
+    }
+
+    // Collect all label strings to lseq.
+    for (int i = 0;i < labels->num(labels);++i) {
+        const char *label = NULL;
+        if (labels->to_string(labels, i, &label) != 0) {
+            labels->release(labels);
+            throw std::runtime_error("Failed to convert a label ID to string.");
+        }
+        lseq.push_back(label);
+        labels->free(labels, label);
+    }
+
+    labels->release(labels);
+
+    return lseq;
 }
 
 };
