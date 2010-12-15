@@ -115,9 +115,9 @@
     <ClCompile Include="src\train_passive_aggressive.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\crfsuite.h" />
-    <ClInclude Include="include\crfsuite.hpp" />
-    <ClInclude Include="include\crfsuite_api.hpp" />
+    <ClInclude Include="..\..\include\crfsuite.h" />
+    <ClInclude Include="..\..\include\crfsuite.hpp" />
+    <ClInclude Include="..\..\include\crfsuite_api.hpp" />
     <ClInclude Include="src\crfsuite_internal.h" />
     <ClInclude Include="src\logging.h" />
     <ClInclude Include="src\params.h" />

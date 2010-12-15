@@ -40,6 +40,9 @@ extern "C" {
 #include <stdio.h>
 #include <stdarg.h>
 
+#define CRFSUITE_VERSION    "0.11.2"
+#define CRFSUITE_COPYRIGHT  "Copyright (c) 2007-2010 Naoaki Okazaki"
+
 typedef double floatval_t;
 #define    FLOAT_MAX    DBL_MAX
 

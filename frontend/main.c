@@ -36,12 +36,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "option.h"
+#include <crfsuite.h>
 
-#define    APPLICATION_S    "CRFsuite"
-#define    VERSION_S        "0.11.1"
-#define    COPYRIGHT_S      "Copyright (c) 2007-2010 Naoaki Okazaki"
-
-
+#define    APPLICATION_S    "CRFSuite"
 
 int main_learn(int argc, char *argv[], const char *argv0);
 int main_tag(int argc, char *argv[], const char *argv0);
@@ -97,7 +94,7 @@ int main(int argc, char *argv[])
     FILE *fpi = stdin, *fpo = stdout, *fpe = stderr;
 
     /* Show the copyright information. */
-    fprintf(fpe, APPLICATION_S " " VERSION_S "  " COPYRIGHT_S "\n");
+    fprintf(fpe, APPLICATION_S " " CRFSUITE_VERSION "  " CRFSUITE_COPYRIGHT "\n");
     fprintf(fpe, "\n");
 
     /* Parse the command-line option. */
