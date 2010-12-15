@@ -87,7 +87,11 @@ quark_t* quark_new()
 
 void quark_delete(quark_t* qrk)
 {
-    rumavl_destroy(qrk->string_to_id);
+    if (qrk != NULL) {
+        rumavl_destroy(qrk->string_to_id);
+        free(qrk->id_to_string);
+        free(qrk);
+    }
 }
 
 int quark_get(quark_t* qrk, const char *str)
@@ -137,6 +141,7 @@ int quark_num(quark_t* qrk)
 {
     return qrk->num;
 }
+
 
 
 #if 0

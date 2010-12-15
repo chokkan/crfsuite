@@ -33,9 +33,9 @@ if __name__ == '__main__':
     fo = sys.stdout
 
     trainer = Trainer()
-    trainer.init('crf1d', 'lbfgs')
     for xseq, yseq in instances(fi):
         trainer.append(xseq, yseq, 0)
 
-    trainer.train(sys.argv[1], -1)
+    trainer.set('c2', '10')
+    trainer.train('crf1d', 'l2sgd', sys.argv[1], -1)
 

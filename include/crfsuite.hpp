@@ -35,6 +35,7 @@
 #include <string>
 #include <stdexcept>
 #include <iostream>
+#include <sstream>
 
 #include <crfsuite.h>
 #include "crfsuite_api.hpp"
@@ -47,11 +48,38 @@ Trainer::Trainer()
     data = new crfsuite_data_t;
     if (data != NULL) {
         crfsuite_data_init(data);
-        tr = NULL;
     }
 }
 
 Trainer::~Trainer()
+{
+    if (data != NULL) {
+        clear();
+        delete data;
+        data = NULL;
+    }
+}
+
+void Trainer::init()
+{
+    // Create an instance of attribute dictionary.
+    if (data->attrs == NULL) {
+        int ret = crfsuite_create_instance("dictionary", (void**)&data->attrs);
+        if (!ret) {
+            throw std::invalid_argument("Failed to create a dictionary instance.");
+        }
+    }
+
+    // Create an instance of label dictionary.
+    if (data->labels == NULL) {
+        int ret = crfsuite_create_instance("dictionary", (void**)&data->labels);
+        if (!ret) {
+            throw std::invalid_argument("Failed to create a dictionary instance.");
+        }
+    }
+}
+
+void Trainer::clear()
 {
     if (data != NULL) {
         if (data->labels != NULL) {
@@ -65,53 +93,15 @@ Trainer::~Trainer()
         }
 
         crfsuite_data_finish(data);
-        delete data;
-        data = NULL;
     }
-
-    if (tr != NULL) {
-        tr->release(tr);
-        tr = NULL;
-    }
-}
-
-bool Trainer::init(const std::string& type, const std::string& algorithm)
-{
-    int ret;
-
-    // Build the trainer string ID.
-    std::string tid = "train/";
-    tid += type;
-    tid += '/';
-    tid += algorithm;
-
-    // Create an instance of a trainer.
-    ret = crfsuite_create_instance(tid.c_str(), (void**)&tr);
-    if (!ret) {
-        return false;
-    }
-
-    // Create an instance of attribute dictionary.
-    ret = crfsuite_create_instance("dictionary", (void**)&data->attrs);
-    if (!ret) {
-        throw std::invalid_argument(" Failed to create a dictionary instance.");
-    }
-
-    // Create an instance of label dictionary.
-    ret = crfsuite_create_instance("dictionary", (void**)&data->labels);
-    if (!ret) {
-        throw std::invalid_argument(" Failed to create a dictionary instance.");
-    }
-
-    // Set the callback function for receiving messages.
-    tr->set_message_callback(tr, this, __logging_callback);
-
-    return true;
 }
 
 void Trainer::append(const ItemSequence& xseq, const LabelSequence& yseq, int group)
 {
-    crfsuite_instance_t _inst;
+    // Create dictionary objects if necessary.
+    if (data->attrs == NULL || data->labels == NULL) {
+        init();
+    }
 
     // Make sure |y| == |x|.
     if (xseq.size() != yseq.size()) {
@@ -119,6 +109,7 @@ void Trainer::append(const ItemSequence& xseq, const LabelSequence& yseq, int gr
     }
 
     // Convert instance_type to crfsuite_instance_t.
+    crfsuite_instance_t _inst;
     crfsuite_instance_init_n(&_inst, xseq.size());
     for (size_t t = 0;t < xseq.size();++t) {
         const Item& item = xseq[t];
@@ -143,17 +134,59 @@ void Trainer::append(const ItemSequence& xseq, const LabelSequence& yseq, int gr
     crfsuite_instance_finish(&_inst);
 }
 
-int Trainer::train(const std::string& model, int holdout)
+int Trainer::train(
+    const std::string& type,
+    const std::string& algorithm,
+    const std::string& model,
+    int holdout
+    )
 {
-    int ret = tr->train(tr, data, model.c_str(), holdout);
+    int ret;
+    crfsuite_trainer_t *tr = NULL;
+
+    // Build the trainer string ID.
+    std::string tid = "train/";
+    tid += type;
+    tid += '/';
+    tid += algorithm;
+
+    // Create an instance of a trainer.
+    ret = crfsuite_create_instance(tid.c_str(), (void**)&tr);
+    if (!ret) {
+        throw std::invalid_argument("Failed to create a training algorithm.");
+    }
+
+    // Set the training parameters.
+    crfsuite_params_t* pr = tr->params(tr);
+    for (parameters_type::const_iterator it = m_params.begin();it != m_params.end();++it) {
+        if (pr->set(pr, it->first.c_str(), it->second.c_str()) != 0) {
+            std::stringstream ss;
+            ss << "Parameter not found: " << it->first << " = " << it->second;
+            tr->release(tr);
+            throw std::invalid_argument(ss.str());
+        }
+    }
+    pr->release(pr);
+
+    // Set the callback function for receiving messages.
+    tr->set_message_callback(tr, this, __logging_callback);
+
+    // Run the training algorithm.
+    ret = tr->train(tr, data, model.c_str(), holdout);
+
+    tr->release(tr);
     return ret;
 }
 
 void Trainer::set(const std::string& name, const std::string& value)
 {
-    crfsuite_params_t* params = tr->params(tr);
-    params->set(params, name.c_str(), value.c_str());
-    params->release(params);
+    m_params[name] = value;
+}
+
+std::string Trainer::get(const std::string& name)
+{
+    parameters_type::const_iterator it = m_params.find(name);
+    return (it != m_params.end() ? it->second : "");
 }
 
 void Trainer::message(const std::string& msg)

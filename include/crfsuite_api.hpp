@@ -31,9 +31,10 @@
 #ifndef __CRFSUITE_API_HPP__
 #define __CRFSUITE_API_HPP__
 
-#include <vector>
+#include <map>
 #include <string>
 #include <stdexcept>
+#include <vector>
 
 #ifndef __CRFSUITE_H__
 
@@ -119,7 +120,6 @@ typedef std::vector<std::string> LabelSequence;
 class Trainer {
 protected:
     crfsuite_data_t *data;
-    crfsuite_trainer_t *tr;
 
 public:
     /**
@@ -133,30 +133,32 @@ public:
     virtual ~Trainer();
 
     /**
-     * Initialize the trainer with specified type and training algorithm.
-     *  @param  type            The name of the CRF type.
-     *  @param  algorithm       The name of the training algorithm.
-     *  @return bool            \c true if the CRF type and training
-     *                          algorithm are available,
-     *                          \c false otherwise.
+     * Removes all instances in the data set.
      */
-    bool init(const std::string& type, const std::string& algorithm);
+    void clear();
 
     /**
      * Appends an instance to the data set.
-     *  @param  xseq            The item sequence of the instance.
-     *  @param  yseq            The label sequence of the instance.
-     *  @param  group           The group number of the instance.
+     *  @param  xseq        The item sequence of the instance.
+     *  @param  yseq        The label sequence of the instance.
+     *  @param  group       The group number of the instance.
      */
     void append(const ItemSequence& xseq, const LabelSequence& yseq, int group);
 
     /**
      * Runs the training algorithm.
+     *  @param  type        The name of the CRF type.
+     *  @param  algorithm   The name of the training algorithm.
      *  @param  model       The filename to which the obtained model is stored.
      *  @param  holdout     The group number of holdout evaluation.
      *  @return int         The status code.
      */
-    int train(const std::string& model, int holdout);
+    int train(
+        const std::string& type,
+        const std::string& algorithm,
+        const std::string& model,
+        int holdout
+        );
 
     /**
      * Sets the training parameter.
@@ -166,6 +168,13 @@ public:
     void set(const std::string& name, const std::string& value);
 
     /**
+     * Gets the value of a training parameter.
+     *  @param  name        The parameter name.
+     *  @return std::string The value of the parameter.
+     */
+    std::string get(const std::string& name);
+
+    /**
      * Receives messages from the training algorithm.
      *  Override this member function in the inheritance class if
      *  @param  msg         The message
@@ -173,6 +182,12 @@ public:
     virtual void message(const std::string& msg);
 
 protected:
+    /// Container type of parameters.
+    typedef std::map<std::string, std::string> parameters_type;
+    /// Parameters.
+    parameters_type m_params;
+
+    void init();
     static int __logging_callback(void *userdata, const char *format, va_list args);
 };
 
