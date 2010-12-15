@@ -8,8 +8,7 @@ def instances(fi):
     for line in fi:
         line = line.strip('\n')
         if not line:
-            if 0 < len(xseq):
-                yield xseq
+            yield xseq
             xseq = crfsuite.ItemSequence()
 
         fields = line.split('\t')
@@ -17,7 +16,7 @@ def instances(fi):
         for field in fields[1:]:
             p = field.rfind(':')
             if p == -1:
-                item.append(crfsuite.Attribute(field, 1.))
+                item.append(crfsuite.Attribute(field))
             else:
                 item.append(crfsuite.Attribute(field[:p], float(field[p+1:])))
         xseq.append(item)
@@ -30,6 +29,8 @@ if __name__ == '__main__':
     tagger.open(sys.argv[1])
 
     for xseq in instances(fi):
-        print tagger.tag(xseq)
-
+        yseq = tagger.tag(xseq)
+        for y in yseq:
+            fo.write('%s\n' % y)
+        fo.write('\n')
 

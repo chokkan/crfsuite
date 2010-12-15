@@ -163,14 +163,14 @@ public:
      *  @param  name        The parameter name.
      *  @param  value       The value of the parameter.
      */
-    void set_parameter(const std::string& name, const std::string& value);
+    void set(const std::string& name, const std::string& value);
 
     /**
      * Receives messages from the training algorithm.
      *  Override this member function in the inheritance class if
      *  @param  msg         The message
      */
-    virtual void receive_message(const std::string& msg);
+    virtual void message(const std::string& msg);
 
 protected:
     static int __logging_callback(void *userdata, const char *format, va_list args);

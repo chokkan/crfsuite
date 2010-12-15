@@ -1,4 +1,4 @@
-%module crfsuite
+%module(directors="1") crfsuite
 
 %{
 #include "crfsuite_api.hpp"
@@ -11,6 +11,8 @@
 %template(Item) std::vector<CRFSuite::Attribute>;
 %template(ItemSequence) std::vector<CRFSuite::Item>;
 %template(LabelSequence) std::vector<std::string>;
+
+%feature("director") Trainer;
 
 %exception {
     try {

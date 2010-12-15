@@ -149,14 +149,14 @@ int Trainer::train(const std::string& model, int holdout)
     return ret;
 }
 
-void Trainer::set_parameter(const std::string& name, const std::string& value)
+void Trainer::set(const std::string& name, const std::string& value)
 {
     crfsuite_params_t* params = tr->params(tr);
     params->set(params, name.c_str(), value.c_str());
     params->release(params);
 }
 
-void Trainer::receive_message(const std::string& msg)
+void Trainer::message(const std::string& msg)
 {
 }
 
@@ -164,7 +164,7 @@ int Trainer::__logging_callback(void *instance, const char *format, va_list args
 {
     char buffer[65536];
     vsnprintf(buffer, sizeof(buffer)-1, format, args);
-    reinterpret_cast<Trainer*>(instance)->receive_message(buffer);
+    reinterpret_cast<Trainer*>(instance)->message(buffer);
     return 0;
 }
 
