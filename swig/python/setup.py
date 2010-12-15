@@ -28,7 +28,7 @@ crfsuite_module = Extension(
     include_dirs=[get_includedir(),],
     extra_link_args=['-shared'],
     library_dirs=[get_librarydir(),],
-    libraries=['crf'],
+    libraries=['crfsuite'],
     language='c++',
     )
 

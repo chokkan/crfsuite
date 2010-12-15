@@ -35,6 +35,12 @@
 #include <string>
 #include <stdexcept>
 
+#ifndef __CRFSUITE_H__
+
+#ifdef  __cplusplus
+extern "C" {
+#endif/*__cplusplus*/
+
 struct tag_crfsuite_model;
 typedef struct tag_crfsuite_model crfsuite_model_t;
 
@@ -52,6 +58,12 @@ typedef struct tag_crfsuite_dictionary crfsuite_dictionary_t;
 
 struct tag_crfsuite_params;
 typedef struct tag_crfsuite_params crfsuite_params_t;
+
+#ifdef  __cplusplus
+}
+#endif/*__cplusplus*/
+
+#endif/*__CRFSUITE_H__*/
 
 namespace crfsuite
 {

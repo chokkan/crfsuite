@@ -127,7 +127,7 @@ AC_CHECK_LIB(m, rand)
 AC_ARG_WITH(
 	liblbfgs,
 	[AS_HELP_STRING([--with-liblbfgs=DIR],[liblbfgs directory])],
-	[INCLUDES="-I${withval}/include ${INCLUDES}"; LDFLAGS="-L${withval}/lib ${LDFLAGS}"]
+	[INCLUDES="${INCLUDES} -I${withval}/include"; LDFLAGS="${LDFLAGS} -L${withval}/lib"]
 )
 AC_CHECK_LIB(lbfgs, lbfgs)
 
