@@ -39,10 +39,10 @@
 #include <crfsuite.h>
 #include "crfsuite_api.hpp"
 
-namespace crfsuite
+namespace CRFSuite
 {
 
-trainer::trainer()
+Trainer::Trainer()
 {
     data = new crfsuite_data_t;
     if (data != NULL) {
@@ -51,7 +51,7 @@ trainer::trainer()
     }
 }
 
-trainer::~trainer()
+Trainer::~Trainer()
 {
     if (data != NULL) {
         if (data->labels != NULL) {
@@ -75,7 +75,7 @@ trainer::~trainer()
     }
 }
 
-bool trainer::init(const std::string& type, const std::string& algorithm)
+bool Trainer::init(const std::string& type, const std::string& algorithm)
 {
     int ret;
 
@@ -109,19 +109,19 @@ bool trainer::init(const std::string& type, const std::string& algorithm)
     return true;
 }
 
-void trainer::append_instance(const instance& inst)
+void Trainer::append(const ItemSequence& xseq, const LabelSequence& yseq, int group)
 {
     crfsuite_instance_t _inst;
 
     // Make sure |y| == |x|.
-    if (inst.xseq.size() != inst.yseq.size()) {
+    if (xseq.size() != yseq.size()) {
         throw std::invalid_argument("The numbers of items and labels differ");
     }
 
     // Convert instance_type to crfsuite_instance_t.
-    crfsuite_instance_init_n(&_inst, inst.xseq.size());
-    for (size_t t = 0;t < inst.xseq.size();++t) {
-        const item& item = inst.xseq[t];
+    crfsuite_instance_init_n(&_inst, xseq.size());
+    for (size_t t = 0;t < xseq.size();++t) {
+        const Item& item = xseq[t];
         crfsuite_item_t* _item = &_inst.items[t];
 
         // Set the attributes in the item.
@@ -132,9 +132,9 @@ void trainer::append_instance(const instance& inst)
         }
 
         // Set the label of the item.
-        _inst.labels[t] = data->labels->get(data->labels, inst.yseq[t].c_str());
+        _inst.labels[t] = data->labels->get(data->labels, yseq[t].c_str());
     }
-    _inst.group = inst.group;
+    _inst.group = group;
 
     // Append the instance to the training set.
     crfsuite_data_append(data, &_inst);
@@ -143,44 +143,44 @@ void trainer::append_instance(const instance& inst)
     crfsuite_instance_finish(&_inst);
 }
 
-int trainer::train(const std::string& model, int holdout)
+int Trainer::train(const std::string& model, int holdout)
 {
     int ret = tr->train(tr, data, model.c_str(), holdout);
     return ret;
 }
 
-void trainer::set_parameter(const std::string& name, const std::string& value)
+void Trainer::set_parameter(const std::string& name, const std::string& value)
 {
     crfsuite_params_t* params = tr->params(tr);
     params->set(params, name.c_str(), value.c_str());
     params->release(params);
 }
 
-void trainer::receive_message(const std::string& msg)
+void Trainer::receive_message(const std::string& msg)
 {
 }
 
-int trainer::__logging_callback(void *instance, const char *format, va_list args)
+int Trainer::__logging_callback(void *instance, const char *format, va_list args)
 {
     char buffer[65536];
     vsnprintf(buffer, sizeof(buffer)-1, format, args);
-    reinterpret_cast<trainer*>(instance)->receive_message(buffer);
+    reinterpret_cast<Trainer*>(instance)->receive_message(buffer);
     return 0;
 }
 
 
 
-tagger::tagger()
+Tagger::Tagger()
 {
     model = NULL;
 }
 
-tagger::~tagger()
+Tagger::~Tagger()
 {
     this->close();
 }
 
-bool tagger::open(const std::string& name)
+bool Tagger::open(const std::string& name)
 {
     int ret;
 
@@ -194,7 +194,7 @@ bool tagger::open(const std::string& name)
     return true;
 }
 
-void tagger::close()
+void Tagger::close()
 {
     if (model != NULL) {
         model->release(model);
@@ -202,10 +202,10 @@ void tagger::close()
     }
 }
 
-labels tagger::tag(const instance& inst)
+LabelSequence Tagger::tag(const ItemSequence& xseq)
 {
     int ret;
-    labels yseq;
+    LabelSequence yseq;
     crfsuite_instance_t _inst;
     crfsuite_tagger_t *tag = NULL;
     crfsuite_dictionary_t *attrs = NULL, *labels = NULL;
@@ -226,9 +226,9 @@ labels tagger::tag(const instance& inst)
     }
 
     // Build an instance.
-    crfsuite_instance_init_n(&_inst, inst.xseq.size());
-    for (size_t t = 0;t < inst.xseq.size();++t) {
-        const item& item = inst.xseq[t];
+    crfsuite_instance_init_n(&_inst, xseq.size());
+    for (size_t t = 0;t < xseq.size();++t) {
+        const Item& item = xseq[t];
         crfsuite_item_t* _item = &_inst.items[t];
 
         // Set the attributes in the item.
@@ -249,8 +249,8 @@ labels tagger::tag(const instance& inst)
         throw std::invalid_argument("Failed to tag the instance.");
     }
 
-    yseq.resize(inst.xseq.size());
-    for (size_t t = 0;t < inst.xseq.size();++t) {
+    yseq.resize(xseq.size());
+    for (size_t t = 0;t < xseq.size();++t) {
         const char *label = NULL;
         labels->to_string(labels, _inst.labels[t], &label);
         yseq[t] = label;

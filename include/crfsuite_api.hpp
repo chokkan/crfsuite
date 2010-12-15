@@ -65,13 +65,13 @@ typedef struct tag_crfsuite_params crfsuite_params_t;
 
 #endif/*__CRFSUITE_H__*/
 
-namespace crfsuite
+namespace CRFSuite
 {
 
 /**
  * Tuple of attribute and its value.
  */
-class feature
+class Attribute
 {
 public:
     /// Attribute.
@@ -80,34 +80,21 @@ public:
     double scale;
 
     /// Default constructor.
-    feature() : scale(1.) {}
+    Attribute() : scale(1.) {}
 
-    feature(const std::string& _attr, double _scale) : attr(_attr), scale(_scale) {}
+    Attribute(const std::string& _attr, double _scale) : attr(_attr), scale(_scale) {}
 };
 
-typedef std::vector<feature> item;
-typedef std::vector<item>  items;
-typedef std::vector<std::string> labels;
-
-/**
- * Instance (sequence of items and their labels).
- */
-struct instance
-{
-    /// Item sequence.
-    items  xseq;
-    /// Label sequence.
-    labels yseq;
-    /// Group number.
-    int group;
-};
+typedef std::vector<Attribute> Item;
+typedef std::vector<Item>  ItemSequence;
+typedef std::vector<std::string> LabelSequence;
 
 
 
 /**
  * Trainer class.
  */
-class trainer {
+class Trainer {
 protected:
     crfsuite_data_t *data;
     crfsuite_trainer_t *tr;
@@ -116,12 +103,12 @@ public:
     /**
      * Constructs an instance.
      */
-    trainer();
+    Trainer();
 
     /**
      * Destructs an instance.
      */
-    virtual ~trainer();
+    virtual ~Trainer();
 
     /**
      * Initialize the trainer with specified type and training algorithm.
@@ -135,9 +122,11 @@ public:
 
     /**
      * Appends an instance to the data set.
-     *  @param  inst            The instance to be appended.
+     *  @param  xseq            The item sequence of the instance.
+     *  @param  yseq            The label sequence of the instance.
+     *  @param  group           The group number of the instance.
      */
-    void append_instance(const instance& inst);
+    void append(const ItemSequence& xseq, const LabelSequence& yseq, int group);
 
     /**
      * Runs the training algorithm.
@@ -162,13 +151,13 @@ public:
     virtual void receive_message(const std::string& msg);
 
 protected:
-    static int __logging_callback(void *instance, const char *format, va_list args);
+    static int __logging_callback(void *userdata, const char *format, va_list args);
 };
 
 /**
  * Tagger class.
  */
-class tagger
+class Tagger
 {
 protected:
     crfsuite_model_t *model;
@@ -177,12 +166,12 @@ public:
     /**
      * Constructs a tagger.
      */
-    tagger();
+    Tagger();
 
     /**
      * Destructs a tagger.
      */
-    virtual ~tagger();
+    virtual ~Tagger();
 
     /**
      * Opens a model file.
@@ -199,11 +188,10 @@ public:
 
     /**
      * Tags an instance.
-     *  @param  inst        The instance to be tagged.
-     *  @param  yseq        The label sequence to which the tagging result is
-     *                      stored.
+     *  @param  xseq            The item sequence to be tagged..
+     *  @return LabelSequence   The label sequence predicted.
      */
-    labels tag(const instance& inst);
+    LabelSequence tag(const ItemSequence& xseq);
 };
 
 };

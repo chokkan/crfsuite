@@ -8,8 +8,8 @@
 %include "std_vector.i"
 %include "exception.i"
 
-%template(Item) std::vector<crfsuite::feature>;
-%template(ItemSequence) std::vector<crfsuite::item>;
+%template(Item) std::vector<CRFSuite::Attribute>;
+%template(ItemSequence) std::vector<CRFSuite::Item>;
 %template(LabelSequence) std::vector<std::string>;
 
 %exception {
