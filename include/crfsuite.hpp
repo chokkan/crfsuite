@@ -66,7 +66,7 @@ void Trainer::init()
     if (data->attrs == NULL) {
         int ret = crfsuite_create_instance("dictionary", (void**)&data->attrs);
         if (!ret) {
-            throw std::invalid_argument("Failed to create a dictionary instance.");
+            throw std::invalid_argument("Failed to create a dictionary instance for attributes.");
         }
     }
 
@@ -74,7 +74,7 @@ void Trainer::init()
     if (data->labels == NULL) {
         int ret = crfsuite_create_instance("dictionary", (void**)&data->labels);
         if (!ret) {
-            throw std::invalid_argument("Failed to create a dictionary instance.");
+            throw std::invalid_argument("Failed to create a dictionary instance for labels.");
         }
     }
 }
@@ -93,6 +93,7 @@ void Trainer::clear()
         }
 
         crfsuite_data_finish(data);
+        crfsuite_data_init(data);
     }
 }
 
@@ -105,7 +106,9 @@ void Trainer::append(const ItemSequence& xseq, const LabelSequence& yseq, int gr
 
     // Make sure |y| == |x|.
     if (xseq.size() != yseq.size()) {
-        throw std::invalid_argument("The numbers of items and labels differ");
+        std::stringstream ss;
+        ss << "The numbers of items and labels differ: |x| = " << xseq.size() << ", |y| = " << yseq.size();
+        throw std::invalid_argument(ss.str());
     }
 
     // Convert instance_type to crfsuite_instance_t.
@@ -162,6 +165,7 @@ int Trainer::train(
         if (pr->set(pr, it->first.c_str(), it->second.c_str()) != 0) {
             std::stringstream ss;
             ss << "Parameter not found: " << it->first << " = " << it->second;
+            pr->release(pr);
             tr->release(tr);
             throw std::invalid_argument(ss.str());
         }
@@ -341,3 +345,4 @@ LabelSequence Tagger::labels()
 };
 
 #endif/*__CRFSUITE_HPP__*/
+
