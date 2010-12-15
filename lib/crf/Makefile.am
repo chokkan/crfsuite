@@ -5,12 +5,6 @@ lib_LTLIBRARIES = libcrfsuite.la
 EXTRA_DIST = \
 	crf.vcproj 
 
-libcrfincludedir = $(includedir)
-libcrfinclude_HEADERS = \
-	include/crfsuite.h \
-	include/crfsuite_api.hpp \
-	include/crfsuite.hpp 
-
 libcrfsuite_la_SOURCES = \
 	src/dictionary.c \
 	src/logging.c \
@@ -39,7 +33,7 @@ libcrfsuite_la_SOURCES = \
 	src/crfsuite_train.c \
 	src/crfsuite.c
 
-libcrfsuite_la_CFLAGS = -I./include -I$(top_builddir)/lib/cqdb/include 
+libcrfsuite_la_CFLAGS = -I$(top_builddir)/lib/cqdb/include
 
 libcrfsuite_la_LDFLAGS = \
 	-no-undefined \

@@ -25,5 +25,5 @@ AM_CFLAGS = @CFLAGS@
 INCLUDES = @INCLUDES@
 AM_LDFLAGS = @LDFLAGS@
 
-crfsuite_CFLAGS = -I$(top_builddir)/lib/crf/include
+crfsuite_CFLAGS = -I$(top_builddir)/include
 crfsuite_LDADD = $(top_builddir)/lib/crf/libcrfsuite.la
