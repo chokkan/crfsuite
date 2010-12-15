@@ -33,10 +33,10 @@
 #ifndef    __PARAMS_H__
 #define    __PARAMS_H__
 
-crf_params_t* params_create_instance();
-int params_add_int(crf_params_t* params, const char *name, int value);
-int params_add_float(crf_params_t* params, const char *name, floatval_t value);
-int params_add_string(crf_params_t* params, const char *name, const char *value);
+crfsuite_params_t* params_create_instance();
+int params_add_int(crfsuite_params_t* params, const char *name, int value);
+int params_add_float(crfsuite_params_t* params, const char *name, floatval_t value);
+int params_add_string(crfsuite_params_t* params, const char *name, const char *value);
 
 enum {
     PARAMS_READ = -1,
@@ -48,7 +48,7 @@ enum {
     do { \
         int __ret = 0; \
         int __mode = mode; \
-        crf_params_t* __params = params;
+        crfsuite_params_t* __params = params;
 
 #define    END_PARAM_MAP() \
     } while (0) ;

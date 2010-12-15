@@ -44,33 +44,33 @@ typedef double floatval_t;
 #define    FLOAT_MAX    DBL_MAX
 
 /* Forward declarations */
-struct tag_crf_model;
-typedef struct tag_crf_model crf_model_t;
+struct tag_crfsuite_model;
+typedef struct tag_crfsuite_model crfsuite_model_t;
 
-struct tag_crf_trainer;
-typedef struct tag_crf_trainer crf_trainer_t;
+struct tag_crfsuite_trainer;
+typedef struct tag_crfsuite_trainer crfsuite_trainer_t;
 
-struct tag_crf_tagger;
-typedef struct tag_crf_tagger crf_tagger_t;
+struct tag_crfsuite_tagger;
+typedef struct tag_crfsuite_tagger crfsuite_tagger_t;
 
-struct tag_crf_dictionary;
-typedef struct tag_crf_dictionary crf_dictionary_t;
+struct tag_crfsuite_dictionary;
+typedef struct tag_crfsuite_dictionary crfsuite_dictionary_t;
 
-struct tag_crf_params;
-typedef struct tag_crf_params crf_params_t;
+struct tag_crfsuite_params;
+typedef struct tag_crfsuite_params crfsuite_params_t;
 
 /**
  * Status codes.
  */
 enum {
-    CRF_SUCCESS = 0,
-    CRFERR_UNKNOWN = 0x80000000,
-    CRFERR_OUTOFMEMORY,
-    CRFERR_NOTSUPPORTED,
-    CRFERR_INCOMPATIBLE,
-    CRFERR_INTERNAL_LOGIC,
-    CRFERR_OVERFLOW,
-    CRFERR_NOTIMPLEMENTED,
+    CRFSUITE_SUCCESS = 0,
+    CRFSUITEERR_UNKNOWN = 0x80000000,
+    CRFSUITEERR_OUTOFMEMORY,
+    CRFSUITEERR_NOTSUPPORTED,
+    CRFSUITEERR_INCOMPATIBLE,
+    CRFSUITEERR_INTERNAL_LOGIC,
+    CRFSUITEERR_OVERFLOW,
+    CRFSUITEERR_NOTIMPLEMENTED,
 };
 
 
@@ -81,7 +81,7 @@ enum {
 typedef struct {
     int         aid;                /**< Attribute id. */
     floatval_t  scale;              /**< Weight (frequency) of the attribute. */
-} crf_content_t;
+} crfsuite_content_t;
 
 /**
  * An item.
@@ -90,8 +90,8 @@ typedef struct {
 typedef struct {
     int             num_contents;   /**< Number of contents associated with the item. */
     int             cap_contents;   /**< Maximum number of contents (internal use). */
-    crf_content_t   *contents;      /**< Array of the contents. */
-} crf_item_t;
+    crfsuite_content_t   *contents;      /**< Array of the contents. */
+} crfsuite_item_t;
 
 /**
  * An instance (sequence of items and labels).
@@ -100,10 +100,10 @@ typedef struct {
 typedef struct {
     int         num_items;          /**< Number of items/labels in the sequence. */
     int         cap_items;          /**< Maximum number of items/labels (internal use). */
-    crf_item_t  *items;             /**< Array of the item sequence. */
+    crfsuite_item_t  *items;             /**< Array of the item sequence. */
     int         *labels;            /**< Array of the label sequence. */
 	int         group;              /**< Group ID of the instance. */
-} crf_instance_t;
+} crfsuite_instance_t;
 
 /**
  * A data set.
@@ -111,11 +111,11 @@ typedef struct {
 typedef struct {
     int                 num_instances;        /**< Number of instances. */
     int                 cap_instances;        /**< Maximum number of instances (internal use). */
-    crf_instance_t*     instances;            /**< Array of instances. */
+    crfsuite_instance_t*     instances;            /**< Array of instances. */
 
-    crf_dictionary_t    *attrs;
-    crf_dictionary_t    *labels;
-} crf_data_t;
+    crfsuite_dictionary_t    *attrs;
+    crfsuite_dictionary_t    *labels;
+} crfsuite_data_t;
 
 /**
  * A label-wise performance values.
@@ -128,14 +128,14 @@ typedef struct {
     floatval_t  precision;          /**< Precision. */
     floatval_t  recall;             /**< Recall. */
     floatval_t  fmeasure;           /**< F1 score. */
-} crf_label_evaluation_t;
+} crfsuite_label_evaluation_t;
 
 /**
  * An overall performance values.
  */
 typedef struct {
     int         num_labels;         /**< Number of labels. */
-    crf_label_evaluation_t* tbl;    /**< Array of label-wise evaluations. */
+    crfsuite_label_evaluation_t* tbl;    /**< Array of label-wise evaluations. */
 
     int         item_total_correct;
     int         item_total_num;
@@ -150,15 +150,15 @@ typedef struct {
     floatval_t  macro_precision;    /**< Macro-averaged precision. */
     floatval_t  macro_recall;       /**< Macro-averaged recall. */
     floatval_t  macro_fmeasure;     /**< Macro-averaged F1 score. */
-} crf_evaluation_t;
+} crfsuite_evaluation_t;
 
 
 
 
-typedef int (*crf_logging_callback)(void *instance, const char *format, va_list args);
+typedef int (*crfsuite_logging_callback)(void *instance, const char *format, va_list args);
 
 
-struct tag_crf_model {
+struct tag_crfsuite_model {
     /**
      * Pointer to the instance data (internal use only).
      */
@@ -172,22 +172,22 @@ struct tag_crf_model {
     /**
      * Increment the reference counter.
      */
-    int (*addref)(crf_model_t* model);
+    int (*addref)(crfsuite_model_t* model);
 
     /**
      * Decrement the reference counter.
      */
-    int (*release)(crf_model_t* model);
+    int (*release)(crfsuite_model_t* model);
 
-    int (*get_tagger)(crf_model_t* model, crf_tagger_t** ptr_tagger);
-    int (*get_labels)(crf_model_t* model, crf_dictionary_t** ptr_labels);
-    int (*get_attrs)(crf_model_t* model, crf_dictionary_t** ptr_attrs);
-    int (*dump)(crf_model_t* model, FILE *fpo);
+    int (*get_tagger)(crfsuite_model_t* model, crfsuite_tagger_t** ptr_tagger);
+    int (*get_labels)(crfsuite_model_t* model, crfsuite_dictionary_t** ptr_labels);
+    int (*get_attrs)(crfsuite_model_t* model, crfsuite_dictionary_t** ptr_attrs);
+    int (*dump)(crfsuite_model_t* model, FILE *fpo);
 };
 
 
 
-struct tag_crf_trainer {
+struct tag_crfsuite_trainer {
     /**
      * Pointer to the instance data (internal use only).
      */
@@ -201,21 +201,21 @@ struct tag_crf_trainer {
     /**
      * Increment the reference counter.
      */
-    int (*addref)(crf_trainer_t* trainer);
+    int (*addref)(crfsuite_trainer_t* trainer);
 
     /**
      * Decrement the reference counter.
      */
-    int (*release)(crf_trainer_t* trainer);
+    int (*release)(crfsuite_trainer_t* trainer);
 
-    crf_params_t* (*params)(crf_trainer_t* trainer);
+    crfsuite_params_t* (*params)(crfsuite_trainer_t* trainer);
 
-    void (*set_message_callback)(crf_trainer_t* trainer, void *instance, crf_logging_callback cbm);
+    void (*set_message_callback)(crfsuite_trainer_t* trainer, void *instance, crfsuite_logging_callback cbm);
 
-    int (*train)(crf_trainer_t* trainer, const crf_data_t *data, const char *filename, int holdout);
+    int (*train)(crfsuite_trainer_t* trainer, const crfsuite_data_t *data, const char *filename, int holdout);
 };
 
-struct tag_crf_tagger {
+struct tag_crfsuite_tagger {
     /**
      * Pointer to the instance data (internal use only).
      */
@@ -229,21 +229,21 @@ struct tag_crf_tagger {
     /**
      * Increment the reference counter.
      */
-    int (*addref)(crf_tagger_t* tagger);
+    int (*addref)(crfsuite_tagger_t* tagger);
 
     /**
      * Decrement the reference counter.
      */
-    int (*release)(crf_tagger_t* tagger);
+    int (*release)(crfsuite_tagger_t* tagger);
 
     /**
      * Tag an input sequence.
      */
-    int (*tag)(crf_tagger_t* tagger, crf_instance_t *inst, int *labels, floatval_t *ptr_score);
+    int (*tag)(crfsuite_tagger_t* tagger, crfsuite_instance_t *inst, int *labels, floatval_t *ptr_score);
 
 };
 
-struct tag_crf_dictionary {
+struct tag_crfsuite_dictionary {
     /**
      * Pointer to the instance data (internal use only).
      */
@@ -257,21 +257,21 @@ struct tag_crf_dictionary {
     /**
      * Increment the reference counter.
      */
-    int (*addref)(crf_dictionary_t* dic);
+    int (*addref)(crfsuite_dictionary_t* dic);
 
     /**
      * Decrement the reference counter.
      */
-    int (*release)(crf_dictionary_t* dic);
+    int (*release)(crfsuite_dictionary_t* dic);
 
-    int (*get)(crf_dictionary_t* dic, const char *str);
-    int (*to_id)(crf_dictionary_t* dic, const char *str);
-    int (*to_string)(crf_dictionary_t* dic, int id, char const **pstr);
-    int (*num)(crf_dictionary_t* dic);
-    void (*free)(crf_dictionary_t* dic, const char *str);
+    int (*get)(crfsuite_dictionary_t* dic, const char *str);
+    int (*to_id)(crfsuite_dictionary_t* dic, const char *str);
+    int (*to_string)(crfsuite_dictionary_t* dic, int id, char const **pstr);
+    int (*num)(crfsuite_dictionary_t* dic);
+    void (*free)(crfsuite_dictionary_t* dic, const char *str);
 };
 
-struct tag_crf_params {
+struct tag_crfsuite_params {
     /**
      * Pointer to the instance data (internal use only).
      */
@@ -285,76 +285,76 @@ struct tag_crf_params {
     /**
      * Increment the reference counter.
      */
-    int (*addref)(crf_params_t* params);
+    int (*addref)(crfsuite_params_t* params);
 
     /**
      * Decrement the reference counter.
      */
-    int (*release)(crf_params_t* params);
+    int (*release)(crfsuite_params_t* params);
 
-    int (*set)(crf_params_t* params, const char *name, const char *value);
-    int (*set_int)(crf_params_t* params, const char *name, int value);
-    int (*set_float)(crf_params_t* params, const char *name, floatval_t value);
-    int (*set_string)(crf_params_t* params, const char *name, const char *value);
+    int (*set)(crfsuite_params_t* params, const char *name, const char *value);
+    int (*set_int)(crfsuite_params_t* params, const char *name, int value);
+    int (*set_float)(crfsuite_params_t* params, const char *name, floatval_t value);
+    int (*set_string)(crfsuite_params_t* params, const char *name, const char *value);
 
-    int (*get_int)(crf_params_t* params, const char *name, int *value);
-    int (*get_float)(crf_params_t* params, const char *name, floatval_t *value);
-    int (*get_string)(crf_params_t* params, const char *name, char **value);
+    int (*get_int)(crfsuite_params_t* params, const char *name, int *value);
+    int (*get_float)(crfsuite_params_t* params, const char *name, floatval_t *value);
+    int (*get_string)(crfsuite_params_t* params, const char *name, char **value);
 };
 
 
 
-int crf_create_instance(const char *iid, void **ptr);
-int crf_create_instance_from_file(const char *filename, void **ptr);
+int crfsuite_create_instance(const char *iid, void **ptr);
+int crfsuite_create_instance_from_file(const char *filename, void **ptr);
 
-int crf_create_tagger(
+int crfsuite_create_tagger(
     const char *filename,
-    crf_tagger_t** ptr_tagger,
-    crf_dictionary_t** ptr_attrs,
-    crf_dictionary_t** ptr_labels
+    crfsuite_tagger_t** ptr_tagger,
+    crfsuite_dictionary_t** ptr_attrs,
+    crfsuite_dictionary_t** ptr_labels
     );
 
 
-void crf_content_init(crf_content_t* cont);
-void crf_content_set(crf_content_t* cont, int aid, floatval_t scale);
-void crf_content_copy(crf_content_t* dst, const crf_content_t* src);
-void crf_content_swap(crf_content_t* x, crf_content_t* y);
+void crfsuite_content_init(crfsuite_content_t* cont);
+void crfsuite_content_set(crfsuite_content_t* cont, int aid, floatval_t scale);
+void crfsuite_content_copy(crfsuite_content_t* dst, const crfsuite_content_t* src);
+void crfsuite_content_swap(crfsuite_content_t* x, crfsuite_content_t* y);
 
-void crf_item_init(crf_item_t* item);
-void crf_item_init_n(crf_item_t* item, int num_contents);
-void crf_item_finish(crf_item_t* item);
-void crf_item_copy(crf_item_t* dst, const crf_item_t* src);
-void crf_item_swap(crf_item_t* x, crf_item_t* y);
-int  crf_item_append_content(crf_item_t* item, const crf_content_t* cont);
-int  crf_item_empty(crf_item_t* item);
+void crfsuite_item_init(crfsuite_item_t* item);
+void crfsuite_item_init_n(crfsuite_item_t* item, int num_contents);
+void crfsuite_item_finish(crfsuite_item_t* item);
+void crfsuite_item_copy(crfsuite_item_t* dst, const crfsuite_item_t* src);
+void crfsuite_item_swap(crfsuite_item_t* x, crfsuite_item_t* y);
+int  crfsuite_item_append_content(crfsuite_item_t* item, const crfsuite_content_t* cont);
+int  crfsuite_item_empty(crfsuite_item_t* item);
 
-void crf_instance_init(crf_instance_t* seq);
-void crf_instance_init_n(crf_instance_t* seq, int num_items);
-void crf_instance_finish(crf_instance_t* seq);
-void crf_instance_copy(crf_instance_t* dst, const crf_instance_t* src);
-void crf_instance_swap(crf_instance_t* x, crf_instance_t* y);
-int  crf_instance_append(crf_instance_t* seq, const crf_item_t* item, int label);
-int  crf_instance_empty(crf_instance_t* seq);
+void crfsuite_instance_init(crfsuite_instance_t* seq);
+void crfsuite_instance_init_n(crfsuite_instance_t* seq, int num_items);
+void crfsuite_instance_finish(crfsuite_instance_t* seq);
+void crfsuite_instance_copy(crfsuite_instance_t* dst, const crfsuite_instance_t* src);
+void crfsuite_instance_swap(crfsuite_instance_t* x, crfsuite_instance_t* y);
+int  crfsuite_instance_append(crfsuite_instance_t* seq, const crfsuite_item_t* item, int label);
+int  crfsuite_instance_empty(crfsuite_instance_t* seq);
 
-void crf_data_init(crf_data_t* data);
-void crf_data_init_n(crf_data_t* data, int n);
-void crf_data_finish(crf_data_t* data);
-void crf_data_copy(crf_data_t* dst, const crf_data_t* src);
-void crf_data_swap(crf_data_t* x, crf_data_t* y);
-int  crf_data_append(crf_data_t* data, const crf_instance_t* inst);
-int  crf_data_maxlength(crf_data_t* data);
-int  crf_data_totalitems(crf_data_t* data);
+void crfsuite_data_init(crfsuite_data_t* data);
+void crfsuite_data_init_n(crfsuite_data_t* data, int n);
+void crfsuite_data_finish(crfsuite_data_t* data);
+void crfsuite_data_copy(crfsuite_data_t* dst, const crfsuite_data_t* src);
+void crfsuite_data_swap(crfsuite_data_t* x, crfsuite_data_t* y);
+int  crfsuite_data_append(crfsuite_data_t* data, const crfsuite_instance_t* inst);
+int  crfsuite_data_maxlength(crfsuite_data_t* data);
+int  crfsuite_data_totalitems(crfsuite_data_t* data);
 
-void crf_evaluation_init(crf_evaluation_t* eval, int n);
-void crf_evaluation_finish(crf_evaluation_t* eval);
-void crf_evaluation_clear(crf_evaluation_t* eval);
-int crf_evaluation_accmulate(crf_evaluation_t* eval, const crf_instance_t* reference, const int* target);
-void crf_evaluation_compute(crf_evaluation_t* eval);
-void crf_evaluation_output(crf_evaluation_t* eval, crf_dictionary_t* labels, crf_logging_callback cbm, void *instance);
+void crfsuite_evaluation_init(crfsuite_evaluation_t* eval, int n);
+void crfsuite_evaluation_finish(crfsuite_evaluation_t* eval);
+void crfsuite_evaluation_clear(crfsuite_evaluation_t* eval);
+int crfsuite_evaluation_accmulate(crfsuite_evaluation_t* eval, const crfsuite_instance_t* reference, const int* target);
+void crfsuite_evaluation_compute(crfsuite_evaluation_t* eval);
+void crfsuite_evaluation_output(crfsuite_evaluation_t* eval, crfsuite_dictionary_t* labels, crfsuite_logging_callback cbm, void *instance);
 
 
-int crf_interlocked_increment(int *count);
-int crf_interlocked_decrement(int *count);
+int crfsuite_interlocked_increment(int *count);
+int crfsuite_interlocked_decrement(int *count);
 
 
 #ifdef    __cplusplus

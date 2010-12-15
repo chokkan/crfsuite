@@ -49,19 +49,19 @@ void holdout_evaluation(
     )
 {
     int i;
-    crf_evaluation_t eval;
+    crfsuite_evaluation_t eval;
     const int N = ds->num_instances;
     int *viterbi = NULL;
     int max_length = 0;
 
     /* Initialize the evaluation table. */
-    crf_evaluation_init(&eval, ds->data->labels->num(ds->data->labels));
+    crfsuite_evaluation_init(&eval, ds->data->labels->num(ds->data->labels));
 
     gm->set_weights(gm, w, 1.);
 
     for (i = 0;i < N;++i) {
         floatval_t score;
-        const crf_instance_t *inst = dataset_get(ds, i);
+        const crfsuite_instance_t *inst = dataset_get(ds, i);
 
         if (max_length < inst->num_items) {
             free(viterbi);
@@ -71,10 +71,10 @@ void holdout_evaluation(
         gm->set_instance(gm, inst);
         gm->viterbi(gm, viterbi, &score);
 
-        crf_evaluation_accmulate(&eval, inst, viterbi);
+        crfsuite_evaluation_accmulate(&eval, inst, viterbi);
     }
 
     /* Report the performance. */
-    crf_evaluation_compute(&eval);
-    crf_evaluation_output(&eval, ds->data->labels, lg->func, lg->instance);
+    crfsuite_evaluation_compute(&eval);
+    crfsuite_evaluation_output(&eval, ds->data->labels, lg->func, lg->instance);
 }

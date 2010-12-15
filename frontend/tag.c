@@ -178,9 +178,9 @@ static int comments_append(comments_t* comments, const char *value)
 static void
 output_result(
     FILE *fpo,
-    const crf_instance_t *inst,
+    const crfsuite_instance_t *inst,
     int *output,
-    crf_dictionary_t *labels,
+    crfsuite_dictionary_t *labels,
     comments_t* comments,
     const tagger_option_t* opt
     )
@@ -212,9 +212,9 @@ output_result(
 static void
 output_instance(
     FILE *fpo,
-    const crf_instance_t *inst,
-    crf_dictionary_t *labels,
-    crf_dictionary_t *attrs
+    const crfsuite_instance_t *inst,
+    crfsuite_dictionary_t *labels,
+    crfsuite_dictionary_t *attrs
     )
 {
     int i, j;
@@ -245,20 +245,20 @@ static int message_callback(void *instance, const char *format, va_list args)
     return 0;
 }
 
-static int tag(tagger_option_t* opt, crf_model_t* model)
+static int tag(tagger_option_t* opt, crfsuite_model_t* model)
 {
     int N = 0, L = 0, ret = 0, lid = -1;
     clock_t clk0, clk1;
-    crf_instance_t inst;
-    crf_item_t item;
-    crf_content_t cont;
-    crf_evaluation_t eval;
+    crfsuite_instance_t inst;
+    crfsuite_item_t item;
+    crfsuite_content_t cont;
+    crfsuite_evaluation_t eval;
     char *comment = NULL;
     comments_t comments;
     iwa_t* iwa = NULL;
     const iwa_token_t* token = NULL;
-    crf_tagger_t *tagger = NULL;
-    crf_dictionary_t *attrs = NULL, *labels = NULL;
+    crfsuite_tagger_t *tagger = NULL;
+    crfsuite_dictionary_t *attrs = NULL, *labels = NULL;
     FILE *fp = NULL, *fpi = opt->fpi, *fpo = opt->fpo, *fpe = opt->fpe;
 
     /* Obtain the dictionary interface representing the labels in the model. */
@@ -278,8 +278,8 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 
     /* Initialize the objects for instance and evaluation. */
     L = labels->num(labels);
-    crf_instance_init(&inst);
-    crf_evaluation_init(&eval, L);
+    crfsuite_instance_init(&inst);
+    crfsuite_evaluation_init(&eval, L);
 
     /* Open the stream for the input data. */
     fp = (strcmp(opt->input, "-") == 0) ? fpi : fopen(opt->input, "r");
@@ -306,15 +306,15 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
         case IWA_BOI:
             /* Initialize an item. */
             lid = -1;
-            crf_item_init(&item);
+            crfsuite_item_init(&item);
             free(comment);
             comment = NULL;
             break;
         case IWA_EOI:
             /* Append the item to the instance. */
-            crf_instance_append(&inst, &item, lid);
+            crfsuite_instance_append(&inst, &item, lid);
             comments_append(&comments, comment);
-            crf_item_finish(&item);
+            crfsuite_item_finish(&item);
             break;
         case IWA_ITEM:
             if (lid == -1) {
@@ -328,17 +328,17 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
                 if (0 <= aid) {
                     /* Associate the attribute with the current item. */
                     if (token->value && *token->value) {
-                        crf_content_set(&cont, aid, atof(token->value));
+                        crfsuite_content_set(&cont, aid, atof(token->value));
                     } else {
-                        crf_content_set(&cont, aid, 1.0);
+                        crfsuite_content_set(&cont, aid, 1.0);
                     }
-                    crf_item_append_content(&item, &cont);
+                    crfsuite_item_append_content(&item, &cont);
                 }
             }
             break;
         case IWA_NONE:
         case IWA_EOF:
-            if (!crf_instance_empty(&inst)) {
+            if (!crfsuite_instance_empty(&inst)) {
                 /* Initialize the object to receive the tagging result. */
                 floatval_t score = 0;
                 int *output = calloc(sizeof(int), inst.num_items);
@@ -351,7 +351,7 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
 
                 /* Accumulate the tagging performance. */
                 if (opt->evaluate) {
-                    crf_evaluation_accmulate(&eval, &inst, output);
+                    crfsuite_evaluation_accmulate(&eval, &inst, output);
                 }
 
                 if (!opt->quiet) {
@@ -359,7 +359,7 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
                 }
 
                 free(output);
-                crf_instance_finish(&inst);
+                crfsuite_instance_finish(&inst);
 
                 comments_finish(&comments);
                 comments_init(&comments);
@@ -375,8 +375,8 @@ static int tag(tagger_option_t* opt, crf_model_t* model)
     /* Compute the performance if specified. */
     if (opt->evaluate) {
         double sec = (clk1 - clk0) / (double)CLOCKS_PER_SEC;
-        crf_evaluation_compute(&eval);
-        crf_evaluation_output(&eval, labels, message_callback, stdout);
+        crfsuite_evaluation_compute(&eval);
+        crfsuite_evaluation_output(&eval, labels, message_callback, stdout);
         fprintf(fpo, "Elapsed time: %f [sec] (%.1f [instance/sec])\n", sec, N / sec);
     }
 
@@ -392,8 +392,8 @@ force_exit:
     }
 
     free(comment);
-    crf_instance_finish(&inst);
-    crf_evaluation_finish(&eval);
+    crfsuite_instance_finish(&inst);
+    crfsuite_evaluation_finish(&eval);
 
     SAFE_RELEASE(tagger);
     SAFE_RELEASE(attrs);
@@ -408,7 +408,7 @@ int main_tag(int argc, char *argv[], const char *argv0)
     tagger_option_t opt;
     const char *command = argv[0];
     FILE *fp = NULL, *fpi = stdin, *fpo = stdout, *fpe = stderr;
-    crf_model_t *model = NULL;
+    crfsuite_model_t *model = NULL;
 
     /* Parse the command-line option. */
     tagger_option_init(&opt);
@@ -434,7 +434,7 @@ int main_tag(int argc, char *argv[], const char *argv0)
     /* Read the model. */
     if (opt.model != NULL) {
         /* Create a model instance corresponding to the model file. */
-        if (ret = crf_create_instance_from_file(opt.model, (void**)&model)) {
+        if (ret = crfsuite_create_instance_from_file(opt.model, (void**)&model)) {
             goto force_exit;
         }
 

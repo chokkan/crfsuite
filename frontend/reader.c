@@ -55,22 +55,22 @@ static int progress(FILE *fpo, int prev, int current)
     return prev;
 }
 
-int read_data(FILE *fpi, FILE *fpo, crf_data_t* data, int group)
+int read_data(FILE *fpi, FILE *fpo, crfsuite_data_t* data, int group)
 {
     int n = 0;
     int lid = -1;
-    crf_instance_t inst;
-    crf_item_t item;
-    crf_content_t cont;
+    crfsuite_instance_t inst;
+    crfsuite_item_t item;
+    crfsuite_content_t cont;
     iwa_t* iwa = NULL;
-    crf_dictionary_t *attrs = data->attrs;
-    crf_dictionary_t *labels = data->labels;
+    crfsuite_dictionary_t *attrs = data->attrs;
+    crfsuite_dictionary_t *labels = data->labels;
     const iwa_token_t *token = NULL;
     long filesize = 0, begin = 0, offset = 0;
     int prev = 0, current = 0;
 
     /* Initialize the instance.*/
-    crf_instance_init(&inst);
+    crfsuite_instance_init(&inst);
     inst.group = group;
 
     /* Obtain the file size. */
@@ -95,32 +95,32 @@ int read_data(FILE *fpi, FILE *fpo, crf_data_t* data, int group)
         case IWA_BOI:
             /* Initialize an item. */
             lid = -1;
-            crf_item_init(&item);
+            crfsuite_item_init(&item);
             break;
         case IWA_EOI:
             /* Append the item to the instance. */
-            crf_instance_append(&inst, &item, lid);
-            crf_item_finish(&item);
+            crfsuite_instance_append(&inst, &item, lid);
+            crfsuite_item_finish(&item);
             break;
         case IWA_ITEM:
             if (lid == -1) {
                 lid = labels->get(labels, token->attr);
             } else {
-                crf_content_init(&cont);
+                crfsuite_content_init(&cont);
                 cont.aid = attrs->get(attrs, token->attr);
                 if (token->value && *token->value) {
                     cont.scale = atof(token->value);
                 } else {
                     cont.scale = 1.0;
                 }
-                crf_item_append_content(&item, &cont);
+                crfsuite_item_append_content(&item, &cont);
             }
             break;
         case IWA_NONE:
         case IWA_EOF:
             /* Put the training instance. */
-            crf_data_append(data, &inst);
-            crf_instance_finish(&inst);
+            crfsuite_data_append(data, &inst);
+            crfsuite_instance_finish(&inst);
             inst.group = group;
             ++n;
             break;

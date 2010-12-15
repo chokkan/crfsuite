@@ -164,13 +164,13 @@ int main_learn(int argc, char *argv[], const char *argv0)
     learn_option_t opt;
     const char *command = argv[0];
     FILE *fpi = stdin, *fpo = stdout, *fpe = stderr;
-    crf_data_t data;
-    crf_trainer_t *trainer = NULL;
-    crf_dictionary_t *attrs = NULL, *labels = NULL;
+    crfsuite_data_t data;
+    crfsuite_trainer_t *trainer = NULL;
+    crfsuite_dictionary_t *attrs = NULL, *labels = NULL;
 
     /* Initializations. */
     learn_option_init(&opt);
-    crf_data_init(&data);
+    crfsuite_data_init(&data);
 
     /* Parse the command-line option. */
     arg_used = option_parse(++argv, --argc, parse_learn_options, &opt);
@@ -186,13 +186,13 @@ int main_learn(int argc, char *argv[], const char *argv0)
     }
 
     /* Create dictionaries for attributes and labels. */
-    ret = crf_create_instance("dictionary", (void**)&data.attrs);
+    ret = crfsuite_create_instance("dictionary", (void**)&data.attrs);
     if (!ret) {
         fprintf(fpe, "ERROR: Failed to create a dictionary instance.\n");
         ret = 1;
         goto force_exit;
     }
-    ret = crf_create_instance("dictionary", (void**)&data.labels);
+    ret = crfsuite_create_instance("dictionary", (void**)&data.labels);
     if (!ret) {
         fprintf(fpe, "ERROR: Failed to create a dictionary instance.\n");
         ret = 1;
@@ -201,7 +201,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
 
     /* Create a trainer instance. */
     sprintf(trainer_id, "train/%s/%s", opt.type, opt.algorithm);
-    ret = crf_create_instance(trainer_id, (void**)&trainer);
+    ret = crfsuite_create_instance(trainer_id, (void**)&trainer);
     if (!ret) {
         fprintf(fpe, "ERROR: Failed to create a trainer instance.\n");
         ret = 1;
@@ -212,7 +212,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
     for (i = 0;i < opt.num_params;++i) {
         char *value = NULL;
         char *name = opt.params[i];
-        crf_params_t* params = trainer->params(trainer);
+        crfsuite_params_t* params = trainer->params(trainer);
         
         /* Split the parameter argument by the first '=' character. */
         value = strchr(name, '=');
@@ -254,7 +254,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
     fprintf(fpo, "Statistics the data set(s)\n");
     fprintf(fpo, "Number of data sets (groups): %d\n", argc-arg_used);
     fprintf(fpo, "Number of instances: %d\n", data.num_instances);
-    fprintf(fpo, "Number of items: %d\n", crf_data_totalitems(&data));
+    fprintf(fpo, "Number of items: %d\n", crfsuite_data_totalitems(&data));
     fprintf(fpo, "Number of attributes: %d\n", data.attrs->num(data.attrs));
     fprintf(fpo, "Number of labels: %d\n", data.labels->num(data.labels));
     fprintf(fpo, "\n");
@@ -287,7 +287,7 @@ force_exit:
     SAFE_RELEASE(data.labels);
     SAFE_RELEASE(data.attrs);
 
-    crf_data_finish(&data);
+    crfsuite_data_finish(&data);
     learn_option_finish(&opt);
 
     return ret;

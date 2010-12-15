@@ -35,7 +35,7 @@
 
 typedef struct {
     void *instance;
-    crf_logging_callback func;
+    crfsuite_logging_callback func;
     int percent;
 } logging_t;
 

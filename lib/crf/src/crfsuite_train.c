@@ -1,5 +1,5 @@
 /*
- *      Implementation of the training interface (crf_trainer_t).
+ *      Implementation of the training interface (crfsuite_trainer_t).
  *
  * Copyright (c) 2007-2010, Naoaki Okazaki
  * All rights reserved.
@@ -45,9 +45,9 @@
 #include "logging.h"
 #include "crf1d.h"
 
-static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
+static crfsuite_train_internal_t* crfsuite_train_new(int ftype, int algorithm)
 {
-    crf_train_internal_t *tr = (crf_train_internal_t*)calloc(1, sizeof(crf_train_internal_t));
+    crfsuite_train_internal_t *tr = (crfsuite_train_internal_t*)calloc(1, sizeof(crfsuite_train_internal_t));
     if (tr != NULL) {
         tr->lg = (logging_t*)calloc(1, sizeof(logging_t));
         tr->params = params_create_instance();
@@ -60,19 +60,19 @@ static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
         /* Initialize parameters for the training algorithm. */
         switch (algorithm) {
         case TRAIN_LBFGS:
-            crf_train_lbfgs_init(tr->params);
+            crfsuite_train_lbfgs_init(tr->params);
             break;
         case TRAIN_L2SGD:
-            crf_train_l2sgd_init(tr->params);
+            crfsuite_train_l2sgd_init(tr->params);
             break;
         case TRAIN_AVERAGED_PERCEPTRON:
-            crf_train_averaged_perceptron_init(tr->params);
+            crfsuite_train_averaged_perceptron_init(tr->params);
             break;
         case TRAIN_PASSIVE_AGGRESSIVE:
-            crf_train_passive_aggressive_init(tr->params);
+            crfsuite_train_passive_aggressive_init(tr->params);
             break;
         case TRAIN_AROW:
-            crf_train_arow_init(tr->params);
+            crfsuite_train_arow_init(tr->params);
             break;
         }
     }
@@ -80,9 +80,9 @@ static crf_train_internal_t* crf_train_new(int ftype, int algorithm)
     return tr;
 }
 
-static void crf_train_delete(crf_trainer_t* self)
+static void crfsuite_train_delete(crfsuite_trainer_t* self)
 {
-    crf_train_internal_t *tr = (crf_train_internal_t*)self->internal;
+    crfsuite_train_internal_t *tr = (crfsuite_train_internal_t*)self->internal;
     if (tr != NULL) {
         if (tr->params != NULL) {
             tr->params->release(tr->params);
@@ -92,44 +92,44 @@ static void crf_train_delete(crf_trainer_t* self)
     }
 }
 
-static int crf_train_addref(crf_trainer_t* tr)
+static int crfsuite_train_addref(crfsuite_trainer_t* tr)
 {
-    return crf_interlocked_increment(&tr->nref);
+    return crfsuite_interlocked_increment(&tr->nref);
 }
 
-static int crf_train_release(crf_trainer_t* self)
+static int crfsuite_train_release(crfsuite_trainer_t* self)
 {
-    int count = crf_interlocked_decrement(&self->nref);
+    int count = crfsuite_interlocked_decrement(&self->nref);
     if (count == 0) {
-        crf_train_delete(self);
+        crfsuite_train_delete(self);
     }
     return count;
 }
 
-static void crf_train_set_message_callback(crf_trainer_t* self, void *instance, crf_logging_callback cbm)
+static void crfsuite_train_set_message_callback(crfsuite_trainer_t* self, void *instance, crfsuite_logging_callback cbm)
 {
-    crf_train_internal_t *tr = (crf_train_internal_t*)self->internal;
+    crfsuite_train_internal_t *tr = (crfsuite_train_internal_t*)self->internal;
     tr->lg->func = cbm;
     tr->lg->instance = instance;
 }
 
-static crf_params_t* crf_train_params(crf_trainer_t* self)
+static crfsuite_params_t* crfsuite_train_params(crfsuite_trainer_t* self)
 {
-    crf_train_internal_t *tr = (crf_train_internal_t*)self->internal;
-    crf_params_t* params = tr->params;
+    crfsuite_train_internal_t *tr = (crfsuite_train_internal_t*)self->internal;
+    crfsuite_params_t* params = tr->params;
     params->addref(params);
     return params;
 }
 
-static int crf_train_train(
-    crf_trainer_t* self,
-    const crf_data_t *data,
+static int crfsuite_train_train(
+    crfsuite_trainer_t* self,
+    const crfsuite_data_t *data,
     const char *filename,
     int holdout
     )
 {
     char *algorithm = NULL;
-    crf_train_internal_t *tr = (crf_train_internal_t*)self->internal;
+    crfsuite_train_internal_t *tr = (crfsuite_train_internal_t*)self->internal;
     logging_t *lg = tr->lg;
     encoder_t *gm = tr->gm;
     floatval_t *w = NULL;
@@ -137,9 +137,9 @@ static int crf_train_train(
     dataset_t testset;
 
     /* Prepare the data set(s) for training (and holdout evaluation). */
-    dataset_init_trainset(&trainset, (crf_data_t*)data, holdout);
+    dataset_init_trainset(&trainset, (crfsuite_data_t*)data, holdout);
     if (0 <= holdout) {
-        dataset_init_testset(&testset, (crf_data_t*)data, holdout);
+        dataset_init_testset(&testset, (crfsuite_data_t*)data, holdout);
         logging(lg, "Holdout group: %d\n", holdout+1);
         logging(lg, "\n");
     }
@@ -150,7 +150,7 @@ static int crf_train_train(
     /* Call the training algorithm. */
     switch (tr->algorithm) {
     case TRAIN_LBFGS:
-        crf_train_lbfgs(
+        crfsuite_train_lbfgs(
             gm,
             &trainset,
             (holdout != -1 ? &testset : NULL),
@@ -160,7 +160,7 @@ static int crf_train_train(
             );
         break;
     case TRAIN_L2SGD:
-        crf_train_l2sgd(
+        crfsuite_train_l2sgd(
             gm,
             &trainset,
             (holdout != -1 ? &testset : NULL),
@@ -170,7 +170,7 @@ static int crf_train_train(
             );
         break;
     case TRAIN_AVERAGED_PERCEPTRON:
-        crf_train_averaged_perceptron(
+        crfsuite_train_averaged_perceptron(
             gm,
             &trainset,
             (holdout != -1 ? &testset : NULL),
@@ -180,7 +180,7 @@ static int crf_train_train(
             );
         break;
     case TRAIN_PASSIVE_AGGRESSIVE:
-        crf_train_passive_aggressive(
+        crfsuite_train_passive_aggressive(
             gm,
             &trainset,
             (holdout != -1 ? &testset : NULL),
@@ -190,7 +190,7 @@ static int crf_train_train(
             );
         break;
     case TRAIN_AROW:
-        crf_train_arow(
+        crfsuite_train_arow(
             gm,
             &trainset,
             (holdout != -1 ? &testset : NULL),
@@ -247,16 +247,16 @@ int crf1de_create_instance(const char *interface, void **ptr)
 
     /* Create an instance. */
     if (ftype != FTYPE_NONE && algorithm != TRAIN_NONE) {
-        crf_trainer_t* trainer = (crf_trainer_t*)calloc(1, sizeof(crf_trainer_t));
+        crfsuite_trainer_t* trainer = (crfsuite_trainer_t*)calloc(1, sizeof(crfsuite_trainer_t));
         if (trainer != NULL) {
-            trainer->internal = crf_train_new(ftype, algorithm);
+            trainer->internal = crfsuite_train_new(ftype, algorithm);
             if (trainer->internal != NULL) {
                 trainer->nref = 1;
-                trainer->addref = crf_train_addref;
-                trainer->release = crf_train_release;
-                trainer->params = crf_train_params;
-                trainer->set_message_callback = crf_train_set_message_callback;
-                trainer->train = crf_train_train;
+                trainer->addref = crfsuite_train_addref;
+                trainer->release = crfsuite_train_release;
+                trainer->params = crfsuite_train_params;
+                trainer->set_message_callback = crfsuite_train_set_message_callback;
+                trainer->train = crfsuite_train_train;
 
                 *ptr = trainer;
                 return 0;

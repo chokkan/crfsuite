@@ -156,7 +156,7 @@ static int l2sgd(
         pf = (floatval_t*)malloc(sizeof(floatval_t) * period);
         best_w = (floatval_t*)calloc(K, sizeof(floatval_t));
         if (pf == NULL || best_w == NULL) {
-            ret = CRFERR_OUTOFMEMORY;
+            ret = CRFSUITEERR_OUTOFMEMORY;
             goto error_exit;
         }
     }
@@ -177,7 +177,7 @@ static int l2sgd(
         /* Loop for instances. */
         sum_loss = 0.;
         for (i = 0;i < N;++i) {
-            const crf_instance_t *inst = dataset_get(trainset, i);
+            const crfsuite_instance_t *inst = dataset_get(trainset, i);
 
             /* Update various factors. */
             eta = 1 / (lambda * (t0 + t));
@@ -196,7 +196,7 @@ static int l2sgd(
         /* Terminate when the loss is abnormal (NaN, -Inf, +Inf). */
         if (!isfinite(loss)) {
             logging(lg, "ERROR: overflow loss\n");
-            ret = CRFERR_OVERFLOW;
+            ret = CRFSUITEERR_OVERFLOW;
             sum_loss = loss;
             goto error_exit;
         }
@@ -323,7 +323,7 @@ l2sgd_calibration(
     init_loss = 0;
     for (i = 0;i < S;++i) {
         floatval_t score;
-        const crf_instance_t *inst = dataset_get(ds, i);
+        const crfsuite_instance_t *inst = dataset_get(ds, i);
         gm->set_instance(gm, inst);
         gm->score(gm, inst->labels, &score);
         init_loss -= score;
@@ -385,7 +385,7 @@ l2sgd_calibration(
     return 1.0 / (lambda * eta);
 }
 
-int exchange_options(crf_params_t* params, training_option_t* opt, int mode)
+int exchange_options(crfsuite_params_t* params, training_option_t* opt, int mode)
 {
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_FLOAT(
@@ -429,16 +429,16 @@ int exchange_options(crf_params_t* params, training_option_t* opt, int mode)
     return 0;
 }
 
-void crf_train_l2sgd_init(crf_params_t* params)
+void crfsuite_train_l2sgd_init(crfsuite_params_t* params)
 {
     exchange_options(params, NULL, 0);
 }
 
-int crf_train_l2sgd(
+int crfsuite_train_l2sgd(
     encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
-    crf_params_t *params,
+    crfsuite_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
     )
@@ -458,7 +458,7 @@ int crf_train_l2sgd(
     /* Allocate arrays. */
     w = (floatval_t*)calloc(sizeof(floatval_t), K);
     if (w == NULL) {
-        ret = CRFERR_OUTOFMEMORY;
+        ret = CRFSUITEERR_OUTOFMEMORY;
         goto error_exit;
     }
 

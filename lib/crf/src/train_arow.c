@@ -49,7 +49,7 @@
 #define MIN(a, b)   ((a) < (b) ? (a) : (b))
 
 /**
- * Training parameters (configurable with crf_params_t interface).
+ * Training parameters (configurable with crfsuite_params_t interface).
  */
 typedef struct {
     floatval_t variance;
@@ -202,7 +202,7 @@ static floatval_t tau2(floatval_t cost, floatval_t norm, floatval_t c)
     return cost / (norm + 0.5 / c);
 }
 
-static int exchange_options(crf_params_t* params, training_option_t* opt, int mode)
+static int exchange_options(crfsuite_params_t* params, training_option_t* opt, int mode)
 {
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_FLOAT(
@@ -226,16 +226,16 @@ static int exchange_options(crf_params_t* params, training_option_t* opt, int mo
     return 0;
 }
 
-void crf_train_arow_init(crf_params_t* params)
+void crfsuite_train_arow_init(crfsuite_params_t* params)
 {
     exchange_options(params, NULL, 0);
 }
 
-int crf_train_arow(
+int crfsuite_train_arow(
     encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
-    crf_params_t *params,
+    crfsuite_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
     )
@@ -253,7 +253,7 @@ int crf_train_arow(
 
 	/* Initialize the variable. */
     if (delta_init(&dc, K) != 0) {
-        ret = CRFERR_OUTOFMEMORY;
+        ret = CRFSUITEERR_OUTOFMEMORY;
         goto error_exit;
     }
 
@@ -266,7 +266,7 @@ int crf_train_arow(
     prod = (floatval_t*)calloc(sizeof(floatval_t), K);
     viterbi = (int*)calloc(sizeof(int), T);
     if (mean == NULL || cov == NULL || prod == NULL || viterbi == NULL) {
-        ret = CRFERR_OUTOFMEMORY;
+        ret = CRFSUITEERR_OUTOFMEMORY;
         goto error_exit;
     }
 
@@ -295,7 +295,7 @@ int crf_train_arow(
         for (n = 0;n < N;++n) {
             int d = 0;
             floatval_t sv;
-            const crf_instance_t *inst = dataset_get(trainset, n);
+            const crfsuite_instance_t *inst = dataset_get(trainset, n);
 
             /* Set the feature weights to the encoder. */
             gm->set_weights(gm, mean, 1.);

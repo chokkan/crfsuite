@@ -413,13 +413,13 @@ int crf1dmw_open_labelrefs(crf1dmw_t* writer, int num_labels)
 
     /* Check if we aren't writing anything at this moment. */
     if (writer->state != WSTATE_NONE) {
-        return CRFERR_INTERNAL_LOGIC;
+        return CRFSUITEERR_INTERNAL_LOGIC;
     }
 
     /* Allocate a feature reference array. */
     href = (featureref_header_t*)calloc(size, 1);
     if (href == NULL) {
-        return CRFERR_OUTOFMEMORY;
+        return CRFSUITEERR_OUTOFMEMORY;
     }
 
     /* Align the offset to a DWORD boundary. */
@@ -453,7 +453,7 @@ int crf1dmw_close_labelrefs(crf1dmw_t* writer)
 
     /* Make sure that we are writing label feature references. */
     if (writer->state != WSTATE_LABELREFS) {
-        return CRFERR_INTERNAL_LOGIC;
+        return CRFSUITEERR_INTERNAL_LOGIC;
     }
 
     /* Store the current offset position. */
@@ -490,7 +490,7 @@ int crf1dmw_put_labelref(crf1dmw_t* writer, int lid, const feature_refs_t* ref, 
 
     /* Make sure that we are writing label feature references. */
     if (writer->state != WSTATE_LABELREFS) {
-        return CRFERR_INTERNAL_LOGIC;
+        return CRFSUITEERR_INTERNAL_LOGIC;
     }
 
     /* Store the current offset to the offset array. */
@@ -520,13 +520,13 @@ int crf1dmw_open_attrrefs(crf1dmw_t* writer, int num_attrs)
 
     /* Check if we aren't writing anything at this moment. */
     if (writer->state != WSTATE_NONE) {
-        return CRFERR_INTERNAL_LOGIC;
+        return CRFSUITEERR_INTERNAL_LOGIC;
     }
 
     /* Allocate a feature reference array. */
     href = (featureref_header_t*)calloc(size, 1);
     if (href == NULL) {
-        return CRFERR_OUTOFMEMORY;
+        return CRFSUITEERR_OUTOFMEMORY;
     }
 
     /* Align the offset to a DWORD boundary. */
@@ -560,7 +560,7 @@ int crf1dmw_close_attrrefs(crf1dmw_t* writer)
 
     /* Make sure that we are writing attribute feature references. */
     if (writer->state != WSTATE_ATTRREFS) {
-        return CRFERR_INTERNAL_LOGIC;
+        return CRFSUITEERR_INTERNAL_LOGIC;
     }
 
     /* Store the current offset position. */
@@ -597,7 +597,7 @@ int crf1dmw_put_attrref(crf1dmw_t* writer, int aid, const feature_refs_t* ref, i
 
     /* Make sure that we are writing attribute feature references. */
     if (writer->state != WSTATE_ATTRREFS) {
-        return CRFERR_INTERNAL_LOGIC;
+        return CRFSUITEERR_INTERNAL_LOGIC;
     }
 
     /* Store the current offset to the offset array. */
@@ -625,13 +625,13 @@ int crf1dmw_open_features(crf1dmw_t* writer)
 
     /* Check if we aren't writing anything at this moment. */
     if (writer->state != WSTATE_NONE) {
-        return CRFERR_INTERNAL_LOGIC;
+        return CRFSUITEERR_INTERNAL_LOGIC;
     }
 
     /* Allocate a feature chunk header. */
     hfeat = (feature_header_t*)calloc(sizeof(feature_header_t), 1);
     if (hfeat == NULL) {
-        return CRFERR_OUTOFMEMORY;
+        return CRFSUITEERR_OUTOFMEMORY;
     }
 
     writer->header.off_features = (uint32_t)ftell(fp);
@@ -652,7 +652,7 @@ int crf1dmw_close_features(crf1dmw_t* writer)
 
     /* Make sure that we are writing attribute feature references. */
     if (writer->state != WSTATE_FEATURES) {
-        return CRFERR_INTERNAL_LOGIC;
+        return CRFSUITEERR_INTERNAL_LOGIC;
     }
 
     /* Store the current offset position. */
@@ -684,12 +684,12 @@ int crf1dmw_put_feature(crf1dmw_t* writer, int fid, const crf1dm_feature_t* f)
 
     /* Make sure that we are writing attribute feature references. */
     if (writer->state != WSTATE_FEATURES) {
-        return CRFERR_INTERNAL_LOGIC;
+        return CRFSUITEERR_INTERNAL_LOGIC;
     }
 
     /* We must put features #0, #1, ..., #(K-1) in this order. */
     if (fid != hfeat->num) {
-        return CRFERR_INTERNAL_LOGIC;
+        return CRFSUITEERR_INTERNAL_LOGIC;
     }
 
     write_uint32(fp, f->type);

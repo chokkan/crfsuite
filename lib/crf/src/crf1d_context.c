@@ -110,27 +110,27 @@ int crf1dc_set_num_items(crf1d_context_t* ctx, int T)
         free(ctx->alpha_score);
 
         ctx->alpha_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
-        if (ctx->alpha_score == NULL) return CRFERR_OUTOFMEMORY;
+        if (ctx->alpha_score == NULL) return CRFSUITEERR_OUTOFMEMORY;
         ctx->beta_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
-        if (ctx->beta_score == NULL) return CRFERR_OUTOFMEMORY;
+        if (ctx->beta_score == NULL) return CRFSUITEERR_OUTOFMEMORY;
         ctx->scale_factor = (floatval_t*)calloc(T, sizeof(floatval_t));
-        if (ctx->scale_factor == NULL) return CRFERR_OUTOFMEMORY;
+        if (ctx->scale_factor == NULL) return CRFSUITEERR_OUTOFMEMORY;
         ctx->row = (floatval_t*)calloc(L, sizeof(floatval_t));
-        if (ctx->row == NULL) return CRFERR_OUTOFMEMORY;
+        if (ctx->row == NULL) return CRFSUITEERR_OUTOFMEMORY;
 
         if (ctx->flag & CTXF_VITERBI) {
             ctx->backward_edge = (int*)calloc(T * L, sizeof(int));
-            if (ctx->backward_edge == NULL) return CRFERR_OUTOFMEMORY;
+            if (ctx->backward_edge == NULL) return CRFSUITEERR_OUTOFMEMORY;
         }
 
         ctx->state = (floatval_t*)calloc(T * L, sizeof(floatval_t));
-        if (ctx->state == NULL) return CRFERR_OUTOFMEMORY;
+        if (ctx->state == NULL) return CRFSUITEERR_OUTOFMEMORY;
 
         if (ctx->flag & CTXF_MARGINALS) {
             ctx->exp_state = (floatval_t*)_aligned_malloc((T * L + 4) * sizeof(floatval_t), 16);
-            if (ctx->exp_state == NULL) return CRFERR_OUTOFMEMORY;
+            if (ctx->exp_state == NULL) return CRFSUITEERR_OUTOFMEMORY;
             ctx->mexp_state = (floatval_t*)calloc(T * L, sizeof(floatval_t));
-            if (ctx->mexp_state == NULL) return CRFERR_OUTOFMEMORY;
+            if (ctx->mexp_state == NULL) return CRFSUITEERR_OUTOFMEMORY;
         }
 
         ctx->cap_items = T;

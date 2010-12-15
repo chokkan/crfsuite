@@ -40,7 +40,7 @@
 #include <crfsuite.h>
 #include "crfsuite_internal.h"
 
-void dataset_init_trainset(dataset_t *ds, crf_data_t *data, int holdout)
+void dataset_init_trainset(dataset_t *ds, crfsuite_data_t *data, int holdout)
 {
     int i, n = 0;
 
@@ -62,7 +62,7 @@ void dataset_init_trainset(dataset_t *ds, crf_data_t *data, int holdout)
     }    
 }
 
-void dataset_init_testset(dataset_t *ds, crf_data_t *data, int holdout)
+void dataset_init_testset(dataset_t *ds, crfsuite_data_t *data, int holdout)
 {
     int i, n = 0;
 
@@ -100,7 +100,7 @@ void dataset_shuffle(dataset_t *ds)
     }
 }
 
-crf_instance_t *dataset_get(dataset_t *ds, int i)
+crfsuite_instance_t *dataset_get(dataset_t *ds, int i)
 {
     return &ds->data->instances[ds->perm[i]];
 }

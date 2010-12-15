@@ -110,7 +110,7 @@ static void crf1de_finish(crf1de_t *crf1de)
 
 static void crf1de_state_score(
     crf1de_t *crf1de,
-    const crf_instance_t* inst,
+    const crfsuite_instance_t* inst,
     const floatval_t* w
     )
 {
@@ -121,7 +121,7 @@ static void crf1de_state_score(
 
     /* Loop over the items in the sequence. */
     for (t = 0;t < T;++t) {
-        const crf_item_t *item = &inst->items[t];
+        const crfsuite_item_t *item = &inst->items[t];
         floatval_t *state = STATE_SCORE(ctx, t);
 
         /* Loop over the contents (attributes) attached to the item. */
@@ -145,7 +145,7 @@ static void crf1de_state_score(
 static void
 crf1de_state_score_scaled(
     crf1de_t* crf1de,
-    const crf_instance_t* inst,
+    const crfsuite_instance_t* inst,
     const floatval_t* w,
     const floatval_t scale
     )
@@ -163,7 +163,7 @@ crf1de_state_score_scaled(
 
     /* Loop over the items in the sequence. */
     for (t = 0;t < T;++t) {
-        const crf_item_t *item = &inst->items[t];
+        const crfsuite_item_t *item = &inst->items[t];
         floatval_t *state = STATE_SCORE(ctx, t);
 
         /* Loop over the contents (attributes) attached to the item. */
@@ -240,9 +240,9 @@ crf1de_transition_score_scaled(
 static void
 crf1de_features_on_path(
     crf1de_t *crf1de,
-    const crf_instance_t *inst,
+    const crfsuite_instance_t *inst,
     const int *labels,
-    crf_encoder_features_on_path_callback func,
+    crfsuite_encoder_features_on_path_callback func,
     void *instance
     )
 {
@@ -253,7 +253,7 @@ crf1de_features_on_path(
 
     /* Loop over the items in the sequence. */
     for (t = 0;t < T;++t) {
-        const crf_item_t *item = &inst->items[t];
+        const crfsuite_item_t *item = &inst->items[t];
         const int j = labels[t];
 
         /* Loop over the contents (attributes) attached to the item. */
@@ -293,7 +293,7 @@ crf1de_features_on_path(
 static void
 crf1de_observation_expectation(
     crf1de_t* crf1de,
-    const crf_instance_t* inst,
+    const crfsuite_instance_t* inst,
     const int *labels,
     floatval_t *w,
     const floatval_t scale
@@ -306,7 +306,7 @@ crf1de_observation_expectation(
 
     /* Loop over the items in the sequence. */
     for (t = 0;t < T;++t) {
-        const crf_item_t *item = &inst->items[t];
+        const crfsuite_item_t *item = &inst->items[t];
         const int j = labels[t];
 
         /* Loop over the contents (attributes) attached to the item. */
@@ -346,7 +346,7 @@ crf1de_observation_expectation(
 static void
 crf1de_model_expectation(
     crf1de_t *crf1de,
-    const crf_instance_t *inst,
+    const crfsuite_instance_t *inst,
     floatval_t *w,
     const floatval_t scale
     )
@@ -354,7 +354,7 @@ crf1de_model_expectation(
     int a, c, i, t, r;
     crf1d_context_t* ctx = crf1de->ctx;
     const feature_refs_t *attr = NULL, *trans = NULL;
-    const crf_item_t* item = NULL;
+    const crfsuite_item_t* item = NULL;
     const int T = inst->num_items;
     const int L = crf1de->num_labels;
 
@@ -415,7 +415,7 @@ crf1de_set_data(
 
     /* Find the maximum length of items in the data set. */
     for (i = 0;i < N;++i) {
-        const crf_instance_t *inst = dataset_get(ds, i);
+        const crfsuite_instance_t *inst = dataset_get(ds, i);
         if (T < inst->num_items) {
             T = inst->num_items;
         }
@@ -424,7 +424,7 @@ crf1de_set_data(
     /* Construct a CRF context. */
     crf1de->ctx = crf1dc_new(CTXF_MARGINALS | CTXF_VITERBI, L, T);
     if (crf1de->ctx == NULL) {
-        ret = CRFERR_OUTOFMEMORY;
+        ret = CRFSUITEERR_OUTOFMEMORY;
         goto error_exit;
     }
 
@@ -447,7 +447,7 @@ crf1de_set_data(
         lg->instance
         );
     if (crf1de->features == NULL) {
-        ret = CRFERR_OUTOFMEMORY;
+        ret = CRFSUITEERR_OUTOFMEMORY;
         goto error_exit;
     }
     logging(lg, "Number of features: %d\n", crf1de->num_features);
@@ -463,7 +463,7 @@ crf1de_set_data(
         A,
         L);
     if (crf1de->attributes == NULL || crf1de->forward_trans == NULL) {
-        ret = CRFERR_OUTOFMEMORY;
+        ret = CRFSUITEERR_OUTOFMEMORY;
         goto error_exit;
     }
 
@@ -479,8 +479,8 @@ crf1de_save_model(
     crf1de_t *crf1de,
     const char *filename,
     const floatval_t *w,
-    crf_dictionary_t *attrs,
-    crf_dictionary_t *labels,
+    crfsuite_dictionary_t *attrs,
+    crfsuite_dictionary_t *labels,
     logging_t *lg
     )
 {
@@ -675,7 +675,7 @@ error_exit:
     return ret;
 }
 
-static int crf1de_exchange_options(crf_params_t* params, crf1de_option_t* opt, int mode)
+static int crf1de_exchange_options(crfsuite_params_t* params, crf1de_option_t* opt, int mode)
 {
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_FLOAT(
@@ -755,7 +755,7 @@ static void set_level(encoder_t *self, int level)
     self->level = level;
 }
 
-static int encoder_exchange_options(encoder_t *self, crf_params_t* params, int mode)
+static int encoder_exchange_options(encoder_t *self, crfsuite_params_t* params, int mode)
 {
     crf1de_t *crf1de = (crf1de_t*)self->internal;
     return crf1de_exchange_options(params, &crf1de->opt, mode);
@@ -807,7 +807,7 @@ static int encoder_objective_and_gradients_batch(encoder_t *self, dataset_t *ds,
         Compute model expectations.
      */
     for (i = 0;i < N;++i) {
-        const crf_instance_t *seq = dataset_get(ds, i);
+        const crfsuite_instance_t *seq = dataset_get(ds, i);
 
         /* Set label sequences and state scores. */
         crf1dc_set_num_items(crf1de->ctx, seq->num_items);
@@ -834,7 +834,7 @@ static int encoder_objective_and_gradients_batch(encoder_t *self, dataset_t *ds,
 }
 
 /* LEVEL_NONE -> LEVEL_NONE. */
-static int encoder_features_on_path(encoder_t *self, const crf_instance_t *inst, const int *path, crf_encoder_features_on_path_callback func, void *instance)
+static int encoder_features_on_path(encoder_t *self, const crfsuite_instance_t *inst, const int *path, crfsuite_encoder_features_on_path_callback func, void *instance)
 {
     crf1de_t *crf1de = (crf1de_t*)self->internal;
     crf1de_features_on_path(crf1de, inst, path, func, instance);
@@ -859,7 +859,7 @@ static int encoder_set_weights(encoder_t *self, const floatval_t *w, floatval_t 
 }
 
 /* LEVEL_WEIGHT -> LEVEL_INSTANCE. */
-static int encoder_set_instance(encoder_t *self, const crf_instance_t *inst)
+static int encoder_set_instance(encoder_t *self, const crfsuite_instance_t *inst)
 {
     self->inst = inst;
     self->level = LEVEL_INSTANCE-1;

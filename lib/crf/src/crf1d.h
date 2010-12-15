@@ -278,7 +278,7 @@ crf1df_feature_t* crf1df_generate(
     int connect_all_attrs,
     int connect_all_edges,
     floatval_t minfreq,
-    crf_logging_callback func,
+    crfsuite_logging_callback func,
     void *instance
     );
 

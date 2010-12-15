@@ -160,7 +160,7 @@ crf1df_feature_t* crf1df_generate(
     int connect_all_attrs,
     int connect_all_edges,
     floatval_t minfreq,
-    crf_logging_callback func,
+    crfsuite_logging_callback func,
     void *instance
     )
 {
@@ -184,8 +184,8 @@ crf1df_feature_t* crf1df_generate(
 
     for (s = 0;s < N;++s) {
         int prev = L, cur = 0;
-        const crf_item_t* item = NULL;
-        const crf_instance_t* seq = dataset_get(ds, s);
+        const crfsuite_item_t* item = NULL;
+        const crfsuite_instance_t* seq = dataset_get(ds, s);
         const int T = seq->num_items;
 
         /* Loop over the items in the sequence. */

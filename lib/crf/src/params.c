@@ -67,14 +67,14 @@ static char *mystrdup(const char *src)
     return dst;
 }
 
-static int params_addref(crf_params_t* params)
+static int params_addref(crfsuite_params_t* params)
 {
-    return crf_interlocked_increment(&params->nref);
+    return crfsuite_interlocked_increment(&params->nref);
 }
 
-static int params_release(crf_params_t* params)
+static int params_release(crfsuite_params_t* params)
 {
-    int count = crf_interlocked_decrement(&params->nref);
+    int count = crfsuite_interlocked_decrement(&params->nref);
     if (count == 0) {
         int i;
         params_t* pars = (params_t*)params->internal;
@@ -100,7 +100,7 @@ static param_t* find_param(params_t* pars, const char *name)
     return NULL;
 }
 
-static int params_set(crf_params_t* params, const char *name, const char *value)
+static int params_set(crfsuite_params_t* params, const char *name, const char *value)
 {
     params_t* pars = (params_t*)params->internal;
     param_t* par = find_param(pars, name);
@@ -119,7 +119,7 @@ static int params_set(crf_params_t* params, const char *name, const char *value)
     return 0;
 }
 
-static int params_set_int(crf_params_t* params, const char *name, int value)
+static int params_set_int(crfsuite_params_t* params, const char *name, int value)
 {
     params_t* pars = (params_t*)params->internal;
     param_t* par = find_param(pars, name);
@@ -129,7 +129,7 @@ static int params_set_int(crf_params_t* params, const char *name, int value)
     return 0;
 }
 
-static int params_set_float(crf_params_t* params, const char *name, floatval_t value)
+static int params_set_float(crfsuite_params_t* params, const char *name, floatval_t value)
 {
     params_t* pars = (params_t*)params->internal;
     param_t* par = find_param(pars, name);
@@ -139,7 +139,7 @@ static int params_set_float(crf_params_t* params, const char *name, floatval_t v
     return 0;
 }
 
-static int params_set_string(crf_params_t* params, const char *name, const char *value)
+static int params_set_string(crfsuite_params_t* params, const char *name, const char *value)
 {
     params_t* pars = (params_t*)params->internal;
     param_t* par = find_param(pars, name);
@@ -150,7 +150,7 @@ static int params_set_string(crf_params_t* params, const char *name, const char 
     return 0;
 }
 
-static int params_get_int(crf_params_t* params, const char *name, int *value)
+static int params_get_int(crfsuite_params_t* params, const char *name, int *value)
 {
     params_t* pars = (params_t*)params->internal;
     param_t* par = find_param(pars, name);
@@ -160,7 +160,7 @@ static int params_get_int(crf_params_t* params, const char *name, int *value)
     return 0;
 }
 
-static int params_get_float(crf_params_t* params, const char *name, floatval_t *value)
+static int params_get_float(crfsuite_params_t* params, const char *name, floatval_t *value)
 {
     params_t* pars = (params_t*)params->internal;
     param_t* par = find_param(pars, name);
@@ -170,7 +170,7 @@ static int params_get_float(crf_params_t* params, const char *name, floatval_t *
     return 0;
 }
 
-static int params_get_string(crf_params_t* params, const char *name, char **value)
+static int params_get_string(crfsuite_params_t* params, const char *name, char **value)
 {
     params_t* pars = (params_t*)params->internal;
     param_t* par = find_param(pars, name);
@@ -180,9 +180,9 @@ static int params_get_string(crf_params_t* params, const char *name, char **valu
     return 0;
 }
 
-crf_params_t* params_create_instance()
+crfsuite_params_t* params_create_instance()
 {
-    crf_params_t* params = (crf_params_t*)calloc(1, sizeof(crf_params_t));
+    crfsuite_params_t* params = (crfsuite_params_t*)calloc(1, sizeof(crfsuite_params_t));
 
     if (params != NULL) {
         /* Construct the internal data. */
@@ -208,7 +208,7 @@ crf_params_t* params_create_instance()
     return params;
 }
 
-int params_add_int(crf_params_t* params, const char *name, int value)
+int params_add_int(crfsuite_params_t* params, const char *name, int value)
 {
     param_t* par = NULL;
     params_t* pars = (params_t*)params->internal;
@@ -225,7 +225,7 @@ int params_add_int(crf_params_t* params, const char *name, int value)
     return 0;
 }
 
-int params_add_float(crf_params_t* params, const char *name, floatval_t value)
+int params_add_float(crfsuite_params_t* params, const char *name, floatval_t value)
 {
     param_t* par = NULL;
     params_t* pars = (params_t*)params->internal;
@@ -242,7 +242,7 @@ int params_add_float(crf_params_t* params, const char *name, floatval_t value)
     return 0;
 }
 
-int params_add_string(crf_params_t* params, const char *name, const char *value)
+int params_add_string(crfsuite_params_t* params, const char *name, const char *value)
 {
     param_t* par = NULL;
     params_t* pars = (params_t*)params->internal;

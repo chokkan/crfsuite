@@ -51,32 +51,32 @@ enum {
     TRAIN_AROW,
 };
 
-struct tag_crf_train_internal;
-typedef struct tag_crf_train_internal crf_train_internal_t;
+struct tag_crfsuite_train_internal;
+typedef struct tag_crfsuite_train_internal crfsuite_train_internal_t;
 
 struct tag_encoder;
 typedef struct tag_encoder encoder_t;
 
 typedef struct {
-    crf_data_t *data;
+    crfsuite_data_t *data;
     int *perm;
     int num_instances;
 } dataset_t;
 
-void dataset_init_trainset(dataset_t *ds, crf_data_t *data, int holdout);
-void dataset_init_testset(dataset_t *ds, crf_data_t *data, int holdout);
+void dataset_init_trainset(dataset_t *ds, crfsuite_data_t *data, int holdout);
+void dataset_init_testset(dataset_t *ds, crfsuite_data_t *data, int holdout);
 void dataset_finish(dataset_t *ds);
 void dataset_shuffle(dataset_t *ds);
-crf_instance_t *dataset_get(dataset_t *ds, int i);
+crfsuite_instance_t *dataset_get(dataset_t *ds, int i);
 
-typedef void (*crf_encoder_features_on_path_callback)(void *instance, int fid, floatval_t value);
+typedef void (*crfsuite_encoder_features_on_path_callback)(void *instance, int fid, floatval_t value);
 
 /**
  * Internal data structure for 
  */
-struct tag_crf_train_internal {
+struct tag_crfsuite_train_internal {
     encoder_t *gm;      /** Interface to the graphical model. */
-    crf_params_t *params;       /**< Parameter interface. */
+    crfsuite_params_t *params;       /**< Parameter interface. */
     logging_t* lg;              /**< Logging interface. */
     int feature_type;           /**< Feature type. */
     int algorithm;              /**< Training algorithm. */
@@ -93,7 +93,7 @@ struct tag_encoder
     floatval_t scale;
 
     dataset_t *ds;
-    const crf_instance_t *inst;
+    const crfsuite_instance_t *inst;
     int level;
 
     int num_features;
@@ -106,7 +106,7 @@ struct tag_encoder
      *  @param  mode        The direction of parameter exchange.
      *  @return             A status code.
      */
-    int (*exchange_options)(encoder_t *self, crf_params_t* params, int mode);
+    int (*exchange_options)(encoder_t *self, crfsuite_params_t* params, int mode);
 
     /**
      * Initializes the encoder with a training data set.
@@ -129,7 +129,7 @@ struct tag_encoder
      */
     int (*objective_and_gradients_batch)(encoder_t *self, dataset_t *ds, const floatval_t *w, floatval_t *f, floatval_t *g);
 
-    int (*features_on_path)(encoder_t *self, const crf_instance_t *inst, const int *path, crf_encoder_features_on_path_callback func, void *instance);
+    int (*features_on_path)(encoder_t *self, const crfsuite_instance_t *inst, const int *path, crfsuite_encoder_features_on_path_callback func, void *instance);
 
     /**
      * Sets the feature weights (and their scale factor).
@@ -142,7 +142,7 @@ struct tag_encoder
     int (*set_weights)(encoder_t *self, const floatval_t *w, floatval_t scale);
 
     /* Instance-wise operations. */
-    int (*set_instance)(encoder_t *self, const crf_instance_t *inst);
+    int (*set_instance)(encoder_t *self, const crfsuite_instance_t *inst);
 
     /* Level 0. */
 
@@ -177,57 +177,57 @@ void holdout_evaluation(
     logging_t *lg
     );
     
-int crf_train_lbfgs(
+int crfsuite_train_lbfgs(
     encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
-    crf_params_t *params,
+    crfsuite_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
     );
 
-void crf_train_lbfgs_init(crf_params_t* params);
+void crfsuite_train_lbfgs_init(crfsuite_params_t* params);
 
-void crf_train_averaged_perceptron_init(crf_params_t* params);
+void crfsuite_train_averaged_perceptron_init(crfsuite_params_t* params);
 
-int crf_train_averaged_perceptron(
+int crfsuite_train_averaged_perceptron(
     encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
-    crf_params_t *params,
+    crfsuite_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
     );
 
-void crf_train_l2sgd_init(crf_params_t* params);
+void crfsuite_train_l2sgd_init(crfsuite_params_t* params);
 
-int crf_train_l2sgd(
+int crfsuite_train_l2sgd(
     encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
-    crf_params_t *params,
+    crfsuite_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
     );
 
-void crf_train_passive_aggressive_init(crf_params_t* params);
+void crfsuite_train_passive_aggressive_init(crfsuite_params_t* params);
 
-int crf_train_passive_aggressive(
+int crfsuite_train_passive_aggressive(
     encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
-    crf_params_t *params,
+    crfsuite_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
     );
 
-void crf_train_arow_init(crf_params_t* params);
+void crfsuite_train_arow_init(crfsuite_params_t* params);
 
-int crf_train_arow(
+int crfsuite_train_arow(
     encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
-    crf_params_t *params,
+    crfsuite_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
     );

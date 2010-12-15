@@ -1,3 +1,36 @@
+/*
+ *      CRFsuite C++/SWIG API wrapper.
+ *
+ * Copyright (c) 2007-2010, Naoaki Okazaki
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the names of the authors nor the names of its contributors
+ *       may be used to endorse or promote products derived from this
+ *       software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#ifndef __CRFSUITE_HPP__
+#define __CRFSUITE_HPP__
+
 #include <vector>
 #include <string>
 #include <stdexcept>
@@ -11,9 +44,9 @@ namespace crfsuite
 
 trainer::trainer()
 {
-    data = new crf_data_t;
+    data = new crfsuite_data_t;
     if (data != NULL) {
-        crf_data_init(data);
+        crfsuite_data_init(data);
         tr = NULL;
     }
 }
@@ -31,7 +64,7 @@ trainer::~trainer()
             data->attrs = NULL;
         }
 
-        crf_data_finish(data);
+        crfsuite_data_finish(data);
         delete data;
         data = NULL;
     }
@@ -53,19 +86,19 @@ bool trainer::init(const std::string& type, const std::string& algorithm)
     tid += algorithm;
 
     // Create an instance of a trainer.
-    ret = crf_create_instance(tid.c_str(), (void**)&tr);
+    ret = crfsuite_create_instance(tid.c_str(), (void**)&tr);
     if (!ret) {
         return false;
     }
 
     // Create an instance of attribute dictionary.
-    ret = crf_create_instance("dictionary", (void**)&data->attrs);
+    ret = crfsuite_create_instance("dictionary", (void**)&data->attrs);
     if (!ret) {
         throw std::invalid_argument(" Failed to create a dictionary instance.");
     }
 
     // Create an instance of label dictionary.
-    ret = crf_create_instance("dictionary", (void**)&data->labels);
+    ret = crfsuite_create_instance("dictionary", (void**)&data->labels);
     if (!ret) {
         throw std::invalid_argument(" Failed to create a dictionary instance.");
     }
@@ -78,21 +111,21 @@ bool trainer::init(const std::string& type, const std::string& algorithm)
 
 void trainer::append_instance(const instance& inst)
 {
-    crf_instance_t _inst;
+    crfsuite_instance_t _inst;
 
     // Make sure |y| == |x|.
     if (inst.xseq.size() != inst.yseq.size()) {
         throw std::invalid_argument("The numbers of items and labels differ");
     }
 
-    // Convert instance_type to crf_instance_t.
-    crf_instance_init_n(&_inst, inst.xseq.size());
+    // Convert instance_type to crfsuite_instance_t.
+    crfsuite_instance_init_n(&_inst, inst.xseq.size());
     for (size_t t = 0;t < inst.xseq.size();++t) {
         const item& item = inst.xseq[t];
-        crf_item_t* _item = &_inst.items[t];
+        crfsuite_item_t* _item = &_inst.items[t];
 
         // Set the attributes in the item.
-        crf_item_init_n(_item, item.size());
+        crfsuite_item_init_n(_item, item.size());
         for (size_t i = 0;i < item.size();++i) {
             _item->contents[i].aid = data->attrs->get(data->attrs, item[i].attr.c_str());
             _item->contents[i].scale = (floatval_t)item[i].scale;
@@ -104,10 +137,10 @@ void trainer::append_instance(const instance& inst)
     _inst.group = inst.group;
 
     // Append the instance to the training set.
-    crf_data_append(data, &_inst);
+    crfsuite_data_append(data, &_inst);
 
     // Finish the instance.
-    crf_instance_finish(&_inst);
+    crfsuite_instance_finish(&_inst);
 }
 
 int trainer::train(const std::string& model, int holdout)
@@ -118,7 +151,7 @@ int trainer::train(const std::string& model, int holdout)
 
 void trainer::set_parameter(const std::string& name, const std::string& value)
 {
-    crf_params_t* params = tr->params(tr);
+    crfsuite_params_t* params = tr->params(tr);
     params->set(params, name.c_str(), value.c_str());
     params->release(params);
 }
@@ -154,7 +187,7 @@ bool tagger::open(const std::string& name)
     this->close();
 
     // Open the model file.
-    if ((ret = crf_create_instance_from_file(name.c_str(), (void**)&model))) {
+    if ((ret = crfsuite_create_instance_from_file(name.c_str(), (void**)&model))) {
         return false;
     }
 
@@ -173,9 +206,9 @@ labels tagger::tag(const instance& inst)
 {
     int ret;
     labels yseq;
-    crf_instance_t _inst;
-    crf_tagger_t *tag = NULL;
-    crf_dictionary_t *attrs = NULL, *labels = NULL;
+    crfsuite_instance_t _inst;
+    crfsuite_tagger_t *tag = NULL;
+    crfsuite_dictionary_t *attrs = NULL, *labels = NULL;
 
     // Obtain the dictionary interface representing the labels in the model.
     if ((ret = model->get_labels(model, &labels))) {
@@ -192,44 +225,29 @@ labels tagger::tag(const instance& inst)
         throw std::invalid_argument("Failed to obtain the tagger interface");
     }
 
-    std::cout << "OK1" << std::endl;
-    std::cout << "len = " << inst.xseq.size() << std::endl;
-
     // Build an instance.
-    crf_instance_init_n(&_inst, inst.xseq.size());
+    crfsuite_instance_init_n(&_inst, inst.xseq.size());
     for (size_t t = 0;t < inst.xseq.size();++t) {
         const item& item = inst.xseq[t];
-        crf_item_t* _item = &_inst.items[t];
+        crfsuite_item_t* _item = &_inst.items[t];
 
         // Set the attributes in the item.
-        crf_item_init(_item);
+        crfsuite_item_init(_item);
         for (size_t i = 0;i < item.size();++i) {
             int aid = attrs->to_id(attrs, item[i].attr.c_str());
             if (0 <= aid) {
-                crf_content_t cont;
-                crf_content_set(&cont, aid, item[i].scale);
-                crf_item_append_content(_item, &cont);
+                crfsuite_content_t cont;
+                crfsuite_content_set(&cont, aid, item[i].scale);
+                crfsuite_item_append_content(_item, &cont);
             }
         }
     }
 
-    std::cout << "OK2" << std::endl;
-
-    printf("0x%p\n", tag);
-    printf("0x%p\n", tag->tag);
-    printf("0x%p\n", attrs);
-    printf("0x%p\n", attrs->to_id);
-    printf("0x%p\n", &_inst);
-    printf("0x%p\n", _inst.labels);
-
     floatval_t score;
     if ((ret = tag->tag(tag, &_inst, _inst.labels, &score))) {
-        std::cout << "OK3" << std::endl;
-        crf_instance_finish(&_inst);
+        crfsuite_instance_finish(&_inst);
         throw std::invalid_argument("Failed to tag the instance.");
     }
-
-    std::cout << "OK4" << std::endl;
 
     yseq.resize(inst.xseq.size());
     for (size_t t = 0;t < inst.xseq.size();++t) {
@@ -240,10 +258,11 @@ labels tagger::tag(const instance& inst)
     }
 
     // Finish the instance.
-    crf_instance_finish(&_inst);
+    crfsuite_instance_finish(&_inst);
 
     return yseq;
 }
 
 };
 
+#endif/*__CRFSUITE_HPP__*/

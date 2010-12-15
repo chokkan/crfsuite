@@ -51,7 +51,7 @@
 #include <lbfgs.h>
 
 /**
- * Training parameters (configurable with crf_params_t interface).
+ * Training parameters (configurable with crfsuite_params_t interface).
  */
 typedef struct {
     floatval_t  c1;
@@ -158,7 +158,7 @@ static int lbfgs_progress(
     return 0;
 }
 
-static int exchange_options(crf_params_t* params, training_option_t* opt, int mode)
+static int exchange_options(crfsuite_params_t* params, training_option_t* opt, int mode)
 {
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_FLOAT(
@@ -206,16 +206,16 @@ static int exchange_options(crf_params_t* params, training_option_t* opt, int mo
 }
 
 
-void crf_train_lbfgs_init(crf_params_t* params)
+void crfsuite_train_lbfgs_init(crfsuite_params_t* params)
 {
     exchange_options(params, NULL, 0);
 }
 
-int crf_train_lbfgs(
+int crfsuite_train_lbfgs(
     encoder_t *gm,
     dataset_t *trainset,
     dataset_t *testset,
-    crf_params_t *params,
+    crfsuite_params_t *params,
     logging_t *lg,
     floatval_t **ptr_w
     )
@@ -239,14 +239,14 @@ int crf_train_lbfgs(
     /* Allocate an array that stores the current weights. */ 
     w = (floatval_t*)calloc(sizeof(floatval_t), K);
     if (w == NULL) {
-		ret = CRFERR_OUTOFMEMORY;
+		ret = CRFSUITEERR_OUTOFMEMORY;
 		goto error_exit;
     }
  
     /* Allocate an array that stores the best weights. */ 
     lbfgsi.best_w = (floatval_t*)calloc(sizeof(floatval_t), K);
     if (lbfgsi.best_w == NULL) {
-		ret = CRFERR_OUTOFMEMORY;
+		ret = CRFSUITEERR_OUTOFMEMORY;
 		goto error_exit;
     }
 
