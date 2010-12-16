@@ -228,7 +228,7 @@ std::string Trainer::help(const std::string& name)
     std::string str;
     crfsuite_params_t* params = tr->params(tr);
     char *_str = NULL;
-    params->help(params, name.c_str(), &_str);
+    params->help(params, name.c_str(), NULL, &_str);
     str = _str;
     params->free(params, _str);
     params->release(params);

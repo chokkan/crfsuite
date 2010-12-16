@@ -221,12 +221,29 @@ static int params_get_string(crfsuite_params_t* params, const char *name, char *
     return 0;
 }
 
-static int params_help(crfsuite_params_t* params, const char *name, char **ptr_help)
+static int params_help(crfsuite_params_t* params, const char *name, char **ptr_type, char **ptr_help)
 {
     params_t* pars = (params_t*)params->internal;
     param_t* par = find_param(pars, name);
     if (par == NULL) return -1;
-    *ptr_help = mystrdup(par->help);
+    if (ptr_type != NULL) {
+        switch (par->type) {
+        case PT_INT:
+            *ptr_type = mystrdup("int");
+            break;
+        case PT_FLOAT:
+            *ptr_type = mystrdup("float");
+            break;
+        case PT_STRING:
+            *ptr_type = mystrdup("string");
+            break;
+        default:
+            *ptr_type = mystrdup("unknown");
+        }
+    }
+    if (ptr_help != NULL) {
+        *ptr_help = mystrdup(par->help);
+    }
 }
 
 crfsuite_params_t* params_create_instance()
@@ -256,6 +273,7 @@ crfsuite_params_t* params_create_instance()
         params->get_int = params_get_int;
         params->get_float = params_get_float;
         params->get_string = params_get_string;
+        params->help = params_help;
     }
 
     return params;

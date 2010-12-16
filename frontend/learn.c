@@ -52,6 +52,7 @@ typedef struct {
 
     int holdout;
     int help;
+    int help_params;
 
     int num_params;
     char **params;
@@ -100,6 +101,9 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
     ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
         opt->help = 1;
 
+    ON_OPTION(SHORTOPT('H') || LONGOPT("help-params"))
+        opt->help_params = 1;
+
     ON_OPTION_WITH_ARG(SHORTOPT('a') || LONGOPT("algorithm"))
         if (strcmp(arg, "lbfgs") == 0) {
             free(opt->algorithm);
@@ -143,6 +147,7 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
     fprintf(fp, "    -t, --test=TEST     Report the performance of the model on a data (TEST)\n");
     fprintf(fp, "    -p, --param=NAME=VALUE  Set the parameter NAME to VALUE\n");
     fprintf(fp, "    -h, --help          Show the usage of this command and exit\n");
+    fprintf(fp, "    -H, --help-params   Show the list of parameters and their usages\n");
 }
 
 
@@ -205,6 +210,36 @@ int main_learn(int argc, char *argv[], const char *argv0)
     if (!ret) {
         fprintf(fpe, "ERROR: Failed to create a trainer instance.\n");
         ret = 1;
+        goto force_exit;
+    }
+
+    /* Show the help message for the training algorithm if specified. */
+    if (opt.help_params) {
+        crfsuite_params_t* params = trainer->params(trainer);
+
+        fprintf(fpo, "PARAMETERS for %s (%s):\n", opt.algorithm, opt.type);
+        fprintf(fpo, "\n");
+
+        for (i = 0;i < params->num(params);++i) {
+            char *name = NULL;
+            char *type = NULL;
+            char *value = NULL;
+            char *help = NULL;
+
+            params->name(params, i, &name);
+            params->get(params, name, &value);
+            params->help(params, name, &type, &help);
+
+            fprintf(fpo, "%s %s = %s;\n", type, name, value);
+            fprintf(fpo, "%s\n", help);
+            fprintf(fpo, "\n");
+
+            params->free(params, help);
+            params->free(params, type);
+            params->free(params, value);
+            params->free(params, name);
+        }
+        params->release(params);
         goto force_exit;
     }
 

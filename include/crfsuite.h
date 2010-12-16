@@ -310,7 +310,7 @@ struct tag_crfsuite_params {
     int (*get_float)(crfsuite_params_t* params, const char *name, floatval_t *value);
     int (*get_string)(crfsuite_params_t* params, const char *name, char **ptr_value);
 
-    int (*help)(crfsuite_params_t* params, const char *name, char **ptr_help);
+    int (*help)(crfsuite_params_t* params, const char *name, char **ptr_type, char **ptr_help);
 };
 
 
