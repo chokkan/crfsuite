@@ -1,3 +1,23 @@
+201x-xx-xx  Naoaki Okazaki  <okazaki at chokkan org>
+	* CRFsuite 0.12
+	- [CORE] Optimized routines for training: ca. xx% speed up on the CoNLL2000 data set.
+	- [CORE] Faster routine for computing exp(x) using SSE2.
+	- [CORE] Restructured the source code to separate routines for CRF graphical models and training algorithms; this is an initial attempt for implementing CRFs with different feature types (e.g., 2nd-order CRF, 1st-order transition features conditioned on observations) and different training algorithms.
+	- [CORE] Implemented new training algorithms: Averaged Perceptron, Passive Aggressive, and Adaptive Regularization of Weights (AROW).
+	- [CORE] Fixed some memory-leak problems.
+	- [CORE] Reduced memory usage in training.
+	- [CORE] Fixed a crash problem when the model file does not exist in tagging.
+	- [FRONTEND] Training and test sets are maintained by group numbers; specify the group number for hold-out evaluation with "-t" option.
+	- [FRONTEND] Training algorithm is now specified by "-a" option instead of "-p algorithm=".
+	- [FRONTEND] Renamed some training parameters; for example, an L2 regularization coefficient is specified by "c2" instead of "regularization.sigma" (c2 = 0.5 / sigma * sigma).
+	- [API] Renamed the library name "libcrf" to "libcrfsuite".
+	- [API] Renamed the prefix "crf_" to "crfsuite_" in structure and function names.
+	- [API] Implemented a high-level and easy-to-use API for C++/SWIG (crfsuite.hpp and crfsuite_api.hpp).
+	- [API] Implemented the Python SWIG module and sample programs; writing a tagger is very easy with this module.
+	- [SAMPLE] A new sample: Named Entity Recognition (NER) using the CoNLL2003 data set.
+	- [OTHER] Updated the MSVC solution file to MSVC 2010.
+
+	
 2010-07-16  Naoaki Okazaki  <okazaki at chokkan org>
 	* CRFsuite 0.11
 	- Renamed crf.h into crfsuite.h to avoid possible conflects in include directories
