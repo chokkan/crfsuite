@@ -70,6 +70,12 @@ BEGIN_OPTION_MAP(parse_options, option_t)
 
 END_OPTION_MAP()
 
+static void show_copyright(FILE *fp)
+{
+    fprintf(fp, APPLICATION_S " " CRFSUITE_VERSION "  " CRFSUITE_COPYRIGHT "\n");
+    fprintf(fp, "\n");
+}
+
 static void show_usage(FILE *fp, const char *argv0)
 {
     fprintf(fp, "USAGE: %s <COMMAND> [OPTIONS]\n", argv0);
@@ -93,10 +99,6 @@ int main(int argc, char *argv[])
     const char *argv0 = argv[0];
     FILE *fpi = stdin, *fpo = stdout, *fpe = stderr;
 
-    /* Show the copyright information. */
-    fprintf(fpe, APPLICATION_S " " CRFSUITE_VERSION "  " CRFSUITE_COPYRIGHT "\n");
-    fprintf(fpe, "\n");
-
     /* Parse the command-line option. */
     option_init(&opt);
     arg_used = option_parse(++argv, --argc, parse_options, &opt);
@@ -106,6 +108,7 @@ int main(int argc, char *argv[])
 
     /* Show the help message if specified. */
     if (opt.help) {
+        show_copyright(fpo);
         show_usage(fpo, argv0);
         return 0;
     }
@@ -119,6 +122,7 @@ int main(int argc, char *argv[])
     /* Execute the command. */
     command = argv[arg_used];
     if (strcmp(command, "learn") == 0) {
+        show_copyright(fpo);
         return main_learn(argc-arg_used, argv+arg_used, argv0);
     } else if (strcmp(command, "tag") == 0) {
         return main_tag(argc-arg_used, argv+arg_used, argv0);

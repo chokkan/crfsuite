@@ -239,6 +239,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
             params->free(params, value);
             params->free(params, name);
         }
+
         params->release(params);
         goto force_exit;
     }
