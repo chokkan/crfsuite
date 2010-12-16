@@ -385,7 +385,7 @@ StringList Tagger::viterbi()
     }
 
     // Make sure that the current instance is not empty.
-    const int T = tagger->length(tagger);
+    const size_t T = (size_t)tagger->length(tagger);
     if (T <= 0) {
         return yseq;
     }
@@ -424,6 +424,8 @@ StringList Tagger::viterbi()
 double Tagger::probability(const StringList& yseq)
 {
     int ret;
+    size_t T;
+    int *path = NULL;
     std::stringstream msg;
     floatval_t score, lognorm;
     crfsuite_dictionary_t *labels = NULL;
@@ -434,7 +436,7 @@ double Tagger::probability(const StringList& yseq)
     }
 
     // Make sure that the current instance is not empty.
-    const int T = tagger->length(tagger);
+    T = (size_t)tagger->length(tagger);
     if (T <= 0) {
         return 0.;
     }
@@ -452,8 +454,8 @@ double Tagger::probability(const StringList& yseq)
     }
 
     // Convert string labels into label IDs.
-    int *path = new int[T];
-    for (int t = 0;t < T;++t) {
+    path = new int[T];
+    for (size_t t = 0;t < T;++t) {
         int l = labels->to_id(labels, yseq[t].c_str());
         if (l < 0) {
             msg << "Failed to convert into label identifier: " << yseq[t];
@@ -489,7 +491,7 @@ error_exit:
 
 double Tagger::marginal(const std::string& y, const int t)
 {
-    int ret;
+    int l, ret, T;
     floatval_t prob;
     std::stringstream msg;
     crfsuite_dictionary_t *labels = NULL;
@@ -500,7 +502,7 @@ double Tagger::marginal(const std::string& y, const int t)
     }
 
     // Make sure that the current instance is not empty.
-    const int T = tagger->length(tagger);
+    T = tagger->length(tagger);
     if (T <= 0) {
         return 0.;
     }
@@ -518,7 +520,7 @@ double Tagger::marginal(const std::string& y, const int t)
     }
 
     // Convert string labels into label IDs.
-    int l = labels->to_id(labels, y.c_str());
+    l = labels->to_id(labels, y.c_str());
     if (l < 0) {
         msg << "Failed to convert into label identifier: " << y;
         goto error_exit;

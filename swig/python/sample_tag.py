@@ -33,7 +33,9 @@ if __name__ == '__main__':
         tagger.set(xseq)
         yseq = tagger.viterbi()
         print tagger.probability(yseq)
+        t = 0
         for y in yseq:
-            fo.write('%s\n' % y)
+            fo.write('%s:%f\n' % (y, tagger.marginal(y, t)))
+            t += 1
         fo.write('\n')
 
