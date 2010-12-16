@@ -251,6 +251,8 @@ public:
     LabelSequence labels();
 };
 
+std::string version();
+
 };
 
 #endif/*__CRFSUITE_API_HPP__*/
