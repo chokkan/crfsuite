@@ -31,7 +31,6 @@
 #ifndef __CRFSUITE_API_HPP__
 #define __CRFSUITE_API_HPP__
 
-#include <map>
 #include <string>
 #include <stdexcept>
 #include <vector>
@@ -120,6 +119,7 @@ typedef std::vector<std::string> LabelSequence;
 class Trainer {
 protected:
     crfsuite_data_t *data;
+    crfsuite_trainer_t *tr;
 
 public:
     /**
@@ -146,19 +146,21 @@ public:
     void append(const ItemSequence& xseq, const LabelSequence& yseq, int group);
 
     /**
-     * Runs the training algorithm.
-     *  @param  type        The name of the CRF type.
+     * Initializes the training algorithm.
      *  @param  algorithm   The name of the training algorithm.
+     *  @param  type        The name of the CRF type.
+     *  @return bool        \c true if the training algorithm is successfully
+     *                      initialized, \c false otherwise.
+     */
+    bool select(const std::string& algorithm, const std::string& type);
+
+    /**
+     * Runs the training algorithm.
      *  @param  model       The filename to which the obtained model is stored.
      *  @param  holdout     The group number of holdout evaluation.
      *  @return int         The status code.
      */
-    int train(
-        const std::string& type,
-        const std::string& algorithm,
-        const std::string& model,
-        int holdout
-        );
+    int train(const std::string& model, int holdout);
 
     /**
      * Sets the training parameter.
@@ -182,11 +184,6 @@ public:
     virtual void message(const std::string& msg);
 
 protected:
-    /// Container type of parameters.
-    typedef std::map<std::string, std::string> parameters_type;
-    /// Parameters.
-    parameters_type m_params;
-
     void init();
     static int __logging_callback(void *userdata, const char *format, va_list args);
 };

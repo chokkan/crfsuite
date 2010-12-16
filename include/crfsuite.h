@@ -296,6 +296,9 @@ struct tag_crfsuite_params {
     int (*release)(crfsuite_params_t* params);
 
     int (*set)(crfsuite_params_t* params, const char *name, const char *value);
+    int (*get)(crfsuite_params_t* params, const char *name, char **value);
+    void (*free)(crfsuite_params_t* params, const char *str);
+
     int (*set_int)(crfsuite_params_t* params, const char *name, int value);
     int (*set_float)(crfsuite_params_t* params, const char *name, floatval_t value);
     int (*set_string)(crfsuite_params_t* params, const char *name, const char *value);

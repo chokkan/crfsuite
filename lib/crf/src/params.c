@@ -119,6 +119,32 @@ static int params_set(crfsuite_params_t* params, const char *name, const char *v
     return 0;
 }
 
+static int params_get(crfsuite_params_t* params, const char *name, char **value)
+{
+    char buffer[1024];
+    params_t* pars = (params_t*)params->internal;
+    param_t* par = find_param(pars, name);
+    if (par == NULL) return -1;
+    switch (par->type) {
+    case PT_INT:
+        snprintf(buffer, sizeof(buffer)-1, "%d", par->val_i);
+        *value = mystrdup(buffer);
+        break;
+    case PT_FLOAT:
+        snprintf(buffer, sizeof(buffer)-1, "%f", par->val_f);
+        *value = mystrdup(buffer);
+        break;
+    case PT_STRING:
+        *value = mystrdup(par->val_s);
+    }
+    return 0;
+}
+
+static void params_free(crfsuite_params_t* params, const char *value)
+{
+    free((char*)value);
+}
+
 static int params_set_int(crfsuite_params_t* params, const char *name, int value)
 {
     params_t* pars = (params_t*)params->internal;
@@ -197,6 +223,8 @@ crfsuite_params_t* params_create_instance()
         params->addref = params_addref;
         params->release = params_release;
         params->set = params_set;
+        params->get = params_get;
+        params->free = params_free;
         params->set_int = params_set_int;
         params->set_float = params_set_float;
         params->set_string = params_set_string;
