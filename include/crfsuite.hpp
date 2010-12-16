@@ -299,6 +299,10 @@ StringList Tagger::labels()
     StringList lseq;
     crfsuite_dictionary_t *labels = NULL;
 
+    if (model == NULL) {
+        throw std::invalid_argument("The tagger is not opened");
+    }
+
     // Obtain the dictionary interface representing the labels in the model.
     if ((ret = model->get_labels(model, &labels))) {
         throw std::invalid_argument("Failed to obtain the dictionary interface for labels");
@@ -331,6 +335,10 @@ void Tagger::set(const ItemSequence& xseq)
     StringList yseq;
     crfsuite_instance_t _inst;
     crfsuite_dictionary_t *attrs = NULL;
+
+    if (model == NULL || tagger == NULL) {
+        throw std::invalid_argument("The tagger is not opened");
+    }
 
     // Obtain the dictionary interface representing the attributes in the model.
     if ((ret = model->get_attrs(model, &attrs))) {
@@ -372,22 +380,24 @@ StringList Tagger::viterbi()
     StringList yseq;
     crfsuite_dictionary_t *labels = NULL;
 
+    if (model == NULL || tagger == NULL) {
+        throw std::invalid_argument("The tagger is not opened");
+    }
+
+    // Make sure that the current instance is not empty.
     const int T = tagger->length(tagger);
     if (T <= 0) {
         return yseq;
     }
-
 
     // Obtain the dictionary interface representing the labels in the model.
     if ((ret = model->get_labels(model, &labels))) {
         throw std::invalid_argument("Failed to obtain the dictionary interface for labels");
     }
 
-    // Allocate an array for the label sequence.
-    int *path = new int[T];
-
     // Run the Viterbi algorithm.
     floatval_t score;
+    int *path = new int[T];
     if ((ret = tagger->viterbi(tagger, path, &score))) {
         delete[] path;
         labels->release(labels);
@@ -414,27 +424,39 @@ StringList Tagger::viterbi()
 double Tagger::probability(const StringList& yseq)
 {
     int ret;
-    std::string msg;
+    std::stringstream msg;
     floatval_t score, lognorm;
     crfsuite_dictionary_t *labels = NULL;
 
+    if (model == NULL || tagger == NULL) {
+        msg << "The tagger is not opened";
+        goto error_exit;
+    }
+
+    // Make sure that the current instance is not empty.
     const int T = tagger->length(tagger);
     if (T <= 0) {
         return 0.;
     }
-    int *path = new int[T];
+
+    // Make sure that |y| == |x|.
+    if (yseq.size() != T) {
+        msg << "The numbers of items and labels differ: |x| = " << T << ", |y| = " << yseq.size();
+        goto error_exit;
+    }
 
     // Obtain the dictionary interface representing the labels in the model.
     if ((ret = model->get_labels(model, &labels))) {
-        msg = "Failed to obtain the dictionary interface for labels";
+        msg << "Failed to obtain the dictionary interface for labels";
         goto error_exit;
     }
 
     // Convert string labels into label IDs.
+    int *path = new int[T];
     for (int t = 0;t < T;++t) {
         int l = labels->to_id(labels, yseq[t].c_str());
         if (l < 0) {
-            msg = "Failed to obtain the tagger interface";
+            msg << "Failed to convert into label identifier: " << yseq[t];
             goto error_exit;
         }
         path[t] = l;
@@ -442,13 +464,13 @@ double Tagger::probability(const StringList& yseq)
 
     // Compute the score of the path.
     if ((ret = tagger->score(tagger, path, &score))) {
-        msg = "Failed to score the label sequence";
+        msg << "Failed to score the label sequence";
         goto error_exit;
     }
 
     // Compute the partition factor.
     if ((ret = tagger->lognorm(tagger, &lognorm))) {
-        msg = "Failed to compute the partition factor.";
+        msg << "Failed to compute the partition factor";
         goto error_exit;
     }
 
@@ -462,7 +484,61 @@ error_exit:
         labels = NULL;
     }
     delete[] path;
-    throw std::invalid_argument(msg);
+    throw std::invalid_argument(msg.str());
+}
+
+double Tagger::marginal(const std::string& y, const int t)
+{
+    int ret;
+    floatval_t prob;
+    std::stringstream msg;
+    crfsuite_dictionary_t *labels = NULL;
+
+    if (model == NULL || tagger == NULL) {
+        msg << "The tagger is not opened";
+        goto error_exit;
+    }
+
+    // Make sure that the current instance is not empty.
+    const int T = tagger->length(tagger);
+    if (T <= 0) {
+        return 0.;
+    }
+
+    // Make sure that 0 <= t < |x|.
+    if (t < 0 || T <= t) {
+        msg << "The position, " << t << "is out of range of " << T;
+        goto error_exit;
+    }
+
+    // Obtain the dictionary interface representing the labels in the model.
+    if ((ret = model->get_labels(model, &labels))) {
+        msg << "Failed to obtain the dictionary interface for labels";
+        goto error_exit;
+    }
+
+    // Convert string labels into label IDs.
+    int l = labels->to_id(labels, y.c_str());
+    if (l < 0) {
+        msg << "Failed to convert into label identifier: " << y;
+        goto error_exit;
+    }
+
+    // Compute the score of the path.
+    if ((ret = tagger->marginal_point(tagger, l, t, &prob))) {
+        msg << "Failed to compute the marginal probability of '" << y << "' at " << t;
+        goto error_exit;
+    }
+
+    labels->release(labels);
+    return prob;
+
+error_exit:
+    if (labels != NULL) {
+        labels->release(labels);
+        labels = NULL;
+    }
+    throw std::invalid_argument(msg.str());
 }
 
 

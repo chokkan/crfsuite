@@ -237,25 +237,41 @@ public:
 
     /**
      * Obtains the list of labels.
-     *  @return StringList   The list of labels in the model.
+     *  @return StringList  The list of labels in the model.
      */
     StringList labels();
 
     /**
-     * Tags an instance.
-     *  @param  xseq            The item sequence to be tagged.
-     *  @return StringList   The label sequence predicted.
+     * Predicts the label sequence for the item sequence.
+     *  @param  xseq        The item sequence to be tagged.
+     *  @return StringList  The label sequence predicted.
      */
     StringList tag(const ItemSequence& xseq);
 
     /**
-     * Sets an instance.
-     *  @param  xseq            The item sequence to be tagged    
+     * Sets an item sequence.
+     *  @param  xseq        The item sequence to be tagged    
      */
     void set(const ItemSequence& xseq);
 
+    /**
+     * Finds the Viterbi label sequence for the item sequence.
+     *  @return StringList  The label sequence predicted.
+     */
     StringList viterbi();
+
+    /**
+     * Computes the probability of the label sequence.
+     *  @param  yseq        The label sequence.
+     */
     double probability(const StringList& yseq);
+
+    /**
+     * Computes the marginal probability of the label.
+     *  @param  y           The label.
+     *  @param  t           The position of the label.
+     */
+    double marginal(const std::string& y, const int t);
 };
 
 std::string version();
