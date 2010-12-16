@@ -10,7 +10,7 @@
 
 %template(Item) std::vector<CRFSuite::Attribute>;
 %template(ItemSequence) std::vector<CRFSuite::Item>;
-%template(LabelSequence) std::vector<std::string>;
+%template(StringList) std::vector<std::string>;
 
 %feature("director") Trainer;
 

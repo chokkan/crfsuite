@@ -46,17 +46,6 @@
 #include "crf1d.h"
 #include "vecmath.h"
 
-#ifdef _MSC_VER
-    #include <malloc.h>
-#else
-    #include <stdlib.h>
-    static inline void *_aligned_malloc(size_t size, size_t alignment)
-    {
-        void *p;
-        int ret = posix_memalign(&p, alignment, size);
-        return (ret == 0) ? p : 0;
-    }
-#endif
 
 
 crf1d_context_t* crf1dc_new(int flag, int L, int T)
