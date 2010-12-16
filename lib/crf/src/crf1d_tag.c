@@ -198,6 +198,13 @@ static int tagger_set(crfsuite_tagger_t* tagger, crfsuite_instance_t *inst)
     return 0;
 }
 
+static int tagger_length(crfsuite_tagger_t* tagger)
+{
+    crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
+    crf1d_context_t* ctx = crf1dt->ctx;
+    return ctx->num_items;
+}
+
 static int tagger_viterbi(crfsuite_tagger_t* tagger, int *labels, floatval_t *ptr_score)
 {
     floatval_t score;
@@ -209,6 +216,18 @@ static int tagger_viterbi(crfsuite_tagger_t* tagger, int *labels, floatval_t *pt
         *ptr_score = score;
     }
 
+    return 0;
+}
+
+static int tagger_score(crfsuite_tagger_t* tagger, int *path, floatval_t *ptr_score)
+{
+    floatval_t score;
+    crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
+    crf1d_context_t* ctx = crf1dt->ctx;
+    score = crf1dc_score(ctx, path);
+    if (ptr_score != NULL) {
+        *ptr_score = score;
+    }
     return 0;
 }
 
@@ -479,7 +498,9 @@ static int crf1m_model_create(const char *filename, crfsuite_model_t** ptr_model
     tagger->addref = tagger_addref;
     tagger->release = tagger_release;
     tagger->set = tagger_set;
+    tagger->length = tagger_length;
     tagger->viterbi = tagger_viterbi;
+    tagger->score = tagger_score;
     tagger->lognorm = tagger_lognorm;
     tagger->marginal_point = tagger_marginal_point;
     tagger->marginal_path = tagger_marginal_path;

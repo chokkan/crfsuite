@@ -244,6 +244,7 @@ static int params_help(crfsuite_params_t* params, const char *name, char **ptr_t
     if (ptr_help != NULL) {
         *ptr_help = mystrdup(par->help);
     }
+    return 0;
 }
 
 crfsuite_params_t* params_create_instance()

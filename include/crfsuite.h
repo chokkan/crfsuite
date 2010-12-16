@@ -244,10 +244,13 @@ struct tag_crfsuite_tagger {
      */
     int (*set)(crfsuite_tagger_t* tagger, crfsuite_instance_t *inst);
 
+    int (*length)(crfsuite_tagger_t* tagger);
+
     /**
      * Obtains the Viterbi label sequence.
      */
     int (*viterbi)(crfsuite_tagger_t* tagger, int *labels, floatval_t *ptr_score);
+    int (*score)(crfsuite_tagger_t* tagger, int *path, floatval_t *ptr_score);
 
     int (*lognorm)(crfsuite_tagger_t* tagger, floatval_t *ptr_norm);
 

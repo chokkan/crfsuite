@@ -235,17 +235,26 @@ public:
     void close();
 
     /**
+     * Obtains the list of labels.
+     *  @return StringList   The list of labels in the model.
+     */
+    StringList labels();
+
+    /**
      * Tags an instance.
-     *  @param  xseq            The item sequence to be tagged..
+     *  @param  xseq            The item sequence to be tagged.
      *  @return StringList   The label sequence predicted.
      */
     StringList tag(const ItemSequence& xseq);
 
     /**
-     * Obtains the list of labels.
-     *  @return StringList   The list of labels in the model.
+     * Sets an instance.
+     *  @param  xseq            The item sequence to be tagged    
      */
-    StringList labels();
+    void set(const ItemSequence& xseq);
+
+    StringList viterbi();
+    double probability(const StringList& yseq);
 };
 
 std::string version();
