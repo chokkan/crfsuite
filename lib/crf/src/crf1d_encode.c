@@ -749,7 +749,7 @@ static void set_level(encoder_t *self, int level)
 
     /* LEVEL_MARGINAL: compute the marginal probability. */
     if (LEVEL_MARGINAL <= level && prev < LEVEL_MARGINAL) {
-        crf1dc_marginal(crf1de->ctx);
+        crf1dc_marginals(crf1de->ctx);
     }
 
     self->level = level;
@@ -818,7 +818,7 @@ static int encoder_objective_and_gradients_batch(encoder_t *self, dataset_t *ds,
         /* Compute forward/backward scores. */
         crf1dc_alpha_score(crf1de->ctx);
         crf1dc_beta_score(crf1de->ctx);
-        crf1dc_marginal(crf1de->ctx);
+        crf1dc_marginals(crf1de->ctx);
 
         /* Compute the probability of the input sequence on the model. */
         logp = crf1dc_score(crf1de->ctx, seq->labels) - crf1dc_lognorm(crf1de->ctx);

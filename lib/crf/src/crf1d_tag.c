@@ -45,11 +45,18 @@
 
 #include "crf1d.h"
 
+enum {
+    LEVEL_NONE = 0,
+    LEVEL_SET,
+    LEVEL_ALPHABETA,
+};
+
 typedef struct {
     crf1dm_t *model;        /**< CRF model. */
     crf1d_context_t *ctx;   /**< CRF context. */
     int num_labels;         /**< Number of distinct output labels (L). */
     int num_attributes;     /**< Number of distinct attributes (A). */
+    int level;
 } crf1dt_t;
 
 static void crf1dt_state_score(crf1dt_t *crf1dt, const crfsuite_instance_t *inst)
@@ -113,6 +120,20 @@ static void crf1dt_transition_score(crf1dt_t* crf1dt)
     }
 }
 
+static void crf1dt_set_level(crf1dt_t *crf1dt, int level)
+{
+    int prev = crf1dt->level;
+    crf1d_context_t* ctx = crf1dt->ctx;
+
+    if (level <= LEVEL_ALPHABETA && prev < LEVEL_ALPHABETA) {
+        crf1dc_exp_state(ctx);
+        crf1dc_alpha_score(ctx);
+        crf1dc_beta_score(ctx);
+    }
+
+    crf1dt->level = level;
+}
+
 static void crf1dt_delete(crf1dt_t* crf1dt)
 {
     /* Note: we don't own the model object (crf1t->model). */
@@ -132,33 +153,86 @@ static crf1dt_t *crf1dt_new(crf1dm_t* crf1dm)
         crf1dt->num_labels = crf1dm_get_num_labels(crf1dm);
         crf1dt->num_attributes = crf1dm_get_num_attrs(crf1dm);
         crf1dt->model = crf1dm;
-        crf1dt->ctx = crf1dc_new(CTXF_VITERBI, crf1dt->num_labels, 0);
+        crf1dt->ctx = crf1dc_new(CTXF_VITERBI | CTXF_MARGINALS, crf1dt->num_labels, 0);
         if (crf1dt->ctx != NULL) {
             crf1dc_reset(crf1dt->ctx, RF_TRANS);
             crf1dt_transition_score(crf1dt);
+            crf1dc_exp_transition(crf1dt->ctx);
         } else {
             crf1dt_delete(crf1dt);
             crf1dt = NULL;
         }
+        crf1dt->level = LEVEL_NONE;
     }
 
     return crf1dt;
 }
 
-static int crf1dt_tag(crf1dt_t* crf1dt, crfsuite_instance_t *inst, int *labels, floatval_t *ptr_score)
-{
-    int i;
-    floatval_t score = 0;
-    crf1d_context_t* ctx = crf1dt->ctx;
 
+
+/*
+ *    Implementation of crfsuite_tagger_t object.
+ *    This object is instantiated only by a crfsuite_model_t object.
+ */
+
+static int tagger_addref(crfsuite_tagger_t* tagger)
+{
+    /* This object is owned only by a crfsuite_model_t object. */
+    return tagger->nref;
+}
+
+static int tagger_release(crfsuite_tagger_t* tagger)
+{
+    /* This object is owned only by a crfsuite_model_t object. */
+    return tagger->nref;
+}
+
+static int tagger_set(crfsuite_tagger_t* tagger, crfsuite_instance_t *inst)
+{
+    crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
+    crf1d_context_t* ctx = crf1dt->ctx;
     crf1dc_set_num_items(ctx, inst->num_items);
     crf1dc_reset(crf1dt->ctx, RF_STATE);
     crf1dt_state_score(crf1dt, inst);
+    crf1dt->level = LEVEL_SET;
+    return 0;
+}
+
+static int tagger_viterbi(crfsuite_tagger_t* tagger, int *labels, floatval_t *ptr_score)
+{
+    floatval_t score;
+    crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
+    crf1d_context_t* ctx = crf1dt->ctx;
+
     score = crf1dc_viterbi(ctx, labels);
     if (ptr_score != NULL) {
         *ptr_score = score;
     }
 
+    return 0;
+}
+
+static int tagger_lognorm(crfsuite_tagger_t* tagger, floatval_t *ptr_norm)
+{
+    crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
+    crf1dt_set_level(crf1dt, LEVEL_ALPHABETA);
+    *ptr_norm = crf1dc_lognorm(crf1dt->ctx);
+    return 0;
+}
+
+static int tagger_marginal_point(crfsuite_tagger_t *tagger, int l, int t, floatval_t *ptr_prob)
+{
+    crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
+    crf1dt_set_level(crf1dt, LEVEL_ALPHABETA);
+    *ptr_prob = crf1dc_marginal_point(crf1dt->ctx, l, t);
+    return 0;
+}
+
+static int tagger_marginal_path(crfsuite_tagger_t *tagger, const int *path, int begin, int end, floatval_t *ptr_prob)
+{
+    crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
+    crf1dt_set_level(crf1dt, LEVEL_ALPHABETA);
+    *ptr_prob = crf1dc_marginal_path(crf1dt->ctx, path, begin, end);
     return 0;
 }
 
@@ -260,33 +334,6 @@ static void model_labels_free(crfsuite_dictionary_t* dic, const char *str)
 {
     /* all strings are freed on the release of the dictionary object. */
 }
-
-
-
-/*
- *    Implementation of crfsuite_tagger_t object.
- *    This object is instantiated only by a crfsuite_model_t object.
- */
-
-static int tagger_addref(crfsuite_tagger_t* tagger)
-{
-    /* This object is owned only by a crfsuite_model_t object. */
-    return tagger->nref;
-}
-
-static int tagger_release(crfsuite_tagger_t* tagger)
-{
-    /* This object is owned only by a crfsuite_model_t object. */
-    return tagger->nref;
-}
-
-static int tagger_tag(crfsuite_tagger_t* tagger, crfsuite_instance_t *inst, int *labels, floatval_t *ptr_score)
-{
-    crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
-    crf1dt_tag(crf1dt, inst, labels, ptr_score);
-    return 0;
-}
-
 
 
 
@@ -431,7 +478,11 @@ static int crf1m_model_create(const char *filename, crfsuite_model_t** ptr_model
     tagger->nref = 1;
     tagger->addref = tagger_addref;
     tagger->release = tagger_release;
-    tagger->tag = tagger_tag;
+    tagger->set = tagger_set;
+    tagger->viterbi = tagger_viterbi;
+    tagger->lognorm = tagger_lognorm;
+    tagger->marginal_point = tagger_marginal_point;
+    tagger->marginal_path = tagger_marginal_path;
 
     /* Set the internal data for the model object. */
     internal->crf1dm = crf1dm;

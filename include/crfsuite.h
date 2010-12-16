@@ -240,10 +240,19 @@ struct tag_crfsuite_tagger {
     int (*release)(crfsuite_tagger_t* tagger);
 
     /**
-     * Tag an input sequence.
+     * Sets an instance.
      */
-    int (*tag)(crfsuite_tagger_t* tagger, crfsuite_instance_t *inst, int *labels, floatval_t *ptr_score);
+    int (*set)(crfsuite_tagger_t* tagger, crfsuite_instance_t *inst);
 
+    /**
+     * Obtains the Viterbi label sequence.
+     */
+    int (*viterbi)(crfsuite_tagger_t* tagger, int *labels, floatval_t *ptr_score);
+
+    int (*lognorm)(crfsuite_tagger_t* tagger, floatval_t *ptr_norm);
+
+    int (*marginal_point)(crfsuite_tagger_t *tagger, int label, int t, floatval_t *ptr_prob);
+    int (*marginal_path)(crfsuite_tagger_t *tagger, const int *path, int begin, int end, floatval_t *ptr_prob);
 };
 
 struct tag_crfsuite_dictionary {

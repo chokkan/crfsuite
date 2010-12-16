@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
 #include <crfsuite.h>
 #include "option.h"
@@ -47,6 +48,8 @@ typedef struct {
     char *input;
     char *model;
     int evaluate;
+    int probability;
+    int marginal;
     int quiet;
     int reference;
     int help;
@@ -101,6 +104,12 @@ BEGIN_OPTION_MAP(parse_tagger_options, tagger_option_t)
     ON_OPTION(SHORTOPT('r') || LONGOPT("reference"))
         opt->reference = 1;
 
+    ON_OPTION(SHORTOPT('p') || LONGOPT("probability"))
+        opt->probability = 1;
+
+    ON_OPTION(SHORTOPT('i') || LONGOPT("marginal"))
+        opt->marginal = 1;
+
     ON_OPTION(SHORTOPT('q') || LONGOPT("quiet"))
         opt->quiet = 1;
 
@@ -125,6 +134,8 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
     fprintf(fp, "    -m, --model=MODEL   Read a model from a file (MODEL)\n");
     fprintf(fp, "    -t, --test          Report the performance of the model on the data\n");
     fprintf(fp, "    -r, --reference     Output the reference labels in the input data\n");
+    fprintf(fp, "    -p, --probability   Output the probability of the label sequences\n");
+    fprintf(fp, "    -i, --marginal      Output the marginal probabilities of items\n");
     fprintf(fp, "    -q, --quiet         Suppress tagging results (useful for test mode)\n");
     fprintf(fp, "    -h, --help          Show the usage of this command and exit\n");
 }
@@ -178,14 +189,22 @@ static int comments_append(comments_t* comments, const char *value)
 static void
 output_result(
     FILE *fpo,
+    crfsuite_tagger_t *tagger,
     const crfsuite_instance_t *inst,
     int *output,
     crfsuite_dictionary_t *labels,
+    floatval_t score,
     comments_t* comments,
     const tagger_option_t* opt
     )
 {
     int i;
+
+    if (opt->probability) {
+        floatval_t lognorm;
+        tagger->lognorm(tagger, &lognorm);
+        fprintf(fpo, "@probability\t%f\n", exp(score - lognorm));
+    }
 
     for (i = 0;i < inst->num_items;++i) {
         const char *label = NULL;
@@ -199,6 +218,12 @@ output_result(
         labels->to_string(labels, output[i], &label);
         fprintf(fpo, "%s", label);
         labels->free(labels, label);
+
+        if (opt->marginal) {
+            floatval_t prob;
+            tagger->marginal_point(tagger, output[i], i, &prob);
+            fprintf(fpo, ":%f", prob);
+        }
 
         if (i < comments->num && comments->array[i] != NULL) {
             fprintf(fpo, "\t%s\n", comments->array[i]);
@@ -343,10 +368,16 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
                 floatval_t score = 0;
                 int *output = calloc(sizeof(int), inst.num_items);
 
-                /* Tag the instance. */
-                if (ret = tagger->tag(tagger, &inst, output, &score)) {
+                /* Set the instance to the tagger. */
+                if ((ret = tagger->set(tagger, &inst))) {
                     goto force_exit;
                 }
+
+                /* Obtain the viterbi label sequence. */
+                if ((ret = tagger->viterbi(tagger, output, &score))) {
+                    goto force_exit;
+                }
+
                 ++N;
 
                 /* Accumulate the tagging performance. */
@@ -355,7 +386,7 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
                 }
 
                 if (!opt->quiet) {
-                    output_result(fpo, &inst, output, labels, &comments, opt);
+                    output_result(fpo, tagger, &inst, output, labels, score, &comments, opt);
                 }
 
                 free(output);

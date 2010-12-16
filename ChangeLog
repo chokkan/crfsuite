@@ -4,12 +4,14 @@
 	- [CORE] Faster routine for computing exp(x) using SSE2.
 	- [CORE] Restructured the source code to separate routines for CRF graphical models and training algorithms; this is an initial attempt for implementing CRFs with different feature types (e.g., 2nd-order CRF, 1st-order transition features conditioned on observations) and different training algorithms.
 	- [CORE] Implemented new training algorithms: Averaged Perceptron, Passive Aggressive, and Adaptive Regularization of Weights (AROW).
+	- [CORE] Removed automatic generation of BOS/EOS features; one can use these features by inserting attributes to the first/last items (e.g., "__BOS__" at the first item and "__EOS__" at the last item).
 	- [CORE] Fixed some memory-leak problems.
 	- [CORE] Reduced memory usage in training.
 	- [CORE] Fixed a crash problem when the model file does not exist in tagging.
 	- [FRONTEND] Training and test sets are maintained by group numbers; specify the group number for hold-out evaluation with "-t" option.
 	- [FRONTEND] Training algorithm is now specified by "-a" option instead of "-p algorithm=".
 	- [FRONTEND] Renamed some training parameters; for example, an L2 regularization coefficient is specified by "c2" instead of "regularization.sigma" (c2 = 0.5 / sigma * sigma).
+	- [FRONTEND] Show the list of parameters, default values, and descriptions with "-H" option.
 	- [API] Renamed the library name "libcrf" to "libcrfsuite".
 	- [API] Renamed the prefix "crf_" to "crfsuite_" in structure and function names.
 	- [API] Implemented a high-level and easy-to-use API for C++/SWIG (crfsuite.hpp and crfsuite_api.hpp).

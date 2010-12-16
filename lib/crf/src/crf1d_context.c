@@ -103,7 +103,7 @@ int crf1dc_set_num_items(crf1d_context_t* ctx, int T)
     if (ctx->cap_items < T) {
         free(ctx->backward_edge);
         free(ctx->mexp_state);
-        free(ctx->exp_state);
+        _aligned_free(ctx->exp_state);
         free(ctx->scale_factor);
         free(ctx->row);
         free(ctx->beta_score);
@@ -144,14 +144,14 @@ void crf1dc_delete(crf1d_context_t* ctx)
     if (ctx != NULL) {
         free(ctx->backward_edge);
         free(ctx->mexp_state);
-        free(ctx->exp_state);
+        _aligned_free(ctx->exp_state);
         free(ctx->state);
         free(ctx->scale_factor);
         free(ctx->row);
         free(ctx->beta_score);
         free(ctx->alpha_score);
         free(ctx->mexp_trans);
-        free(ctx->exp_trans);
+        _aligned_free(ctx->exp_trans);
         free(ctx->trans);
     }
     free(ctx);
@@ -274,7 +274,7 @@ void crf1dc_beta_score(crf1d_context_t* ctx)
     }
 }
 
-void crf1dc_marginal(crf1d_context_t* ctx)
+void crf1dc_marginals(crf1d_context_t* ctx)
 {
     int i, j, t;
     const int T = ctx->num_items;
@@ -321,6 +321,39 @@ void crf1dc_marginal(crf1d_context_t* ctx)
             }
         }
     }
+}
+
+floatval_t crf1dc_marginal_point(crf1d_context_t *ctx, int l, int t)
+{
+    floatval_t *fwd = ALPHA_SCORE(ctx, t);
+    floatval_t *bwd = BETA_SCORE(ctx, t);
+    return fwd[l] * bwd[l] / ctx->scale_factor[t];
+}
+
+floatval_t crf1dc_marginal_path(crf1d_context_t *ctx, const int *path, int begin, int end)
+{
+    int t;
+    /*
+        Compute the marginal probability of a (partial) path.
+            a = path[begin], b = path[begin+1], ..., y = path[end-2], z = path[end-1]
+            fwd[begin][a] = (fwd'[begin][a] / (C[0] ... C[begin])
+            bwd[end-1][z] = (bwd'[end-1][z] / (C[end-1] ... C[T-1]))
+            norm = 1 / (C[0] * ... * C[T-1])
+            p(a, b, ..., z)
+                = fwd[begin][a] * edge[a][b] * state[begin+1][b] * ... * edge[y][z] * state[end-1][z] * bwd[end-1][z] / norm
+                = fwd'[begin][a] * edge[a][b] * state[begin+1][b] * ... * edge[y][z] * state[end-1][z] * bwd'[end-1][z] * (C[begin+1] * ... * C[end-2])
+     */
+    floatval_t *fwd = ALPHA_SCORE(ctx, begin);
+    floatval_t *bwd = BETA_SCORE(ctx, end-1);
+    floatval_t prob = fwd[path[begin]] * bwd[path[end-1]] / ctx->scale_factor[begin];
+
+    for (t = begin;t < end-1;++t) {
+        floatval_t *state = EXP_STATE_SCORE(ctx, t+1);
+        floatval_t *edge = EXP_TRANS_SCORE(ctx, path[t]);
+        prob *= (edge[path[t+1]] * state[path[t+1]] * ctx->scale_factor[t]);
+    }
+
+    return prob;
 }
 
 #if 0
