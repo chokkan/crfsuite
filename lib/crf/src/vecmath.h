@@ -39,6 +39,22 @@
 #include <emmintrin.h>
 
 #ifdef _MSC_VER
+#include <malloc.h>
+#else
+#include <stdlib.h>
+static inline void *_aligned_malloc(size_t size, size_t alignment)
+{
+    void *p;
+    int ret = posix_memalign(&p, alignment, size);
+    return (ret == 0) ? p : 0;
+}
+static inline void _aligned_free(void *p)
+{
+    free(p);
+}
+#endif
+
+#ifdef _MSC_VER
 #define MIE_ALIGN(x) __declspec(align(x))
 #else
 #define MIE_ALIGN(x) __attribute__((aligned(x)))
