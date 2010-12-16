@@ -46,11 +46,12 @@ enum {
 };
 
 typedef struct {
-    char*    name;
-    int        type;
-    int        val_i;
-    floatval_t val_f;
-    char*    val_s;
+    char*       name;
+    int         type;
+    int         val_i;
+    floatval_t  val_f;
+    char*       val_s;
+    char*       help;
 } param_t;
 
 typedef struct {
@@ -81,6 +82,7 @@ static int params_release(crfsuite_params_t* params)
         for (i = 0;i < pars->num_params;++i) {
             free(pars->params[i].name);
             free(pars->params[i].val_s);
+            free(pars->params[i].help);
         }
         free(pars);
     }
@@ -98,6 +100,19 @@ static param_t* find_param(params_t* pars, const char *name)
     }
 
     return NULL;
+}
+
+static int params_num(crfsuite_params_t* params)
+{
+    params_t* pars = (params_t*)params->internal;
+    return pars->num_params;
+}
+
+static int params_name(crfsuite_params_t* params, int i, char **ptr_name)
+{
+    params_t* pars = (params_t*)params->internal;
+    *ptr_name = mystrdup(pars->params[i].name);
+    return 0;
 }
 
 static int params_set(crfsuite_params_t* params, const char *name, const char *value)
@@ -206,6 +221,14 @@ static int params_get_string(crfsuite_params_t* params, const char *name, char *
     return 0;
 }
 
+static int params_help(crfsuite_params_t* params, const char *name, char **ptr_help)
+{
+    params_t* pars = (params_t*)params->internal;
+    param_t* par = find_param(pars, name);
+    if (par == NULL) return -1;
+    *ptr_help = mystrdup(par->help);
+}
+
 crfsuite_params_t* params_create_instance()
 {
     crfsuite_params_t* params = (crfsuite_params_t*)calloc(1, sizeof(crfsuite_params_t));
@@ -222,6 +245,8 @@ crfsuite_params_t* params_create_instance()
         params->nref = 1;
         params->addref = params_addref;
         params->release = params_release;
+        params->num = params_num;
+        params->name = params_name;
         params->set = params_set;
         params->get = params_get;
         params->free = params_free;
@@ -236,7 +261,7 @@ crfsuite_params_t* params_create_instance()
     return params;
 }
 
-int params_add_int(crfsuite_params_t* params, const char *name, int value)
+int params_add_int(crfsuite_params_t* params, const char *name, int value, const char *help)
 {
     param_t* par = NULL;
     params_t* pars = (params_t*)params->internal;
@@ -250,10 +275,11 @@ int params_add_int(crfsuite_params_t* params, const char *name, int value)
     par->name = mystrdup(name);
     par->type = PT_INT;
     par->val_i = value;
+    par->help = mystrdup(help);
     return 0;
 }
 
-int params_add_float(crfsuite_params_t* params, const char *name, floatval_t value)
+int params_add_float(crfsuite_params_t* params, const char *name, floatval_t value, const char *help)
 {
     param_t* par = NULL;
     params_t* pars = (params_t*)params->internal;
@@ -267,10 +293,11 @@ int params_add_float(crfsuite_params_t* params, const char *name, floatval_t val
     par->name = mystrdup(name);
     par->type = PT_FLOAT;
     par->val_f = value;
+    par->help = mystrdup(help);
     return 0;
 }
 
-int params_add_string(crfsuite_params_t* params, const char *name, const char *value)
+int params_add_string(crfsuite_params_t* params, const char *name, const char *value, const char *help)
 {
     param_t* par = NULL;
     params_t* pars = (params_t*)params->internal;
@@ -284,5 +311,6 @@ int params_add_string(crfsuite_params_t* params, const char *name, const char *v
     par->name = mystrdup(name);
     par->type = PT_STRING;
     par->val_s = mystrdup(value);
+    par->help = mystrdup(help);
     return 0;
 }

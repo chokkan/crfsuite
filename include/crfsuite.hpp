@@ -180,6 +180,20 @@ int Trainer::train(const std::string& model, int holdout)
     return ret;
 }
 
+StringList Trainer::params()
+{
+    StringList pars;
+    crfsuite_params_t* params = tr->params(tr);
+    int n = params->num(params);
+    for (int i = 0;i < n;++i) {
+        char *name = NULL;
+        params->name(params, i, &name);
+        pars.push_back(name);
+        params->free(params, name);
+    }
+    return pars;
+}
+
 void Trainer::set(const std::string& name, const std::string& value)
 {
     crfsuite_params_t* params = tr->params(tr);
@@ -207,6 +221,18 @@ std::string Trainer::get(const std::string& name)
     params->free(params, _value);
     params->release(params);
     return value;
+}
+
+std::string Trainer::help(const std::string& name)
+{
+    std::string str;
+    crfsuite_params_t* params = tr->params(tr);
+    char *_str = NULL;
+    params->help(params, name.c_str(), &_str);
+    str = _str;
+    params->free(params, _str);
+    params->release(params);
+    return str;
 }
 
 void Trainer::message(const std::string& msg)

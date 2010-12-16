@@ -295,8 +295,11 @@ struct tag_crfsuite_params {
      */
     int (*release)(crfsuite_params_t* params);
 
+    int (*num)(crfsuite_params_t* params);
+    int (*name)(crfsuite_params_t* params, int i, char **ptr_name);
+
     int (*set)(crfsuite_params_t* params, const char *name, const char *value);
-    int (*get)(crfsuite_params_t* params, const char *name, char **value);
+    int (*get)(crfsuite_params_t* params, const char *name, char **ptr_value);
     void (*free)(crfsuite_params_t* params, const char *str);
 
     int (*set_int)(crfsuite_params_t* params, const char *name, int value);
@@ -305,7 +308,9 @@ struct tag_crfsuite_params {
 
     int (*get_int)(crfsuite_params_t* params, const char *name, int *value);
     int (*get_float)(crfsuite_params_t* params, const char *name, floatval_t *value);
-    int (*get_string)(crfsuite_params_t* params, const char *name, char **value);
+    int (*get_string)(crfsuite_params_t* params, const char *name, char **ptr_value);
+
+    int (*help)(crfsuite_params_t* params, const char *name, char **ptr_help);
 };
 
 

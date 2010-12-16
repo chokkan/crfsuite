@@ -111,6 +111,9 @@ typedef std::vector<Item>  ItemSequence;
 /// Type of a label sequence.
 typedef std::vector<std::string> LabelSequence;
 
+/// Type of a string list.
+typedef std::vector<std::string> StringList;
+
 
 
 /**
@@ -163,6 +166,13 @@ public:
     int train(const std::string& model, int holdout);
 
     /**
+     * Obtains the list of parameters.
+     *  @return StringList  The list of parameters available for the current
+     *                      training algorithm.
+     */
+    StringList params();
+
+    /**
      * Sets the training parameter.
      *  @param  name        The parameter name.
      *  @param  value       The value of the parameter.
@@ -175,6 +185,13 @@ public:
      *  @return std::string The value of the parameter.
      */
     std::string get(const std::string& name);
+
+    /**
+     * Gets the description of a training parameter.
+     *  @param  name        The parameter name.
+     *  @return std::string The description (help message) of the parameter.
+     */
+    std::string help(const std::string& name);
 
     /**
      * Receives messages from the training algorithm.

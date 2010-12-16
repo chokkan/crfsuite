@@ -34,9 +34,9 @@
 #define    __PARAMS_H__
 
 crfsuite_params_t* params_create_instance();
-int params_add_int(crfsuite_params_t* params, const char *name, int value);
-int params_add_float(crfsuite_params_t* params, const char *name, floatval_t value);
-int params_add_string(crfsuite_params_t* params, const char *name, const char *value);
+int params_add_int(crfsuite_params_t* params, const char *name, int value, const char *help);
+int params_add_float(crfsuite_params_t* params, const char *name, floatval_t value, const char *help);
+int params_add_string(crfsuite_params_t* params, const char *name, const char *value, const char *help);
 
 enum {
     PARAMS_READ = -1,
@@ -59,7 +59,7 @@ enum {
     else if (__mode > 0) \
         __ret = __params->set_int(__params, name, var); \
     else \
-        __ret = params_add_int(__params, name, defval);
+        __ret = params_add_int(__params, name, defval, help);
 
 #define    DDX_PARAM_FLOAT(name, var, defval, help) \
     if (__mode < 0) \
@@ -67,7 +67,7 @@ enum {
     else if (__mode > 0) \
         __ret = __params->set_float(__params, name, var); \
     else \
-        __ret = params_add_float(__params, name, defval);
+        __ret = params_add_float(__params, name, defval, help);
 
 #define    DDX_PARAM_STRING(name, var, defval, help) \
     if (__mode < 0) \
@@ -75,6 +75,6 @@ enum {
     else if (__mode > 0) \
         __ret = __params->set_string(__params, name, var); \
     else \
-        __ret = params_add_string(__params, name, defval);
+        __ret = params_add_string(__params, name, defval, help);
 
 #endif/*__PARAMS_H__*/
