@@ -253,6 +253,7 @@ int Trainer::__logging_callback(void *instance, const char *format, va_list args
 Tagger::Tagger()
 {
     model = NULL;
+    tagger = NULL;
 }
 
 Tagger::~Tagger()
@@ -272,11 +273,20 @@ bool Tagger::open(const std::string& name)
         return false;
     }
 
+    // Obtain the tagger interface.
+    if ((ret = model->get_tagger(model, &tagger))) {
+        throw std::invalid_argument("Failed to obtain the tagger interface");
+    }
+
     return true;
 }
 
 void Tagger::close()
 {
+    if (tagger != NULL) {
+        tagger->release(tagger);
+        tagger = NULL;
+    }
     if (model != NULL) {
         model->release(model);
         model = NULL;
@@ -299,14 +309,13 @@ StringList Tagger::labels()
         const char *label = NULL;
         if (labels->to_string(labels, i, &label) != 0) {
             labels->release(labels);
-            throw std::runtime_error("Failed to convert a label ID to string.");
+            throw std::runtime_error("Failed to convert a label identifier to string.");
         }
         lseq.push_back(label);
         labels->free(labels, label);
     }
 
     labels->release(labels);
-
     return lseq;
 }
 
@@ -321,18 +330,11 @@ void Tagger::set(const ItemSequence& xseq)
     int ret;
     StringList yseq;
     crfsuite_instance_t _inst;
-    crfsuite_tagger_t *tag = NULL;
     crfsuite_dictionary_t *attrs = NULL;
 
     // Obtain the dictionary interface representing the attributes in the model.
     if ((ret = model->get_attrs(model, &attrs))) {
         throw std::invalid_argument("Failed to obtain the dictionary interface for attributes");
-    }
-
-    // Obtain the tagger interface.
-    if ((ret = model->get_tagger(model, &tag))) {
-        attrs->release(attrs);
-        throw std::invalid_argument("Failed to obtain the tagger interface");
     }
 
     // Build an instance.
@@ -353,16 +355,14 @@ void Tagger::set(const ItemSequence& xseq)
         }
     }
 
-    floatval_t score;
-    if ((ret = tag->set(tag, &_inst))) {
+    // Set the instance to the tagger.
+    if ((ret = tagger->set(tagger, &_inst))) {
         crfsuite_instance_finish(&_inst);
-        tag->release(tag);
         attrs->release(attrs);
-        throw std::invalid_argument("Failed to tag the instance.");
+        throw std::invalid_argument("Failed to set the instance to the tagger.");
     }
 
     crfsuite_instance_finish(&_inst);
-    tag->release(tag);
     attrs->release(attrs);
 }
 
@@ -370,48 +370,44 @@ StringList Tagger::viterbi()
 {
     int ret;
     StringList yseq;
-    crfsuite_tagger_t *tag = NULL;
     crfsuite_dictionary_t *labels = NULL;
+
+    const int T = tagger->length(tagger);
+    if (T <= 0) {
+        return yseq;
+    }
+
 
     // Obtain the dictionary interface representing the labels in the model.
     if ((ret = model->get_labels(model, &labels))) {
         throw std::invalid_argument("Failed to obtain the dictionary interface for labels");
     }
 
-    // Obtain the tagger interface.
-    if ((ret = model->get_tagger(model, &tag))) {
-        labels->release(labels);
-        throw std::invalid_argument("Failed to obtain the tagger interface");
-    }
-
-    // Obtain the length of the current instance.
-    const int T = tag->length(tag);
-    
-    // Assign an array of label sequence.
+    // Allocate an array for the label sequence.
     int *path = new int[T];
 
+    // Run the Viterbi algorithm.
     floatval_t score;
-    if ((ret = tag->viterbi(tag, path, &score))) {
-        tag->release(tag);
+    if ((ret = tagger->viterbi(tagger, path, &score))) {
+        delete[] path;
         labels->release(labels);
-        throw std::invalid_argument("Failed to tag the instance.");
+        throw std::invalid_argument("Failed to find the Viterbi path.");
     }
 
+    // Convert the Viterbi path to a label sequence.
     yseq.resize(T);
     for (size_t t = 0;t < T;++t) {
         const char *label = NULL;
         if (labels->to_string(labels, path[t], &label) != 0) {
-            tag->release(tag);
+            delete[] path;
             labels->release(labels);
-            throw std::runtime_error("Failed to convert a label ID to string.");
+            throw std::runtime_error("Failed to convert a label identifier to string.");
         }
         yseq[t] = label;
         labels->free(labels, label);
     }
 
-    tag->release(tag);
     labels->release(labels);
-
     return yseq;
 }
 
@@ -420,20 +416,17 @@ double Tagger::probability(const StringList& yseq)
     int ret;
     std::string msg;
     floatval_t score, lognorm;
-    const int T = yseq.size();
-    int *path = new int[T];
-    crfsuite_tagger_t *tag = NULL;
     crfsuite_dictionary_t *labels = NULL;
+
+    const int T = tagger->length(tagger);
+    if (T <= 0) {
+        return 0.;
+    }
+    int *path = new int[T];
 
     // Obtain the dictionary interface representing the labels in the model.
     if ((ret = model->get_labels(model, &labels))) {
         msg = "Failed to obtain the dictionary interface for labels";
-        goto error_exit;
-    }
-
-    // Obtain the tagger interface.
-    if ((ret = model->get_tagger(model, &tag))) {
-        msg = "Failed to obtain the tagger interface";
         goto error_exit;
     }
 
@@ -448,27 +441,22 @@ double Tagger::probability(const StringList& yseq)
     }
 
     // Compute the score of the path.
-    if ((ret = tag->score(tag, path, &score))) {
+    if ((ret = tagger->score(tagger, path, &score))) {
         msg = "Failed to score the label sequence";
         goto error_exit;
     }
 
     // Compute the partition factor.
-    if ((ret = tag->lognorm(tag, &lognorm))) {
+    if ((ret = tagger->lognorm(tagger, &lognorm))) {
         msg = "Failed to compute the partition factor.";
         goto error_exit;
     }
 
-    tag->release(tag);
     labels->release(labels);
     delete[] path;
     return std::exp((double)(score - lognorm));
 
 error_exit:
-    if (tag != NULL) {
-        tag->release(tag);
-        tag = NULL;
-    }
     if (labels != NULL) {
         labels->release(labels);
         labels = NULL;

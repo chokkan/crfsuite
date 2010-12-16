@@ -16,6 +16,7 @@ def instances(fi):
             yield xseq, tuple(yseq)
             xseq = crfsuite.ItemSequence()
             yseq = crfsuite.StringList()
+            continue
 
         fields = line.split('\t')
         item = crfsuite.Item()

@@ -10,6 +10,7 @@ def instances(fi):
         if not line:
             yield xseq
             xseq = crfsuite.ItemSequence()
+            continue
 
         fields = line.split('\t')
         item = crfsuite.Item()
@@ -29,7 +30,9 @@ if __name__ == '__main__':
     tagger.open(sys.argv[1])
 
     for xseq in instances(fi):
-        yseq = tagger.tag(xseq)
+        tagger.set(xseq)
+        yseq = tagger.viterbi()
+        print tagger.probability(yseq)
         for y in yseq:
             fo.write('%s\n' % y)
         fo.write('\n')

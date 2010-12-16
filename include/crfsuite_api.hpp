@@ -209,6 +209,7 @@ class Tagger
 {
 protected:
     crfsuite_model_t *model;
+    crfsuite_tagger_t *tagger;
 
 public:
     /**
