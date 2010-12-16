@@ -102,7 +102,7 @@ void Trainer::clear()
     }
 }
 
-void Trainer::append(const ItemSequence& xseq, const LabelSequence& yseq, int group)
+void Trainer::append(const ItemSequence& xseq, const StringList& yseq, int group)
 {
     // Create dictionary objects if necessary.
     if (data->attrs == NULL || data->labels == NULL) {
@@ -282,10 +282,10 @@ void Tagger::close()
     }
 }
 
-LabelSequence Tagger::tag(const ItemSequence& xseq)
+StringList Tagger::tag(const ItemSequence& xseq)
 {
     int ret;
-    LabelSequence yseq;
+    StringList yseq;
     crfsuite_instance_t _inst;
     crfsuite_tagger_t *tag = NULL;
     crfsuite_dictionary_t *attrs = NULL, *labels = NULL;
@@ -357,10 +357,10 @@ LabelSequence Tagger::tag(const ItemSequence& xseq)
     return yseq;
 }
 
-LabelSequence Tagger::labels()
+StringList Tagger::labels()
 {
     int ret;
-    LabelSequence lseq;
+    StringList lseq;
     crfsuite_dictionary_t *labels = NULL;
 
     // Obtain the dictionary interface representing the labels in the model.

@@ -108,9 +108,6 @@ typedef std::vector<Attribute> Item;
 /// Type of an item sequence.
 typedef std::vector<Item>  ItemSequence;
 
-/// Type of a label sequence.
-typedef std::vector<std::string> LabelSequence;
-
 /// Type of a string list.
 typedef std::vector<std::string> StringList;
 
@@ -146,7 +143,7 @@ public:
      *  @param  yseq        The label sequence of the instance.
      *  @param  group       The group number of the instance.
      */
-    void append(const ItemSequence& xseq, const LabelSequence& yseq, int group);
+    void append(const ItemSequence& xseq, const StringList& yseq, int group);
 
     /**
      * Initializes the training algorithm.
@@ -240,15 +237,15 @@ public:
     /**
      * Tags an instance.
      *  @param  xseq            The item sequence to be tagged..
-     *  @return LabelSequence   The label sequence predicted.
+     *  @return StringList   The label sequence predicted.
      */
-    LabelSequence tag(const ItemSequence& xseq);
+    StringList tag(const ItemSequence& xseq);
 
     /**
      * Obtains the list of labels.
-     *  @return LabelSequence   The list of labels in the model.
+     *  @return StringList   The list of labels in the model.
      */
-    LabelSequence labels();
+    StringList labels();
 };
 
 std::string version();
