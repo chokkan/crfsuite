@@ -72,7 +72,7 @@ void Trainer::init()
     if (data->attrs == NULL) {
         int ret = crfsuite_create_instance("dictionary", (void**)&data->attrs);
         if (!ret) {
-            throw std::invalid_argument("Failed to create a dictionary instance for attributes.");
+            throw std::runtime_error("Failed to create a dictionary instance for attributes.");
         }
     }
 
@@ -80,7 +80,7 @@ void Trainer::init()
     if (data->labels == NULL) {
         int ret = crfsuite_create_instance("dictionary", (void**)&data->labels);
         if (!ret) {
-            throw std::invalid_argument("Failed to create a dictionary instance for labels.");
+            throw std::runtime_error("Failed to create a dictionary instance for labels.");
         }
     }
 }
@@ -275,7 +275,7 @@ bool Tagger::open(const std::string& name)
 
     // Obtain the tagger interface.
     if ((ret = model->get_tagger(model, &tagger))) {
-        throw std::invalid_argument("Failed to obtain the tagger interface");
+        throw std::runtime_error("Failed to obtain the tagger interface");
     }
 
     return true;
@@ -305,7 +305,7 @@ StringList Tagger::labels()
 
     // Obtain the dictionary interface representing the labels in the model.
     if ((ret = model->get_labels(model, &labels))) {
-        throw std::invalid_argument("Failed to obtain the dictionary interface for labels");
+        throw std::runtime_error("Failed to obtain the dictionary interface for labels");
     }
 
     // Collect all label strings to lseq.
@@ -342,7 +342,7 @@ void Tagger::set(const ItemSequence& xseq)
 
     // Obtain the dictionary interface representing the attributes in the model.
     if ((ret = model->get_attrs(model, &attrs))) {
-        throw std::invalid_argument("Failed to obtain the dictionary interface for attributes");
+        throw std::runtime_error("Failed to obtain the dictionary interface for attributes");
     }
 
     // Build an instance.
@@ -367,7 +367,7 @@ void Tagger::set(const ItemSequence& xseq)
     if ((ret = tagger->set(tagger, &_inst))) {
         crfsuite_instance_finish(&_inst);
         attrs->release(attrs);
-        throw std::invalid_argument("Failed to set the instance to the tagger.");
+        throw std::runtime_error("Failed to set the instance to the tagger.");
     }
 
     crfsuite_instance_finish(&_inst);
@@ -392,7 +392,7 @@ StringList Tagger::viterbi()
 
     // Obtain the dictionary interface representing the labels in the model.
     if ((ret = model->get_labels(model, &labels))) {
-        throw std::invalid_argument("Failed to obtain the dictionary interface for labels");
+        throw std::runtime_error("Failed to obtain the dictionary interface for labels");
     }
 
     // Run the Viterbi algorithm.
@@ -401,7 +401,7 @@ StringList Tagger::viterbi()
     if ((ret = tagger->viterbi(tagger, path, &score))) {
         delete[] path;
         labels->release(labels);
-        throw std::invalid_argument("Failed to find the Viterbi path.");
+        throw std::runtime_error("Failed to find the Viterbi path.");
     }
 
     // Convert the Viterbi path to a label sequence.
@@ -432,7 +432,7 @@ double Tagger::probability(const StringList& yseq)
 
     if (model == NULL || tagger == NULL) {
         msg << "The tagger is not opened";
-        goto error_exit;
+        throw std::invalid_argument(msg.str());
     }
 
     // Make sure that the current instance is not empty.
@@ -444,7 +444,7 @@ double Tagger::probability(const StringList& yseq)
     // Make sure that |y| == |x|.
     if (yseq.size() != T) {
         msg << "The numbers of items and labels differ: |x| = " << T << ", |y| = " << yseq.size();
-        goto error_exit;
+        throw std::invalid_argument(msg.str());
     }
 
     // Obtain the dictionary interface representing the labels in the model.
@@ -486,7 +486,7 @@ error_exit:
         labels = NULL;
     }
     delete[] path;
-    throw std::invalid_argument(msg.str());
+    throw std::runtime_error(msg.str());
 }
 
 double Tagger::marginal(const std::string& y, const int t)
@@ -498,7 +498,7 @@ double Tagger::marginal(const std::string& y, const int t)
 
     if (model == NULL || tagger == NULL) {
         msg << "The tagger is not opened";
-        goto error_exit;
+        throw std::invalid_argument(msg.str());
     }
 
     // Make sure that the current instance is not empty.
@@ -510,7 +510,7 @@ double Tagger::marginal(const std::string& y, const int t)
     // Make sure that 0 <= t < |x|.
     if (t < 0 || T <= t) {
         msg << "The position, " << t << "is out of range of " << T;
-        goto error_exit;
+        throw std::invalid_argument(msg.str());
     }
 
     // Obtain the dictionary interface representing the labels in the model.
@@ -540,7 +540,7 @@ error_exit:
         labels->release(labels);
         labels = NULL;
     }
-    throw std::invalid_argument(msg.str());
+    throw std::runtime_error(msg.str());
 }
 
 

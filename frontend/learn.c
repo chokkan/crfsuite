@@ -179,7 +179,7 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
     fprintf(fp, "\n");
     fprintf(fp, "  DATA    file(s) corresponding to data set(s) for training; if multiple N files\n");
     fprintf(fp, "          are specified, this utility assigns a group number (1...N) to the\n");
-    fprintf(fp, "          instances in each file if no file is specified, the utility reads a");
+    fprintf(fp, "          instances in each file if '-' is specified, the utility reads a");
     fprintf(fp, "          data set from STDIN\n");
     fprintf(fp, "\n");
     fprintf(fp, "OPTIONS:\n");

@@ -65,6 +65,13 @@ typedef struct tag_crfsuite_params crfsuite_params_t;
 
 #endif/*__CRFSUITE_H__*/
 
+/** 
+ * \addtogroup crfsuite_hpp_api CRFSuite C++/SWIG API
+ * @{
+ *
+ *  The CRFSuite C++/SWIG API.
+ */
+
 namespace CRFSuite
 {
 
@@ -97,15 +104,17 @@ public:
     /**
      * Constructs an attribute.
      *  @param  name        The attribute name.
-     *  @aram   v           The attribute value.
+     *  @aram   val         The attribute value.
      */
-    Attribute(const std::string& name, double v) : attr(name), value(v) {}
+    Attribute(const std::string& name, double val) : attr(name), value(val)
+    {
+    }
 };
 
-/// Type of an item (attribute vector).
+/// Type of an item (equivalent to an attribute vector) in a sequence.
 typedef std::vector<Attribute> Item;
 
-/// Type of an item sequence.
+/// Type of an item sequence (equivalent to item vector).
 typedef std::vector<Item>  ItemSequence;
 
 /// Type of a string list.
@@ -114,21 +123,30 @@ typedef std::vector<std::string> StringList;
 
 
 /**
- * Trainer class.
+ * The trainer class.
+ *  This class maintains a data set for training, and provides an interface
+ *  to various graphical models and training algorithms. The standard
+ *  procedure for implementing a trainer is:
+ *  - create a class by inheriting this class
+ *  - overwrite message() function to receive messages of training progress
+ *  - call append() to append item/label sequences to the training set
+ *  - call select() to specify a graphical model and an algorithm
+ *  - call set() to configure parameters specific to the model and algorithm
+ *  - call train() to start a training process with the current setting
  */
 class Trainer {
 protected:
     crfsuite_data_t *data;
     crfsuite_trainer_t *tr;
-
+    
 public:
     /**
-     * Constructs an instance.
+     * Constructs a trainer.
      */
     Trainer();
 
     /**
-     * Destructs an instance.
+     * Destructs a trainer.
      */
     virtual ~Trainer();
 
@@ -138,17 +156,21 @@ public:
     void clear();
 
     /**
-     * Appends an instance to the data set.
+     * Appends an instance (item/label sequence) to the data set.
      *  @param  xseq        The item sequence of the instance.
-     *  @param  yseq        The label sequence of the instance.
+     *  @param  yseq        The label sequence of the instance. The number
+     *                      of elements in yseq must be identical to that
+     *                      in xseq.
      *  @param  group       The group number of the instance.
+     *  @throw  std::invalid_argument   Arguments xseq and yseq are invalid.
+     *  @throw  std::runtime_error      Out of memory.
      */
     void append(const ItemSequence& xseq, const StringList& yseq, int group);
 
     /**
      * Initializes the training algorithm.
      *  @param  algorithm   The name of the training algorithm.
-     *  @param  type        The name of the CRF type.
+     *  @param  type        The name of the graphical model.
      *  @return bool        \c true if the training algorithm is successfully
      *                      initialized, \c false otherwise.
      */
@@ -156,35 +178,55 @@ public:
 
     /**
      * Runs the training algorithm.
-     *  @param  model       The filename to which the obtained model is stored.
-     *  @param  holdout     The group number of holdout evaluation.
+     *  This function starts the training algorithm with the data set given
+     *  by append() function. After starting the training process, the 
+     *  training algorithm invokes the virtual function message() to report
+     *  the progress of the training process.
+     *  @param  model       The filename to which the trained model is stored.
+     *                      If this value is empty, this function does not
+     *                      write out a model file.
+     *  @param  holdout     The group number of holdout evaluation. The
+     *                      instances with this group number will not be used
+     *                      for training, but for holdout evaluation. Specify
+     *                      \c -1 to use all instances for training.
      *  @return int         The status code.
      */
     int train(const std::string& model, int holdout);
 
     /**
      * Obtains the list of parameters.
+     *  This function returns the list of parameter names available for the
+     *  graphical model and training algorithm specified by select() function.
      *  @return StringList  The list of parameters available for the current
-     *                      training algorithm.
+     *                      graphical model and training algorithm.
      */
     StringList params();
 
     /**
-     * Sets the training parameter.
+     * Sets a training parameter.
+     *  This function sets a parameter value for the graphical model and
+     *  training algorithm specified by select() function.
      *  @param  name        The parameter name.
      *  @param  value       The value of the parameter.
+     *  @throw  std::invalid_argument   The parameter is not found.
      */
     void set(const std::string& name, const std::string& value);
 
     /**
      * Gets the value of a training parameter.
+     *  This function gets a parameter value for the graphical model and
+     *  training algorithm specified by select() function.
      *  @param  name        The parameter name.
      *  @return std::string The value of the parameter.
+     *  @throw  std::invalid_argument   The parameter is not found.
      */
     std::string get(const std::string& name);
 
     /**
      * Gets the description of a training parameter.
+     *  This function obtains the help message for the parameter specified
+     *  by the name. The graphical model and training algorithm must be
+     *  selected by select() function before calling this function.
      *  @param  name        The parameter name.
      *  @return std::string The description (help message) of the parameter.
      */
@@ -192,7 +234,8 @@ public:
 
     /**
      * Receives messages from the training algorithm.
-     *  Override this member function in the inheritance class if
+     *  Override this member function to receive messages of the training
+     *  process.
      *  @param  msg         The message
      */
     virtual void message(const std::string& msg);
@@ -203,7 +246,9 @@ protected:
 };
 
 /**
- * Tagger class.
+ * The tagger class.
+ *  This class provides the functionality for predicting label sequences for
+ *  input sequences using a model.
  */
 class Tagger
 {
@@ -226,7 +271,9 @@ public:
      * Opens a model file.
      *  @param  model       The file name of the model file.
      *  @return bool        \c true if the model file is successfully opened,
-     *                      \c false otherwise.
+     *                      \c false otherwise (e.g., when the mode file is
+     *                      not found).
+     *  @throw  std::runtime_error      An internal error in the model.
      */
     bool open(const std::string& name);
 
@@ -238,6 +285,8 @@ public:
     /**
      * Obtains the list of labels.
      *  @return StringList  The list of labels in the model.
+     *  @throw  std::invalid_argument   A model is not opened.
+     *  @throw  std::runtime_error      An internal error.
      */
     StringList labels();
 
@@ -245,24 +294,32 @@ public:
      * Predicts the label sequence for the item sequence.
      *  @param  xseq        The item sequence to be tagged.
      *  @return StringList  The label sequence predicted.
+     *  @throw  std::invalid_argument   A model is not opened.
+     *  @throw  std::runtime_error      An internal error.
      */
     StringList tag(const ItemSequence& xseq);
 
     /**
      * Sets an item sequence.
      *  @param  xseq        The item sequence to be tagged    
+     *  @throw  std::invalid_argument   A model is not opened.
+     *  @throw  std::runtime_error      An internal error.
      */
     void set(const ItemSequence& xseq);
 
     /**
      * Finds the Viterbi label sequence for the item sequence.
      *  @return StringList  The label sequence predicted.
+     *  @throw  std::invalid_argument   A model is not opened.
+     *  @throw  std::runtime_error      An internal error.
      */
     StringList viterbi();
 
     /**
      * Computes the probability of the label sequence.
      *  @param  yseq        The label sequence.
+     *  @throw  std::invalid_argument   A model is not opened.
+     *  @throw  std::runtime_error      An internal error.
      */
     double probability(const StringList& yseq);
 
@@ -270,12 +327,20 @@ public:
      * Computes the marginal probability of the label.
      *  @param  y           The label.
      *  @param  t           The position of the label.
+     *  @throw  std::invalid_argument   A model is not opened.
+     *  @throw  std::runtime_error      An internal error.
      */
     double marginal(const std::string& y, const int t);
 };
 
+/**
+ * Obtains the version number of the library.
+ *  @return std::string     The version string.
+ */
 std::string version();
 
 };
+
+/** @} */
 
 #endif/*__CRFSUITE_API_HPP__*/
