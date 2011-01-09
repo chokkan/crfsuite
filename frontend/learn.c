@@ -46,11 +46,17 @@
 
 
 typedef struct {
-    char *model;
-    char *algorithm;
     char *type;
+    char *algorithm;
+    char *model;
+    char *logbase;
 
+    int shuffle;
+    int split;
+    int cross_validation;
     int holdout;
+    int logfile;
+
     int help;
     int help_params;
 
@@ -67,14 +73,23 @@ static char* mystrdup(const char *src)
     return dst;
 }
 
+static char* mystrcat(char *dst, const char *src)
+{
+    int n = (dst != 0 ? strlen(dst) : 0);
+    dst = (char*)realloc(dst, n + strlen(src) + 1);
+    strcat(dst, src);
+    return dst;
+}
+
 static void learn_option_init(learn_option_t* opt)
 {
     memset(opt, 0, sizeof(*opt));
     opt->num_params = 0;
     opt->holdout = -1;
-    opt->model = mystrdup("");
-    opt->algorithm = mystrdup("lbfgs");
     opt->type = mystrdup("crf1d");
+    opt->algorithm = mystrdup("lbfgs");
+    opt->model = mystrdup("");
+    opt->logbase = mystrdup("log.crfsuite");
 }
 
 static void learn_option_finish(learn_option_t* opt)
@@ -91,18 +106,14 @@ static void learn_option_finish(learn_option_t* opt)
 
 BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
 
-    ON_OPTION_WITH_ARG(SHORTOPT('m') || LONGOPT("model"))
-        free(opt->model);
-        opt->model = mystrdup(arg);
-
-    ON_OPTION_WITH_ARG(SHORTOPT('t') || LONGOPT("test"))
-        opt->holdout = atoi(arg)-1;
-
-    ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
-        opt->help = 1;
-
-    ON_OPTION(SHORTOPT('H') || LONGOPT("help-params"))
-        opt->help_params = 1;
+    ON_OPTION_WITH_ARG(SHORTOPT('t') || LONGOPT("type"))
+        if (strcmp(arg, "crf1d") == 0) {
+            free(opt->type);
+            opt->type = mystrdup("crf1d");
+        } else {
+            fprintf(stderr, "ERROR: Unknown graphical model: %s\n", arg);
+            return 1;
+        }
 
     ON_OPTION_WITH_ARG(SHORTOPT('a') || LONGOPT("algorithm"))
         if (strcmp(arg, "lbfgs") == 0) {
@@ -125,29 +136,85 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
             return 1;
         }
 
-    ON_OPTION_WITH_ARG(SHORTOPT('f') || LONGOPT("feature"))
-        free(opt->type);
-        opt->model = mystrdup(arg);
-
-    ON_OPTION_WITH_ARG(SHORTOPT('p') || LONGOPT("param"))
+    ON_OPTION_WITH_ARG(SHORTOPT('p') || LONGOPT("set"))
         opt->params = (char **)realloc(opt->params, sizeof(char*) * (opt->num_params + 1));
         opt->params[opt->num_params] = mystrdup(arg);
         ++opt->num_params;
+
+    ON_OPTION(SHORTOPT('f') || LONGOPT("shuffle"))
+        opt->shuffle = 1;
+
+    ON_OPTION_WITH_ARG(SHORTOPT('m') || LONGOPT("model"))
+        free(opt->model);
+        opt->model = mystrdup(arg);
+
+    ON_OPTION_WITH_ARG(SHORTOPT('g') || LONGOPT("split"))
+        opt->split = atoi(arg);
+
+    ON_OPTION_WITH_ARG(SHORTOPT('e') || LONGOPT("holdout"))
+        opt->holdout = atoi(arg);
+
+    ON_OPTION(SHORTOPT('x') || LONGOPT("cross-validate"))
+        opt->cross_validation = 1;
+
+    ON_OPTION(SHORTOPT('l') || LONGOPT("log-to-file"))
+        opt->logfile = 1;
+
+    ON_OPTION_WITH_ARG(SHORTOPT('L') || LONGOPT("logbase"))
+        free(opt->logbase);
+        opt->logbase = mystrdup(arg);
+
+    ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
+        opt->help = 1;
+
+    ON_OPTION(SHORTOPT('H') || LONGOPT("help-params"))
+        opt->help_params = 1;
 
 END_OPTION_MAP()
 
 static void show_usage(FILE *fp, const char *argv0, const char *command)
 {
-    fprintf(fp, "USAGE: %s %s [OPTIONS] [DATA]\n", argv0, command);
-    fprintf(fp, "Obtain a model from a training set of instances given by a file (DATA).\n");
-    fprintf(fp, "If argument DATA is omitted or '-', this utility reads a data from STDIN.\n");
+    fprintf(fp, "USAGE: %s %s [OPTIONS] [DATA1] [DATA2] ...\n", argv0, command);
+    fprintf(fp, "Trains a model using training data set(s).\n");
+    fprintf(fp, "\n");
+    fprintf(fp, "  DATA    file(s) corresponding to data set(s) for training; if multiple N files\n");
+    fprintf(fp, "          are specified, this utility assigns a group number (1...N) to the\n");
+    fprintf(fp, "          instances in each file if no file is specified, the utility reads a");
+    fprintf(fp, "          data set from STDIN\n");
     fprintf(fp, "\n");
     fprintf(fp, "OPTIONS:\n");
-    fprintf(fp, "    -m, --model=MODEL   Store the obtained model in a file (MODEL)\n");
-    fprintf(fp, "    -t, --test=TEST     Report the performance of the model on a data (TEST)\n");
-    fprintf(fp, "    -p, --param=NAME=VALUE  Set the parameter NAME to VALUE\n");
-    fprintf(fp, "    -h, --help          Show the usage of this command and exit\n");
-    fprintf(fp, "    -H, --help-params   Show the list of parameters and their usages\n");
+    fprintf(fp, "  -t, --type=TYPE       specify a graphical model (DEFAULT='crf1d'):\n");
+    fprintf(fp, "      crf1d                 1st-order Markov CRF with state and transition\n");
+    fprintf(fp, "                            features; transition features are not conditioned\n");
+    fprintf(fp, "                            on observations\n");
+    fprintf(fp, "  -a, --algorithm=NAME  specify a training algorithm (DEFAULT='lbfgs')\n");
+    fprintf(fp, "      lbfgs                 L-BFGS with L1/L2 regularization\n");
+    fprintf(fp, "      l2sgd                 SGD with L2-regularization\n");
+    fprintf(fp, "      ap                    Averaged Perceptron\n");
+    fprintf(fp, "      pa                    Passive Aggressive\n");
+    fprintf(fp, "      arow                  Adaptive Regularization of Weights (AROW)\n");
+    fprintf(fp, "  -p, --set=NAME=VALUE  set the algorithm-specific parameter NAME to VALUE;\n");
+    fprintf(fp, "                        use '-H' or '--help-parameters' with the algorithm name\n");
+    fprintf(fp, "                        specified by '-a' or '--algorithm' and the graphical\n");
+    fprintf(fp, "                        model specified by '-t' or '--type' to see the list of\n");
+    fprintf(fp, "                        algorithm-specific parameters\n");
+    fprintf(fp, "  -f, --shuffle         shuffle (reorder) instances in the data\n");
+    fprintf(fp, "  -m, --model=FILE      store the model to FILE (DEFAULT=''); if the value is\n");
+    fprintf(fp, "                        empty, this utility does not store the model\n");
+    fprintf(fp, "  -g, --split=N         split the instances into N groups; this option is\n");
+    fprintf(fp, "                        useful for holdout evaluation and cross validation\n");
+    fprintf(fp, "  -e, --holdout=M       use the M-th data for holdout evaluation and the rest\n");
+    fprintf(fp, "                        for training\n");
+    fprintf(fp, "  -x, --cross-validate  repeat holdout evaluations for #i in {1, ..., N}\n");
+    fprintf(fp, "                        (N-fold cross validation)\n");
+    fprintf(fp, "  -l, --log-to-file     write the training log to a file instead of to STDOUT;\n");
+    fprintf(fp, "                        The filename is determined automatically by the training\n");
+    fprintf(fp, "                        algorithm, parameters, and source files\n");
+    fprintf(fp, "  -L, --logbase=BASE    set the base name for a log file (used with -l option)\n");
+    fprintf(fp, "  -h, --help            show the usage of this command and exit\n");
+    fprintf(fp, "  -H, --help-parameters show the help message of algorithm-specific parameters;\n");
+    fprintf(fp, "                        specify an algorithm with '-a' or '--algorithm' option,\n");
+    fprintf(fp, "                        and specify a graphical model with '-t' or '--type' option\n");
 }
 
 
@@ -161,7 +228,7 @@ static int message_callback(void *instance, const char *format, va_list args)
 
 int main_learn(int argc, char *argv[], const char *argv0)
 {
-    int i, n, ret = 0, arg_used = 0;
+    int i, n, groups = 1, ret = 0, arg_used = 0;
     time_t ts;
     char timestamp[80];
     char trainer_id[128];
@@ -188,6 +255,26 @@ int main_learn(int argc, char *argv[], const char *argv0)
     if (opt.help) {
         show_usage(fpo, argv0, command);
         goto force_exit;
+    }
+
+    /* Open a log file if necessary. */
+    if (opt.logfile) {
+        /* Generate a filename for the log file. */
+        char *fname = NULL;
+        fname = mystrcat(fname, opt.logbase);
+        fname = mystrcat(fname, "_");
+        fname = mystrcat(fname, opt.algorithm);
+        for (i = 0;i < opt.num_params;++i) {
+            fname = mystrcat(fname, "_");
+            fname = mystrcat(fname, opt.params[i]);
+        }
+
+        fpo = fopen(fname, "w");
+        if (fpo == NULL) {
+            fprintf(fpe, "ERROR: Failed to open the log file.\n");
+            ret = 1;
+            goto force_exit;
+        }
     }
 
     /* Create dictionaries for attributes and labels. */
@@ -284,11 +371,28 @@ int main_learn(int argc, char *argv[], const char *argv0)
         fprintf(fpo, "Seconds required: %.3f\n", (clk_current - clk_begin) / (double)CLOCKS_PER_SEC);
         fclose(fp);
     }
+    groups = argc-arg_used;
     fprintf(fpo, "\n");
+
+    /* Shuffle the instances if necessary. */
+    if (opt.shuffle) {
+        for (i = 0;i < data.num_instances;++i) {
+            int j = rand() % data.num_instances;
+            crfsuite_instance_swap(&data.instances[i], &data.instances[j]);
+        }
+    }
+
+    /* Split into data sets if necessary. */
+    if (0 < opt.split) {
+        for (i = 0;i < data.num_instances;++i) {
+            data.instances[i].group = i % opt.split;
+        }
+        groups = opt.split;
+    }
 
     /* Report the statistics of the training data. */
     fprintf(fpo, "Statistics the data set(s)\n");
-    fprintf(fpo, "Number of data sets (groups): %d\n", argc-arg_used);
+    fprintf(fpo, "Number of data sets (groups): %d\n", groups);
     fprintf(fpo, "Number of instances: %d\n", data.num_instances);
     fprintf(fpo, "Number of items: %d\n", crfsuite_data_totalitems(&data));
     fprintf(fpo, "Number of attributes: %d\n", data.attrs->num(data.attrs));
@@ -299,17 +403,21 @@ int main_learn(int argc, char *argv[], const char *argv0)
     /* Set callback procedures that receive messages and taggers. */
     trainer->set_message_callback(trainer, NULL, message_callback);
 
-    /* Set attrs and labels to the data set. */
-    
-
     /* Start training. */
-    if (ret = trainer->train(
-        trainer,
-        &data,
-        opt.model,
-        opt.holdout
-        )) {
-        goto force_exit;
+    if (opt.cross_validation) {
+        for (i = 0;i < groups;++i) {
+            fprintf(fpo, "===== Cross validation (%d/%d) =====", i+1, groups);
+            if (ret = trainer->train(trainer, &data, "", i)) {
+                goto force_exit;
+            }
+            fprintf(fpo, "\n");
+        }
+
+    } else {
+        if (ret = trainer->train(trainer, &data, opt.model, opt.holdout)) {
+            goto force_exit;
+        }
+
     }
 
     /* Log the end time. */
@@ -325,6 +433,9 @@ force_exit:
 
     crfsuite_data_finish(&data);
     learn_option_finish(&opt);
+    if (fpo != NULL) {
+        fclose(fpo);
+    }
 
     return ret;
 }

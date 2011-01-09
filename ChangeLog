@@ -8,10 +8,13 @@
 	- [CORE] Fixed some memory-leak problems.
 	- [CORE] Reduced memory usage in training.
 	- [CORE] Fixed a crash problem when the model file does not exist in tagging.
-	- [FRONTEND] Training and test sets are maintained by group numbers; specify the group number for hold-out evaluation with "-t" option.
-	- [FRONTEND] Training algorithm is now specified by "-a" option instead of "-p algorithm=".
-	- [FRONTEND] Renamed some training parameters; for example, an L2 regularization coefficient is specified by "c2" instead of "regularization.sigma" (c2 = 0.5 / sigma * sigma).
-	- [FRONTEND] Show the list of parameters, default values, and descriptions with "-H" option.
+	- [FRONTEND:LEARN] Training and test sets are maintained by group numbers; specify the group number for hold-out evaluation with "-t" option.
+	- [FRONTEND:LEARN] Training algorithm is now specified by "-a" option instead of "-p algorithm=".
+	- [FRONTEND:LEARN] Renamed some training parameters; for example, an L2 regularization coefficient is specified by "c2" instead of "regularization.sigma" (c2 = 0.5 / sigma * sigma).
+	- [FRONTEND:LEARN] Show the list of parameters, default values, and descriptions with "-H" option.
+	- [FRONTEND:TAGGER] Output probabilities of predicted sequences with "-p" option.
+	- [FRONTEND:TAGGER] Output marginal probabilities of predicted items with "-i" option.
+	- [API] Numerous changes in API for the enhancements.
 	- [API] Renamed the library name "libcrf" to "libcrfsuite".
 	- [API] Renamed the prefix "crf_" to "crfsuite_" in structure and function names.
 	- [API] Implemented a high-level and easy-to-use API for C++/SWIG (crfsuite.hpp and crfsuite_api.hpp).
