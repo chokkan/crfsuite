@@ -40,39 +40,62 @@ extern "C" {
 #include <stdio.h>
 #include <stdarg.h>
 
+/** 
+ * \addtogroup crfsuite_api CRFSuite C API
+ * @{
+ *
+ *  The CRFSuite C API provides a low-level library for manupulating
+ *  CRFSuite in C language.
+ */
+
+/** Version number of CRFSuite library. */
 #define CRFSUITE_VERSION    "0.11.2"
-#define CRFSUITE_COPYRIGHT  "Copyright (c) 2007-2010 Naoaki Okazaki"
+
+/** Copyright string of CRFSuite library. */
+#define CRFSUITE_COPYRIGHT  "Copyright (c) 2007-2011 Naoaki Okazaki"
 
 typedef double floatval_t;
 #define    FLOAT_MAX    DBL_MAX
 
-/* Forward declarations */
 struct tag_crfsuite_model;
+/** CRFSuite model interface. */
 typedef struct tag_crfsuite_model crfsuite_model_t;
 
 struct tag_crfsuite_trainer;
+/** CRFSuite trainer interface. */
 typedef struct tag_crfsuite_trainer crfsuite_trainer_t;
 
 struct tag_crfsuite_tagger;
+/** CRFSuite tagger interface. */
 typedef struct tag_crfsuite_tagger crfsuite_tagger_t;
 
 struct tag_crfsuite_dictionary;
+/** CRFSuite dictionary interface. */
 typedef struct tag_crfsuite_dictionary crfsuite_dictionary_t;
 
 struct tag_crfsuite_params;
+/** CRFSuite parameter interface. */
 typedef struct tag_crfsuite_params crfsuite_params_t;
 
 /**
  * Status codes.
  */
 enum {
+    /** Success. */
     CRFSUITE_SUCCESS = 0,
+    /** Unknown error occurred. */
     CRFSUITEERR_UNKNOWN = 0x80000000,
+    /** Insufficient memory. */
     CRFSUITEERR_OUTOFMEMORY,
+    /** Unsupported operation. */
     CRFSUITEERR_NOTSUPPORTED,
+    /** Incompatible data. */
     CRFSUITEERR_INCOMPATIBLE,
+    /** Internal error. */
     CRFSUITEERR_INTERNAL_LOGIC,
+    /** Overflow. */
     CRFSUITEERR_OVERFLOW,
+    /** Not implemented. */
     CRFSUITEERR_NOTIMPLEMENTED,
 };
 
@@ -83,7 +106,7 @@ enum {
  */
 typedef struct {
     int         aid;                /**< Attribute id. */
-    floatval_t  scale;              /**< Weight (frequency) of the attribute. */
+    floatval_t  value;              /**< Weight (frequency) of the attribute. */
 } crfsuite_content_t;
 
 /**
@@ -161,6 +184,9 @@ typedef struct {
 typedef int (*crfsuite_logging_callback)(void *instance, const char *format, va_list args);
 
 
+/**
+ * CRFSuite model interface.
+ */
 struct tag_crfsuite_model {
     /**
      * Pointer to the instance data (internal use only).
@@ -190,6 +216,9 @@ struct tag_crfsuite_model {
 
 
 
+/**
+ * CRFSuite trainer interface.
+ */
 struct tag_crfsuite_trainer {
     /**
      * Pointer to the instance data (internal use only).
@@ -218,6 +247,9 @@ struct tag_crfsuite_trainer {
     int (*train)(crfsuite_trainer_t* trainer, const crfsuite_data_t *data, const char *filename, int holdout);
 };
 
+/**
+ * CRFSuite tagger interface.
+ */
 struct tag_crfsuite_tagger {
     /**
      * Pointer to the instance data (internal use only).
@@ -258,6 +290,9 @@ struct tag_crfsuite_tagger {
     int (*marginal_path)(crfsuite_tagger_t *tagger, const int *path, int begin, int end, floatval_t *ptr_prob);
 };
 
+/**
+ * CRFSuite dictionary interface.
+ */
 struct tag_crfsuite_dictionary {
     /**
      * Pointer to the instance data (internal use only).
@@ -286,6 +321,9 @@ struct tag_crfsuite_dictionary {
     void (*free)(crfsuite_dictionary_t* dic, const char *str);
 };
 
+/**
+ * CRFSuite parameter interface.
+ */
 struct tag_crfsuite_params {
     /**
      * Pointer to the instance data (internal use only).
@@ -379,6 +417,7 @@ void crfsuite_evaluation_output(crfsuite_evaluation_t* eval, crfsuite_dictionary
 int crfsuite_interlocked_increment(int *count);
 int crfsuite_interlocked_decrement(int *count);
 
+/** @} */
 
 #ifdef    __cplusplus
 }

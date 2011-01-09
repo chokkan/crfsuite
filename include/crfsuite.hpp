@@ -128,7 +128,7 @@ void Trainer::append(const ItemSequence& xseq, const StringList& yseq, int group
         crfsuite_item_init_n(_item, item.size());
         for (size_t i = 0;i < item.size();++i) {
             _item->contents[i].aid = data->attrs->get(data->attrs, item[i].attr.c_str());
-            _item->contents[i].scale = (floatval_t)item[i].value;
+            _item->contents[i].value = (floatval_t)item[i].value;
         }
 
         // Set the label of the item.

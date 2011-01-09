@@ -109,9 +109,9 @@ int read_data(FILE *fpi, FILE *fpo, crfsuite_data_t* data, int group)
                 crfsuite_content_init(&cont);
                 cont.aid = attrs->get(attrs, token->attr);
                 if (token->value && *token->value) {
-                    cont.scale = atof(token->value);
+                    cont.value = atof(token->value);
                 } else {
-                    cont.scale = 1.0;
+                    cont.value = 1.0;
                 }
                 crfsuite_item_append_content(&item, &cont);
             }

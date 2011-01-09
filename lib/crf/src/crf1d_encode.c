@@ -129,7 +129,7 @@ static void crf1de_state_score(
             /* Access the list of state features associated with the attribute. */
             int a = item->contents[i].aid;
             const feature_refs_t *attr = ATTRIBUTE(crf1de, a);
-            floatval_t value = item->contents[i].scale;
+            floatval_t value = item->contents[i].value;
 
             /* Loop over the state features associated with the attribute. */
             for (r = 0;r < attr->num_features;++r) {
@@ -171,7 +171,7 @@ crf1de_state_score_scaled(
             /* Access the list of state features associated with the attribute. */
             int a = item->contents[i].aid;
             const feature_refs_t *attr = ATTRIBUTE(crf1de, a);
-            floatval_t value = item->contents[i].scale * scale;
+            floatval_t value = item->contents[i].value * scale;
 
             /* Loop over the state features associated with the attribute. */
             for (r = 0;r < attr->num_features;++r) {
@@ -261,7 +261,7 @@ crf1de_features_on_path(
             /* Access the list of state features associated with the attribute. */
             int a = item->contents[c].aid;
             const feature_refs_t *attr = ATTRIBUTE(crf1de, a);
-            floatval_t scale = item->contents[c].scale;
+            floatval_t value = item->contents[c].value;
 
             /* Loop over the state features associated with the attribute. */
             for (r = 0;r < attr->num_features;++r) {
@@ -269,7 +269,7 @@ crf1de_features_on_path(
                 int fid = attr->fids[r];
                 const crf1df_feature_t *f = FEATURE(crf1de, fid);
                 if (f->dst == j) {
-                    func(instance, fid, scale);
+                    func(instance, fid, value);
                 }
             }
         }
@@ -314,7 +314,7 @@ crf1de_observation_expectation(
             /* Access the list of state features associated with the attribute. */
             int a = item->contents[c].aid;
             const feature_refs_t *attr = ATTRIBUTE(crf1de, a);
-            floatval_t value = item->contents[c].scale;
+            floatval_t value = item->contents[c].value;
 
             /* Loop over the state features associated with the attribute. */
             for (r = 0;r < attr->num_features;++r) {
@@ -365,7 +365,7 @@ crf1de_model_expectation(
         item = &inst->items[t];
         for (c = 0;c < item->num_contents;++c) {
             /* Access the attribute. */
-            floatval_t value = item->contents[c].scale;
+            floatval_t value = item->contents[c].value;
             a = item->contents[c].aid;
             attr = ATTRIBUTE(crf1de, a);
 

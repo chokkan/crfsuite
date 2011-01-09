@@ -69,7 +69,20 @@ typedef struct tag_crfsuite_params crfsuite_params_t;
  * \addtogroup crfsuite_hpp_api CRFSuite C++/SWIG API
  * @{
  *
- *  The CRFSuite C++/SWIG API.
+ *  The CRFSuite C++/SWIG API provides a high-level and easy-to-use library
+ *  module for a number of programming languages. The C++ API is a wrapper
+ *  for CRFSuite C API. The same API is available for other languages
+ *  (e.g., Python and Ruby) supported by SWIG.
+ *
+ *  @section cpp C++ API
+ *
+ *  The C++ library is implemented in two header files, crfsuite_api.hpp
+ *  and crfsuite.hpp. One can use the C++ API only by including crfsuite.hpp
+ *  and by linking a program with libcrfsuite library.
+ *
+ *  @section swig SWIG API
+ *
+ *  SWIG modules provides the same API as C++.
  */
 
 namespace CRFSuite
@@ -87,14 +100,14 @@ public:
     double value;
 
     /**
-     * Constructs an attribute with the default name and value.
+     * Construct an attribute with the default name and value.
      */
     Attribute() : value(1.)
     {
     }
 
     /**
-     * Constructs an attribute with the default value.
+     * Construct an attribute with the default value.
      *  @param  name        The attribute name.
      */
     Attribute(const std::string& name) : attr(name), value(1.)
@@ -102,22 +115,30 @@ public:
     }
 
     /**
-     * Constructs an attribute.
+     * Construct an attribute.
      *  @param  name        The attribute name.
-     *  @aram   val         The attribute value.
+     *  @param  val         The attribute value.
      */
     Attribute(const std::string& name, double val) : attr(name), value(val)
     {
     }
 };
 
-/// Type of an item (equivalent to an attribute vector) in a sequence.
+
+
+/**
+ * Type of an item (equivalent to an attribute vector) in a sequence.
+ */
 typedef std::vector<Attribute> Item;
 
-/// Type of an item sequence (equivalent to item vector).
+/**
+ * Type of an item sequence (equivalent to item vector).
+ */
 typedef std::vector<Item>  ItemSequence;
 
-/// Type of a string list.
+/**
+ * Type of a string list.
+ */
 typedef std::vector<std::string> StringList;
 
 
@@ -141,22 +162,22 @@ protected:
     
 public:
     /**
-     * Constructs a trainer.
+     * Construct a trainer.
      */
     Trainer();
 
     /**
-     * Destructs a trainer.
+     * Destruct a trainer.
      */
     virtual ~Trainer();
 
     /**
-     * Removes all instances in the data set.
+     * Remove all instances in the data set.
      */
     void clear();
 
     /**
-     * Appends an instance (item/label sequence) to the data set.
+     * Append an instance (item/label sequence) to the data set.
      *  @param  xseq        The item sequence of the instance.
      *  @param  yseq        The label sequence of the instance. The number
      *                      of elements in yseq must be identical to that
@@ -168,7 +189,7 @@ public:
     void append(const ItemSequence& xseq, const StringList& yseq, int group);
 
     /**
-     * Initializes the training algorithm.
+     * Initialize the training algorithm.
      *  @param  algorithm   The name of the training algorithm.
      *  @param  type        The name of the graphical model.
      *  @return bool        \c true if the training algorithm is successfully
@@ -177,7 +198,7 @@ public:
     bool select(const std::string& algorithm, const std::string& type);
 
     /**
-     * Runs the training algorithm.
+     * Run the training algorithm.
      *  This function starts the training algorithm with the data set given
      *  by append() function. After starting the training process, the 
      *  training algorithm invokes the virtual function message() to report
@@ -194,7 +215,7 @@ public:
     int train(const std::string& model, int holdout);
 
     /**
-     * Obtains the list of parameters.
+     * Obtain the list of parameters.
      *  This function returns the list of parameter names available for the
      *  graphical model and training algorithm specified by select() function.
      *  @return StringList  The list of parameters available for the current
@@ -203,7 +224,7 @@ public:
     StringList params();
 
     /**
-     * Sets a training parameter.
+     * Set a training parameter.
      *  This function sets a parameter value for the graphical model and
      *  training algorithm specified by select() function.
      *  @param  name        The parameter name.
@@ -213,7 +234,7 @@ public:
     void set(const std::string& name, const std::string& value);
 
     /**
-     * Gets the value of a training parameter.
+     * Get the value of a training parameter.
      *  This function gets a parameter value for the graphical model and
      *  training algorithm specified by select() function.
      *  @param  name        The parameter name.
@@ -223,7 +244,7 @@ public:
     std::string get(const std::string& name);
 
     /**
-     * Gets the description of a training parameter.
+     * Get the description of a training parameter.
      *  This function obtains the help message for the parameter specified
      *  by the name. The graphical model and training algorithm must be
      *  selected by select() function before calling this function.
@@ -233,7 +254,7 @@ public:
     std::string help(const std::string& name);
 
     /**
-     * Receives messages from the training algorithm.
+     * Receive messages from the training algorithm.
      *  Override this member function to receive messages of the training
      *  process.
      *  @param  msg         The message
@@ -258,18 +279,18 @@ protected:
 
 public:
     /**
-     * Constructs a tagger.
+     * Construct a tagger.
      */
     Tagger();
 
     /**
-     * Destructs a tagger.
+     * Destruct a tagger.
      */
     virtual ~Tagger();
 
     /**
-     * Opens a model file.
-     *  @param  model       The file name of the model file.
+     * Open a model file.
+     *  @param  name        The file name of the model file.
      *  @return bool        \c true if the model file is successfully opened,
      *                      \c false otherwise (e.g., when the mode file is
      *                      not found).
@@ -278,12 +299,12 @@ public:
     bool open(const std::string& name);
 
     /**
-     * Closes the model.
+     * Close the model.
      */
     void close();
 
     /**
-     * Obtains the list of labels.
+     * Obtain the list of labels.
      *  @return StringList  The list of labels in the model.
      *  @throw  std::invalid_argument   A model is not opened.
      *  @throw  std::runtime_error      An internal error.
@@ -291,7 +312,9 @@ public:
     StringList labels();
 
     /**
-     * Predicts the label sequence for the item sequence.
+     * Predict the label sequence for the item sequence.
+     *  This function calls set() and viterbi() functions to obtain the
+     *  label sequence predicted for the item sequence.
      *  @param  xseq        The item sequence to be tagged.
      *  @return StringList  The label sequence predicted.
      *  @throw  std::invalid_argument   A model is not opened.
@@ -300,7 +323,9 @@ public:
     StringList tag(const ItemSequence& xseq);
 
     /**
-     * Sets an item sequence.
+     * Set an item sequence.
+     *  This function sets an item sequence for future calls for
+     *  viterbi(), probability(), and marginal() functions.
      *  @param  xseq        The item sequence to be tagged    
      *  @throw  std::invalid_argument   A model is not opened.
      *  @throw  std::runtime_error      An internal error.
@@ -308,7 +333,7 @@ public:
     void set(const ItemSequence& xseq);
 
     /**
-     * Finds the Viterbi label sequence for the item sequence.
+     * Find the Viterbi label sequence for the item sequence.
      *  @return StringList  The label sequence predicted.
      *  @throw  std::invalid_argument   A model is not opened.
      *  @throw  std::runtime_error      An internal error.
@@ -316,7 +341,7 @@ public:
     StringList viterbi();
 
     /**
-     * Computes the probability of the label sequence.
+     * Compute the probability of the label sequence.
      *  @param  yseq        The label sequence.
      *  @throw  std::invalid_argument   A model is not opened.
      *  @throw  std::runtime_error      An internal error.
@@ -324,7 +349,7 @@ public:
     double probability(const StringList& yseq);
 
     /**
-     * Computes the marginal probability of the label.
+     * Compute the marginal probability of the label.
      *  @param  y           The label.
      *  @param  t           The position of the label.
      *  @throw  std::invalid_argument   A model is not opened.
@@ -334,7 +359,7 @@ public:
 };
 
 /**
- * Obtains the version number of the library.
+ * Obtain the version number of the library.
  *  @return std::string     The version string.
  */
 std::string version();

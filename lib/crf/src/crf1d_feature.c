@@ -208,7 +208,7 @@ crf1df_feature_t* crf1df_generate(
                 f.type = FT_STATE;
                 f.src = item->contents[c].aid;
                 f.dst = cur;
-                f.freq = item->contents[c].scale;
+                f.freq = item->contents[c].value;
                 featureset_add(set, &f);
 
                 /* Generate state features connecting attributes with all

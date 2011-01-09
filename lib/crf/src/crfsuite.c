@@ -64,29 +64,29 @@ int crfsuite_create_instance_from_file(const char *filename, void **ptr)
 void crfsuite_content_init(crfsuite_content_t* cont)
 {
     memset(cont, 0, sizeof(*cont));
-    cont->scale = 1;
+    cont->value = 1;
 }
 
-void crfsuite_content_set(crfsuite_content_t* cont, int aid, floatval_t scale)
+void crfsuite_content_set(crfsuite_content_t* cont, int aid, floatval_t value)
 {
     crfsuite_content_init(cont);
     cont->aid = aid;
-    cont->scale = scale;
+    cont->value = value;
 }
 
 void crfsuite_content_copy(crfsuite_content_t* dst, const crfsuite_content_t* src)
 {
     dst->aid = src->aid;
-    dst->scale = src->scale;
+    dst->value = src->value;
 }
 
 void crfsuite_content_swap(crfsuite_content_t* x, crfsuite_content_t* y)
 {
     crfsuite_content_t tmp = *x;
     x->aid = y->aid;
-    x->scale = y->scale;
+    x->value = y->value;
     y->aid = tmp.aid;
-    y->scale = tmp.scale;
+    y->value = tmp.value;
 }
 
 

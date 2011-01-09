@@ -253,7 +253,7 @@ output_instance(
         for (j = 0;j < inst->items[i].num_contents;++j) {
             const char *attr = NULL;
             attrs->to_string(attrs, inst->items[i].contents[j].aid, &attr);
-            fprintf(fpo, "\t%s:%f", attr, inst->items[i].contents[j].scale);
+            fprintf(fpo, "\t%s:%f", attr, inst->items[i].contents[j].value);
             attrs->free(attrs, attr);
         }
 

@@ -64,7 +64,7 @@ static void crf1dt_state_score(crf1dt_t *crf1dt, const crfsuite_instance_t *inst
     int a, i, l, t, r, fid;
     crf1dm_feature_t f;
     feature_refs_t attr;
-    floatval_t scale, *state = NULL;
+    floatval_t value, *state = NULL;
     crf1dm_t* model = crf1dt->model;
     crf1d_context_t* ctx = crf1dt->ctx;
     const crfsuite_item_t* item = NULL;
@@ -82,7 +82,7 @@ static void crf1dt_state_score(crf1dt_t *crf1dt, const crfsuite_instance_t *inst
             a = item->contents[i].aid;
             crf1dm_get_attrref(model, a, &attr);
             /* A scale usually represents the atrribute frequency in the item. */
-            scale = item->contents[i].scale;
+            value = item->contents[i].value;
 
             /* Loop over the state features associated with the attribute. */
             for (r = 0;r < attr.num_features;++r) {
@@ -91,7 +91,7 @@ static void crf1dt_state_score(crf1dt_t *crf1dt, const crfsuite_instance_t *inst
                 fid = crf1dm_get_featureid(&attr, r);
                 crf1dm_get_feature(model, fid, &f);
                 l = f.dst;
-                state[l] += f.weight * scale;
+                state[l] += f.weight * value;
             }
         }
     }
