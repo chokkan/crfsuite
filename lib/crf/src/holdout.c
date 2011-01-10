@@ -71,10 +71,10 @@ void holdout_evaluation(
         gm->set_instance(gm, inst);
         gm->viterbi(gm, viterbi, &score);
 
-        crfsuite_evaluation_accmulate(&eval, inst, viterbi);
+        crfsuite_evaluation_accmulate(&eval, inst->labels, viterbi, inst->num_items);
     }
 
     /* Report the performance. */
-    crfsuite_evaluation_compute(&eval);
+    crfsuite_evaluation_finalize(&eval);
     crfsuite_evaluation_output(&eval, ds->data->labels, lg->func, lg->instance);
 }

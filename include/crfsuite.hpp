@@ -356,9 +356,9 @@ void Tagger::set(const ItemSequence& xseq)
         for (size_t i = 0;i < item.size();++i) {
             int aid = attrs->to_id(attrs, item[i].attr.c_str());
             if (0 <= aid) {
-                crfsuite_content_t cont;
-                crfsuite_content_set(&cont, aid, item[i].value);
-                crfsuite_item_append_content(_item, &cont);
+                crfsuite_attribute_t cont;
+                crfsuite_attribute_set(&cont, aid, item[i].value);
+                crfsuite_item_append_attribute(_item, &cont);
             }
         }
     }

@@ -61,7 +61,7 @@ int read_data(FILE *fpi, FILE *fpo, crfsuite_data_t* data, int group)
     int lid = -1;
     crfsuite_instance_t inst;
     crfsuite_item_t item;
-    crfsuite_content_t cont;
+    crfsuite_attribute_t cont;
     iwa_t* iwa = NULL;
     crfsuite_dictionary_t *attrs = data->attrs;
     crfsuite_dictionary_t *labels = data->labels;
@@ -106,14 +106,14 @@ int read_data(FILE *fpi, FILE *fpo, crfsuite_data_t* data, int group)
             if (lid == -1) {
                 lid = labels->get(labels, token->attr);
             } else {
-                crfsuite_content_init(&cont);
+                crfsuite_attribute_init(&cont);
                 cont.aid = attrs->get(attrs, token->attr);
                 if (token->value && *token->value) {
                     cont.value = atof(token->value);
                 } else {
                     cont.value = 1.0;
                 }
-                crfsuite_item_append_content(&item, &cont);
+                crfsuite_item_append_attribute(&item, &cont);
             }
             break;
         case IWA_NONE:

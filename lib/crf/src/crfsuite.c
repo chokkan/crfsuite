@@ -61,28 +61,28 @@ int crfsuite_create_instance_from_file(const char *filename, void **ptr)
 
 
 
-void crfsuite_content_init(crfsuite_content_t* cont)
+void crfsuite_attribute_init(crfsuite_attribute_t* cont)
 {
     memset(cont, 0, sizeof(*cont));
     cont->value = 1;
 }
 
-void crfsuite_content_set(crfsuite_content_t* cont, int aid, floatval_t value)
+void crfsuite_attribute_set(crfsuite_attribute_t* cont, int aid, floatval_t value)
 {
-    crfsuite_content_init(cont);
+    crfsuite_attribute_init(cont);
     cont->aid = aid;
     cont->value = value;
 }
 
-void crfsuite_content_copy(crfsuite_content_t* dst, const crfsuite_content_t* src)
+void crfsuite_attribute_copy(crfsuite_attribute_t* dst, const crfsuite_attribute_t* src)
 {
     dst->aid = src->aid;
     dst->value = src->value;
 }
 
-void crfsuite_content_swap(crfsuite_content_t* x, crfsuite_content_t* y)
+void crfsuite_attribute_swap(crfsuite_attribute_t* x, crfsuite_attribute_t* y)
 {
-    crfsuite_content_t tmp = *x;
+    crfsuite_attribute_t tmp = *x;
     x->aid = y->aid;
     x->value = y->value;
     y->aid = tmp.aid;
@@ -101,7 +101,7 @@ void crfsuite_item_init_n(crfsuite_item_t* item, int num_contents)
     crfsuite_item_init(item);
     item->num_contents = num_contents;
     item->cap_contents = num_contents;
-    item->contents = (crfsuite_content_t*)calloc(num_contents, sizeof(crfsuite_content_t));
+    item->contents = (crfsuite_attribute_t*)calloc(num_contents, sizeof(crfsuite_attribute_t));
 }
 
 void crfsuite_item_finish(crfsuite_item_t* item)
@@ -116,9 +116,9 @@ void crfsuite_item_copy(crfsuite_item_t* dst, const crfsuite_item_t* src)
 
     dst->num_contents = src->num_contents;
     dst->cap_contents = src->cap_contents;
-    dst->contents = (crfsuite_content_t*)calloc(dst->num_contents, sizeof(crfsuite_content_t));
+    dst->contents = (crfsuite_attribute_t*)calloc(dst->num_contents, sizeof(crfsuite_attribute_t));
     for (i = 0;i < dst->num_contents;++i) {
-        crfsuite_content_copy(&dst->contents[i], &src->contents[i]);
+        crfsuite_attribute_copy(&dst->contents[i], &src->contents[i]);
     }
 }
 
@@ -133,14 +133,14 @@ void crfsuite_item_swap(crfsuite_item_t* x, crfsuite_item_t* y)
     y->contents = tmp.contents;
 }
 
-int crfsuite_item_append_content(crfsuite_item_t* item, const crfsuite_content_t* cont)
+int crfsuite_item_append_attribute(crfsuite_item_t* item, const crfsuite_attribute_t* cont)
 {
     if (item->cap_contents <= item->num_contents) {
         item->cap_contents = (item->cap_contents + 1) * 2;
-        item->contents = (crfsuite_content_t*)realloc(
-            item->contents, sizeof(crfsuite_content_t) * item->cap_contents);
+        item->contents = (crfsuite_attribute_t*)realloc(
+            item->contents, sizeof(crfsuite_attribute_t) * item->cap_contents);
     }
-    crfsuite_content_copy(&item->contents[item->num_contents++], cont);
+    crfsuite_attribute_copy(&item->contents[item->num_contents++], cont);
     return 0;
 }
 
@@ -353,13 +353,13 @@ void crfsuite_evaluation_finish(crfsuite_evaluation_t* eval)
     memset(eval, 0, sizeof(*eval));
 }
 
-int crfsuite_evaluation_accmulate(crfsuite_evaluation_t* eval, const crfsuite_instance_t* reference, const int* target)
+int crfsuite_evaluation_accmulate(crfsuite_evaluation_t* eval, const int* reference, const int* prediction, int T)
 {
     int t, nc = 0;
 
-    for (t = 0;t < reference->num_items;++t) {
-        int lr = reference->labels[t];
-        int lt = target[t];
+    for (t = 0;t < T;++t) {
+        int lr = reference[t];
+        int lt = prediction[t];
 
         if (eval->num_labels <= lr || eval->num_labels <= lt) {
             return 1;
@@ -374,7 +374,7 @@ int crfsuite_evaluation_accmulate(crfsuite_evaluation_t* eval, const crfsuite_in
         ++eval->item_total_num;
     }
 
-    if (nc == reference->num_items) {
+    if (nc == T) {
         ++eval->inst_total_correct;
     }
     ++eval->inst_total_num;
@@ -382,7 +382,7 @@ int crfsuite_evaluation_accmulate(crfsuite_evaluation_t* eval, const crfsuite_in
     return 0;
 }
 
-void crfsuite_evaluation_compute(crfsuite_evaluation_t* eval)
+void crfsuite_evaluation_finalize(crfsuite_evaluation_t* eval)
 {
     int i;
 

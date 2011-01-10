@@ -276,7 +276,7 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
     clock_t clk0, clk1;
     crfsuite_instance_t inst;
     crfsuite_item_t item;
-    crfsuite_content_t cont;
+    crfsuite_attribute_t cont;
     crfsuite_evaluation_t eval;
     char *comment = NULL;
     comments_t comments;
@@ -353,11 +353,11 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
                 if (0 <= aid) {
                     /* Associate the attribute with the current item. */
                     if (token->value && *token->value) {
-                        crfsuite_content_set(&cont, aid, atof(token->value));
+                        crfsuite_attribute_set(&cont, aid, atof(token->value));
                     } else {
-                        crfsuite_content_set(&cont, aid, 1.0);
+                        crfsuite_attribute_set(&cont, aid, 1.0);
                     }
-                    crfsuite_item_append_content(&item, &cont);
+                    crfsuite_item_append_attribute(&item, &cont);
                 }
             }
             break;
@@ -382,7 +382,7 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
 
                 /* Accumulate the tagging performance. */
                 if (opt->evaluate) {
-                    crfsuite_evaluation_accmulate(&eval, &inst, output);
+                    crfsuite_evaluation_accmulate(&eval, &inst.labels, output, inst.num_items);
                 }
 
                 if (!opt->quiet) {
@@ -406,7 +406,7 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
     /* Compute the performance if specified. */
     if (opt->evaluate) {
         double sec = (clk1 - clk0) / (double)CLOCKS_PER_SEC;
-        crfsuite_evaluation_compute(&eval);
+        crfsuite_evaluation_finalize(&eval);
         crfsuite_evaluation_output(&eval, labels, message_callback, stdout);
         fprintf(fpo, "Elapsed time: %f [sec] (%.1f [instance/sec])\n", sec, N / sec);
     }
