@@ -70,7 +70,7 @@ BEGIN_OPTION_MAP(parse_options, option_t)
 
 END_OPTION_MAP()
 
-static void show_copyright(FILE *fp)
+void show_copyright(FILE *fp)
 {
     fprintf(fp, APPLICATION_S " " CRFSUITE_VERSION "  " CRFSUITE_COPYRIGHT "\n");
     fprintf(fp, "\n");

@@ -171,33 +171,36 @@ static int exchange_options(crfsuite_params_t* params, training_option_t* opt, i
             )
         DDX_PARAM_INT(
             "max_iterations", opt->max_iterations, INT_MAX,
-            "The maximum number of L-BFGS iterations."
+            "The maximum number of iterations for L-BFGS optimization."
             )
         DDX_PARAM_INT(
             "num_memories", opt->memory, 6,
-            "The number of corrections to approximate the inverse hessian matrix."
+            "The number of limited memories for approximating the inverse hessian matrix."
             )
         DDX_PARAM_FLOAT(
             "epsilon", opt->epsilon, 1e-5,
             "Epsilon for testing the convergence of the objective."
             )
         DDX_PARAM_INT(
-            "stop", opt->stop, 10,
+            "period", opt->stop, 10,
             "The duration of iterations to test the stopping criterion."
             )
         DDX_PARAM_FLOAT(
             "delta", opt->delta, 1e-5,
             "The threshold for the stopping criterion; an L-BFGS iteration stops when the\n"
-            "improvement of the log likelihood over the last ${lbfgs.stop} iterations is\n"
-            "no greater than this threshold."
+            "improvement of the log likelihood over the last ${period} iterations is no\n"
+            "greater than this threshold."
             )
         DDX_PARAM_STRING(
             "linesearch", opt->linesearch, "MoreThuente",
             "The line search algorithm used in L-BFGS updates:\n"
-            "{'MoreThuente': More and Thuente's method, 'Backtracking': backtracking}"
+            "{   'MoreThuente': More and Thuente's method,\n"
+            "    'Backtracking': Backtracking method with regular Wolfe condition,\n"
+            "    'StrongBacktracking': Backtracking method with strong Wolfe condition\n"
+            "}\n"
             )
         DDX_PARAM_INT(
-            "linesearch.max_iterations", opt->linesearch_max_iterations, 20,
+            "max_linesearch", opt->linesearch_max_iterations, 20,
             "The maximum number of trials for the line search algorithm."
             )
     END_PARAM_MAP()

@@ -91,7 +91,7 @@ static int exchange_options(crfsuite_params_t* params, training_option_t* opt, i
             )
         DDX_PARAM_FLOAT(
             "epsilon", opt->epsilon, 0.,
-            "The stopping criterion (the average number of errors)."
+            "The stopping criterion (the ratio of incorrect label predictions)."
             )
     END_PARAM_MAP()
 

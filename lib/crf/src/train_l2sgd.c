@@ -390,39 +390,41 @@ int exchange_options(crfsuite_params_t* params, training_option_t* opt, int mode
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_FLOAT(
             "c2", opt->c2, 1.,
-            ""
+            "Coefficient for L2 regularization."
             )
         DDX_PARAM_INT(
             "max_iterations", opt->max_iterations, 1000,
-            ""
+            "The maximum number of iterations (epochs) for SGD optimization."
             )
         DDX_PARAM_INT(
             "period", opt->period, 10,
-            ""
+            "The duration of iterations to test the stopping criterion."
             )
         DDX_PARAM_FLOAT(
             "delta", opt->delta, 1e-6,
-            ""
+            "The threshold for the stopping criterion; an optimization process stops when\n"
+            "the improvement of the log likelihood over the last ${period} iterations is no\n"
+            "greater than this threshold."
             )
         DDX_PARAM_FLOAT(
             "calibration.eta", opt->calibration_eta, 0.1,
-            ""
+            "The initial value of learning rate (eta) used for calibration."
             )
         DDX_PARAM_FLOAT(
             "calibration.rate", opt->calibration_rate, 2.,
-            ""
+            "The rate of increase/decrease of learning rate for calibration."
             )
         DDX_PARAM_INT(
             "calibration.samples", opt->calibration_samples, 1000,
-            ""
+            "The number of instances used for calibration."
             )
         DDX_PARAM_INT(
             "calibration.candidates", opt->calibration_candidates, 10,
-            ""
+            "The number of candidates of learning rate."
             )
         DDX_PARAM_INT(
             "calibration.max_trials", opt->calibration_max_trials, 20,
-            ""
+            "The maximum number of trials of learning rates for calibration."
             )
     END_PARAM_MAP()
 

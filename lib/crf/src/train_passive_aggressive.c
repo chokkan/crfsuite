@@ -209,7 +209,11 @@ static int exchange_options(crfsuite_params_t* params, training_option_t* opt, i
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_INT(
             "type", opt->type, 1,
-            "The strategy for updating feature weights, {0, 1, 2}."
+            "The strategy for updating feature weights: {\n"
+            "    0: PA without slack variables,\n"
+            "    1: PA type I,\n"
+            "    2: PA type II\n"
+            "}.\n"
             )
         DDX_PARAM_FLOAT(
             "c", opt->c, 1.,
@@ -217,11 +221,11 @@ static int exchange_options(crfsuite_params_t* params, training_option_t* opt, i
             )
         DDX_PARAM_INT(
             "error_sensitive", opt->error_sensitive, 1,
-            "Cost is sensitive to the number of incorrect labels."
+            "Consider the number of incorrect labels to the cost function."
             )
         DDX_PARAM_INT(
             "averaging", opt->averaging, 1,
-            "Average feature weights."
+            "Compute the average of feature weights (similarly to Averaged Perceptron)."
             )
         DDX_PARAM_INT(
             "max_iterations", opt->max_iterations, 100,
@@ -229,7 +233,7 @@ static int exchange_options(crfsuite_params_t* params, training_option_t* opt, i
             )
         DDX_PARAM_FLOAT(
             "epsilon", opt->epsilon, 0.,
-            "The stopping criterion (the average number of errors)."
+            "The stopping criterion (the mean loss)."
             )
     END_PARAM_MAP()
 

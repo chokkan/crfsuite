@@ -207,7 +207,7 @@ static int exchange_options(crfsuite_params_t* params, training_option_t* opt, i
     BEGIN_PARAM_MAP(params, mode)
         DDX_PARAM_FLOAT(
             "variance", opt->variance, 1.,
-            "The initial variance."
+            "The initial variance of every feature weight."
             )
         DDX_PARAM_FLOAT(
             "gamma", opt->gamma, 1.,
@@ -219,7 +219,7 @@ static int exchange_options(crfsuite_params_t* params, training_option_t* opt, i
             )
         DDX_PARAM_FLOAT(
             "epsilon", opt->epsilon, 0.,
-            "The stopping criterion (the average number of errors)."
+            "The stopping criterion (the mean loss)."
             )
     END_PARAM_MAP()
 

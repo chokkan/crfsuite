@@ -44,6 +44,8 @@
 
 #define    SAFE_RELEASE(obj)    if ((obj) != NULL) { (obj)->release(obj); (obj) = NULL; }
 
+void show_copyright(FILE *fp);
+
 typedef struct {
     char *input;
     char *model;
@@ -382,7 +384,7 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
 
                 /* Accumulate the tagging performance. */
                 if (opt->evaluate) {
-                    crfsuite_evaluation_accmulate(&eval, &inst.labels, output, inst.num_items);
+                    crfsuite_evaluation_accmulate(&eval, inst.labels, output, inst.num_items);
                 }
 
                 if (!opt->quiet) {
@@ -451,6 +453,7 @@ int main_tag(int argc, char *argv[], const char *argv0)
 
     /* Show the help message for this command if specified. */
     if (opt.help) {
+        show_copyright(fpo);
         show_usage(fpo, argv0, command);
         goto force_exit;
     }
