@@ -67,7 +67,6 @@ typedef struct tag_crfsuite_params crfsuite_params_t;
 
 /** 
  * \addtogroup crfsuite_hpp_api CRFSuite C++/SWIG API
- * @{
  *
  *  The CRFSuite C++/SWIG API provides a high-level and easy-to-use library
  *  module for a number of programming languages. The C++ API is a wrapper
@@ -83,10 +82,17 @@ typedef struct tag_crfsuite_params crfsuite_params_t;
  *  @section swig SWIG API
  *
  *  SWIG modules provides the same API as C++.
+ *
+ * @{
  */
 
 namespace CRFSuite
 {
+
+/** 
+ * \addtogroup crfsuite_hpp_dataset Data structures
+ * @{
+ */
 
 /**
  * Tuple of attribute and its value.
@@ -140,6 +146,8 @@ typedef std::vector<Item>  ItemSequence;
  * Type of a string list.
  */
 typedef std::vector<std::string> StringList;
+
+/**@} */
 
 
 
@@ -266,6 +274,8 @@ protected:
     static int __logging_callback(void *userdata, const char *format, va_list args);
 };
 
+
+
 /**
  * The tagger class.
  *  This class provides the functionality for predicting label sequences for
@@ -358,11 +368,22 @@ public:
     double marginal(const std::string& y, const int t);
 };
 
+
+
+/** 
+ * \addtogroup crfsuite_hpp_misc Miscellaneous functions
+ * @{
+ */
+
 /**
  * Obtain the version number of the library.
  *  @return std::string     The version string.
  */
 std::string version();
+
+/**@} */
+
+
 
 };
 

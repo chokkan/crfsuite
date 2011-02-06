@@ -51,7 +51,6 @@ typedef struct {
     char *model;
     char *logbase;
 
-    int shuffle;
     int split;
     int cross_validation;
     int holdout;
@@ -107,7 +106,7 @@ static void learn_option_finish(learn_option_t* opt)
 BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
 
     ON_OPTION_WITH_ARG(SHORTOPT('t') || LONGOPT("type"))
-        if (strcmp(arg, "crf1d") == 0) {
+        if (strcmp(arg, "1d") == 0) {
             free(opt->type);
             opt->type = mystrdup("crf1d");
         } else {
@@ -140,9 +139,6 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
         opt->params = (char **)realloc(opt->params, sizeof(char*) * (opt->num_params + 1));
         opt->params[opt->num_params] = mystrdup(arg);
         ++opt->num_params;
-
-    ON_OPTION(SHORTOPT('f') || LONGOPT("shuffle"))
-        opt->shuffle = 1;
 
     ON_OPTION_WITH_ARG(SHORTOPT('m') || LONGOPT("model"))
         free(opt->model);
@@ -179,12 +175,13 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
     fprintf(fp, "\n");
     fprintf(fp, "  DATA    file(s) corresponding to data set(s) for training; if multiple N files\n");
     fprintf(fp, "          are specified, this utility assigns a group number (1...N) to the\n");
-    fprintf(fp, "          instances in each file if '-' is specified, the utility reads a");
+    fprintf(fp, "          instances in each file; if a file name is '-', the utility reads a\n");
     fprintf(fp, "          data set from STDIN\n");
     fprintf(fp, "\n");
     fprintf(fp, "OPTIONS:\n");
-    fprintf(fp, "  -t, --type=TYPE       specify a graphical model (DEFAULT='crf1d'):\n");
-    fprintf(fp, "      crf1d                 1st-order Markov CRF with state and transition\n");
+    fprintf(fp, "  -t, --type=TYPE       specify a graphical model (DEFAULT='1d'):\n");
+    fprintf(fp, "                        (this option is reserved for the future use)\n");
+    fprintf(fp, "      1d                    1st-order Markov CRF with state and transition\n");
     fprintf(fp, "                            features; transition features are not conditioned\n");
     fprintf(fp, "                            on observations\n");
     fprintf(fp, "  -a, --algorithm=NAME  specify a training algorithm (DEFAULT='lbfgs')\n");
@@ -198,7 +195,6 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
     fprintf(fp, "                        specified by '-a' or '--algorithm' and the graphical\n");
     fprintf(fp, "                        model specified by '-t' or '--type' to see the list of\n");
     fprintf(fp, "                        algorithm-specific parameters\n");
-    fprintf(fp, "  -f, --shuffle         shuffle (reorder) instances in the data\n");
     fprintf(fp, "  -m, --model=FILE      store the model to FILE (DEFAULT=''); if the value is\n");
     fprintf(fp, "                        empty, this utility does not store the model\n");
     fprintf(fp, "  -g, --split=N         split the instances into N groups; this option is\n");
@@ -374,16 +370,15 @@ int main_learn(int argc, char *argv[], const char *argv0)
     groups = argc-arg_used;
     fprintf(fpo, "\n");
 
-    /* Shuffle the instances if necessary. */
-    if (opt.shuffle) {
+    /* Split into data sets if necessary. */
+    if (0 < opt.split) {
+        /* Shuffle the instances. */
         for (i = 0;i < data.num_instances;++i) {
             int j = rand() % data.num_instances;
             crfsuite_instance_swap(&data.instances[i], &data.instances[j]);
         }
-    }
 
-    /* Split into data sets if necessary. */
-    if (0 < opt.split) {
+        /* Assign group numbers. */
         for (i = 0;i < data.num_instances;++i) {
             data.instances[i].group = i % opt.split;
         }
