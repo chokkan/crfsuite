@@ -201,7 +201,7 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
     fprintf(fp, "                        useful for holdout evaluation and cross validation\n");
     fprintf(fp, "  -e, --holdout=M       use the M-th data for holdout evaluation and the rest\n");
     fprintf(fp, "                        for training\n");
-    fprintf(fp, "  -x, --cross-validate  repeat holdout evaluations for #i in {1, ..., N}\n");
+    fprintf(fp, "  -x, --cross-validate  repeat holdout evaluations for #i in {1, ..., N} groups\n");
     fprintf(fp, "                        (N-fold cross validation)\n");
     fprintf(fp, "  -l, --log-to-file     write the training log to a file instead of to STDOUT;\n");
     fprintf(fp, "                        The filename is determined automatically by the training\n");
