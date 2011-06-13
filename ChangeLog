@@ -1,6 +1,6 @@
-201x-xx-xx  Naoaki Okazaki  <okazaki at chokkan org>
+2011-03-19  Naoaki Okazaki  <okazaki at chokkan org>
 	* CRFsuite 0.12
-	- [CORE] Optimized routines for training: ca. xx% speed up on the CoNLL2000 data set.
+	- [CORE] Optimized routines for speeding up training.
 	- [CORE] Faster routine for computing exp(x) using SSE2.
 	- [CORE] Restructured the source code to separate routines for CRF graphical models and training algorithms; this is an initial attempt for implementing CRFs with different feature types (e.g., 2nd-order CRF, 1st-order transition features conditioned on observations) and different training algorithms.
 	- [CORE] Implemented new training algorithms: Averaged Perceptron, Passive Aggressive, and Adaptive Regularization of Weights (AROW).

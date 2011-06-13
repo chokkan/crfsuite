@@ -1037,9 +1037,24 @@ int crfsuite_interlocked_decrement(int *count);
 
 /**@}*/
 
-
-
 /**@}*/
+
+/**
+@mainpage CRFsuite: a fast implementation of Conditional Random Fields (CRFs)
+
+@section intro Introduction
+
+This document describes information for using
+<a href="http://www.chokkan.org/software/crfsuite">CRFsuite</a> from external
+programs. CRFsuite provides two APIs:
+- C API: low-level and complete interface, which is used by the official
+  frontend program.
+- C++/SWIG API: high-level and easy-to-use interface for a number of
+  programming languages (e.g, C++ and Python), which is a wrapper for the C
+  API.
+
+*/
+
 
 #ifdef    __cplusplus
 }
