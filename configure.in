@@ -13,7 +13,7 @@ dnl ------------------------------------------------------------------
 AC_PREREQ(2.59)
 AC_INIT
 AC_CONFIG_SRCDIR([frontend/main.c])
-dnl AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_MACRO_DIR([m4])
 
 dnl ------------------------------------------------------------------
 dnl Checks for system
