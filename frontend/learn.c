@@ -148,7 +148,7 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
         opt->split = atoi(arg);
 
     ON_OPTION_WITH_ARG(SHORTOPT('e') || LONGOPT("holdout"))
-        opt->holdout = atoi(arg);
+        opt->holdout = atoi(arg)-1;
 
     ON_OPTION(SHORTOPT('x') || LONGOPT("cross-validate"))
         opt->cross_validation = 1;
