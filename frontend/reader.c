@@ -99,7 +99,9 @@ int read_data(FILE *fpi, FILE *fpo, crfsuite_data_t* data, int group)
             break;
         case IWA_EOI:
             /* Append the item to the instance. */
-            crfsuite_instance_append(&inst, &item, lid);
+            if (0 <= lid) {
+                crfsuite_instance_append(&inst, &item, lid);
+            }
             crfsuite_item_finish(&item);
             break;
         case IWA_ITEM:
