@@ -126,8 +126,6 @@ int read_data(FILE *fpi, FILE *fpo, crfsuite_data_t* data, int group)
             inst.group = group;
             ++n;
             break;
-        case IWA_COMMENT:
-            break;
         }
     }
 

@@ -151,18 +151,6 @@ static int get_char(iwa_t* iwa)
     return c;
 }
 
-static int read_comment(iwa_t* iwa, iwa_string_t* str)
-{
-    int c;
-
-    /* Read until an end-of-line. */
-    while (c = get_char(iwa), c != '\n' && c != EOF) {
-        string_append(str, c);
-    }
-
-    return c;
-}
-
 static void read_field_unquoted(iwa_t* iwa, iwa_string_t* str)
 {
     int c;
@@ -227,7 +215,6 @@ const iwa_token_t* iwa_read(iwa_t* iwa)
     /* Initialization. */
     token->attr = NULL;
     token->value = NULL;
-    token->comment = NULL;
     string_clear(&iwa->attr);
     string_clear(&iwa->value);
 
@@ -236,7 +223,6 @@ const iwa_token_t* iwa_read(iwa_t* iwa)
         switch (token->type) {
         case IWA_EOF:
             return NULL;
-        case IWA_COMMENT:
         case IWA_BOI:
             token->type = IWA_EOI;
             return token;
@@ -260,10 +246,6 @@ const iwa_token_t* iwa_read(iwa_t* iwa)
             token->type = IWA_BOI;
         }
         break;
-    case IWA_COMMENT:
-        /* A comment terminates with EOI. */
-        token->type = IWA_EOI;
-        break;
     case IWA_BOI:
     case IWA_ITEM:
         for (;;) {
@@ -272,12 +254,6 @@ const iwa_token_t* iwa_read(iwa_t* iwa)
             if (c == '\t') {
                 /* Skip white spaces. */
                 get_char(iwa);
-            } else if (c == '#') {
-                /* Read a comment. */
-                read_comment(iwa, &iwa->attr);
-                token->type = IWA_COMMENT;
-                token->comment = iwa->attr.value;
-                break;
             } else if (c == '\n') {
                 get_char(iwa);
                 token->type = IWA_EOI;

@@ -45,14 +45,12 @@ enum {
     IWA_BOI,
     IWA_EOI,
     IWA_ITEM,
-    IWA_COMMENT,
 };
 
 struct tag_iwa_token {
     int type;
     const char *attr;
     const char *value;
-    const char *comment;
 };
 typedef struct tag_iwa_token iwa_token_t;
 

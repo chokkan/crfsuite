@@ -144,50 +144,6 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
 
 
 
-typedef struct {
-    char **array;
-    int num;
-    int max;
-} comments_t;
-
-static void comments_init(comments_t* comments)
-{
-    memset(comments, 0, sizeof(*comments));
-}
-
-static void comments_finish(comments_t* comments)
-{
-    int i;
-
-    for (i = 0;i < comments->num;++i) {
-        free(comments->array[i]);
-    }
-    free(comments->array);
-    comments_init(comments);
-}
-
-static int comments_append(comments_t* comments, const char *value)
-{
-    int i;
-
-    if (comments->max <= comments->num) {
-        comments->max = (comments->max + 1) * 2;
-        comments->array = realloc(comments->array, sizeof(char*) * comments->max);
-        if (comments->array == NULL) {
-            return 1;
-        }
-
-        for (i = comments->num;i < comments->max;++i) {
-            comments->array[i] = NULL;
-        }
-    }
-
-    comments->array[comments->num++] = (value != NULL ? mystrdup(value) : NULL);
-    return 0;
-}
-
-
-
 static void
 output_result(
     FILE *fpo,
@@ -196,7 +152,6 @@ output_result(
     int *output,
     crfsuite_dictionary_t *labels,
     floatval_t score,
-    comments_t* comments,
     const tagger_option_t* opt
     )
 {
@@ -227,11 +182,7 @@ output_result(
             fprintf(fpo, ":%f", prob);
         }
 
-        if (i < comments->num && comments->array[i] != NULL) {
-            fprintf(fpo, "\t%s\n", comments->array[i]);
-        } else {
-            fprintf(fpo, "\n");
-        }
+        fprintf(fpo, "\n");
     }
     fprintf(fpo, "\n");
 }
@@ -281,7 +232,6 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
     crfsuite_attribute_t cont;
     crfsuite_evaluation_t eval;
     char *comment = NULL;
-    comments_t comments;
     iwa_t* iwa = NULL;
     const iwa_token_t* token = NULL;
     crfsuite_tagger_t *tagger = NULL;
@@ -326,7 +276,6 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
     }
 
     /* Read the input data and assign labels. */
-    comments_init(&comments);
     clk0 = clock();
     while (token = iwa_read(iwa), token != NULL) {
         switch (token->type) {
@@ -340,7 +289,6 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
         case IWA_EOI:
             /* Append the item to the instance. */
             crfsuite_instance_append(&inst, &item, lid);
-            comments_append(&comments, comment);
             crfsuite_item_finish(&item);
             break;
         case IWA_ITEM:
@@ -388,18 +336,12 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
                 }
 
                 if (!opt->quiet) {
-                    output_result(fpo, tagger, &inst, output, labels, score, &comments, opt);
+                    output_result(fpo, tagger, &inst, output, labels, score, opt);
                 }
 
                 free(output);
                 crfsuite_instance_finish(&inst);
-
-                comments_finish(&comments);
-                comments_init(&comments);
             }
-            break;
-        case IWA_COMMENT:
-            comment = mystrdup(token->comment);
             break;
         }
     }
