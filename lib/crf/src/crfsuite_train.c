@@ -145,6 +145,7 @@ static int crfsuite_train_train(
     }
 
     /* Set the training set to the CRF, and generate features. */
+    gm->exchange_options(gm, tr->params, -1);
     gm->initialize(gm, &trainset, lg);
 
     /* Call the training algorithm. */

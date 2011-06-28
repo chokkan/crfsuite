@@ -1,62 +1,73 @@
 #!/usr/bin/env python
 
-"""
-A utility for feature templates.
-Copyright 2010,2011 Naoaki Okazaki.
-"""
+import re
+import sys
 
-def apply(X, templates):
-    """
-    Generate features for an item sequence by applying feature templates.
-    A feature template consists of a tuple of (name, offset) pairs,
-    where name and offset specify a field name and offset from which
-    the template extracts a feature value. Generated features are stored
-    in the 'F' field of each item in the sequence.
+class FeatureExtractor:
+    def __init__(self):
+        self.macro = re.compile(r'%x\[(?P<row>[\d-]+),(?P<col>[\d]+)\]')
+        self.inst = []
+        self.t = 0
+        self.templates = []
 
-    @type   X:      list of mapping objects
-    @param  X:      The item sequence.
-    @type   template:   tuple of (str, int)
-    @param  template:   The feature template.
-    """
-    for template in templates:
-        name = '|'.join(['%s[%d]' % (f, o) for f, o in template])
-        for t in range(len(X)):
-            values = []
-            for field, offset in template:
-                p = t + offset
-                if p not in range(len(X)):
-                    values = []
-                    break
-                values.append(X[p][field])
-            if values:
-                X[t]['F'].append('%s=%s' % (name, '|'.join(values)))
+    def read(self, fi):
+        self.templates = []
+        for line in fi:
+            line = line.strip()
+            if line.startswith('#'):
+                continue
+            if line.startswith('U'):
+                self.templates.append(line.replace(':', '='))
+            elif line == 'B':
+                continue
+            elif line.startswith('B'):
+                sys.stderr(
+                    'ERROR: bigram templates not supported: %s\n' % line)
+                sys.exit(1)
+
+    def replace(self, m):
+        row = self.t + int(m.group('row'))
+        col = int(m.group('col'))
+        if row in range(0, len(self.inst)):
+            return self.inst[row]['x'][col]
+        else:
+            return ''
+
+    def apply(self, inst, t):
+	self.inst = inst
+	self.t = t
+        for template in self.templates:
+            f = re.sub(self.macro, self.replace, template)
+            self.inst[t]['F'].append(f)
+
+def readiter(fi, sep=None):
+    X = []
+    for line in fi:
+        line = line.strip('\n')
+        if not line:
+            yield X
+            X = []
+        else:
+            fields = line.split(sep)
+            item = {
+                'x': fields[0:-1],
+                'y': fields[-1],
+                'F': []
+                }
+            X.append(item)
 
 if __name__ == '__main__':
-    # A sample of an item sequence.
-    X = [
-        {'w': 'Brown',    'pos': 'NNP', 'F': []},
-        {'w': 'promises', 'pos': 'VBZ', 'F': []},
-        {'w': 'change',   'pos': 'NN',  'F': []},
-        ]
+    fi = sys.stdin
+    fo = sys.stdout
 
-    # A sample of feature templates.
-    templates = (
-        (('w', -1), ),              # Previous word.
-        (('w',  0), ),              # Current word.
-        (('w',  1), ),              # Subsequent word.
-        (('w', -1), ('w',  0)),     # Previous and current words.
-        (('w',  0), ('w',  1)),     # Current and subsequent words.
-        (('pos', -1), ),            # Previous POS.
-        (('pos',  0), ),            # Current POS.
-        (('pos',  1), ),            # Subsequent POS.
-        (('pos', -1), ('pos',  0)), # Previous and current POSs.
-        (('pos',  0), ('pos',  1)), # Current and subsequent POSs.
-        )
+    F = FeatureExtractor()
+    F.read(open(sys.argv[1]))
 
-    # Apply feature templates to generate features.
-    apply(X, templates)
-
-    # Print features in TAB-separated-value format.
-    for x in X:
-        print('\t'.join(x['F']))
-
+    for inst in readiter(fi):
+        for t in range(len(inst)):
+            F.apply(inst, t)
+            fo.write('%s' % inst[t]['y'])
+            for attr in inst[t]['F']:
+                fo.write('\t%s' % attr.replace(':', '__COLON__'))
+            fo.write('\n')
+        fo.write('\n')

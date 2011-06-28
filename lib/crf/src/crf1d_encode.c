@@ -85,7 +85,15 @@ typedef struct {
 
 static void crf1de_init(crf1de_t *crf1de)
 {
-    memset(crf1de, 0, sizeof(*crf1de));
+    crf1de->num_labels = 0;
+    crf1de->num_attributes = 0;
+    crf1de->cap_items = 0;
+    crf1de->num_features = 0;
+    crf1de->features = NULL;
+    crf1de->attributes = NULL;
+    crf1de->forward_trans = NULL;
+    crf1de->ctx = NULL;
+    /* Initialize except for opt. */
 }
 
 static void crf1de_finish(crf1de_t *crf1de)

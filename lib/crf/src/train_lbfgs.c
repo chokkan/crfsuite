@@ -139,7 +139,7 @@ static int lbfgs_progress(
 
     /* Report the progress. */
     logging(lg, "***** Iteration #%d *****\n", k);
-    logging(lg, "Log-likelihood: %f\n", -fx);
+    logging(lg, "Loss: %f\n", fx);
     logging(lg, "Feature norm: %f\n", xnorm);
     logging(lg, "Error norm: %f\n", gnorm);
     logging(lg, "Active features: %d\n", num_active_features);

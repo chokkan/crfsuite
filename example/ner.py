@@ -1,12 +1,18 @@
 #!/usr/bin/env python
 
 """
-An example for named eneity recognition (NER).
+A feature extractor for named eneity recognition (NER).
 Copyright 2010,2011 Naoaki Okazaki.
 """
 
+# Separator of field values.
+separator = ' '
+
+# Field names of the input data.
+fields = 'y w pos chk'
+
+
 import crfutils
-import template
 
 def get_shape(token):
     r = ''
@@ -248,7 +254,7 @@ def feature_extractor(X):
         observation(x)
 
     # Apply the feature templates.
-    template.apply(X, templates)
+    crfutils.apply_templates(X, templates)
 
     # Append disjunctive features.
     for t in range(len(X)):
@@ -261,5 +267,4 @@ def feature_extractor(X):
         X[-1]['F'].append('__EOS__')
 
 if __name__ == '__main__':
-    crfutils.main(feature_extractor, fields='y w pos chk', sep='\t')
-
+    crfutils.main(feature_extractor, fields=fields, sep=separator)

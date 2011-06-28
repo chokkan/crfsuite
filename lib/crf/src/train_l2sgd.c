@@ -495,7 +495,7 @@ int crfsuite_train_l2sgd(
         );
 
     logging(lg, "Loss: %f\n", loss);
-    logging(lg, "Total seconds required for SGD: %.3f\n", (clock() - clk_begin) / (double)CLOCKS_PER_SEC);
+    logging(lg, "Total seconds required for training: %.3f\n", (clock() - clk_begin) / (double)CLOCKS_PER_SEC);
     logging(lg, "\n");
 
     *ptr_w = w;

@@ -339,7 +339,10 @@ int main_learn(int argc, char *argv[], const char *argv0)
             *value++ = 0;
         }
 
-        params->set(params, name, value);
+        if (params->set(params, name, value) != 0) {
+            fprintf(fpe, "ERROR: paraneter not found: %s\n", name);
+            goto force_exit;
+        }
         params->release(params);
     }
 

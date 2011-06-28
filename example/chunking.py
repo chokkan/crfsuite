@@ -5,18 +5,13 @@ A feature extractor for chunking.
 Copyright 2010,2011 Naoaki Okazaki.
 """
 
-import sys
-import crfutils
-import template
-
 # Separator of field values.
 separator = ' '
 
 # Field names of the input data.
 fields = 'w pos y'
 
-# Feature template. This template is identical to the one bundled in CRF++
-# distribution, but written in a Python object.
+# Attribute templates.
 templates = (
     (('w', -2), ),
     (('w', -1), ),
@@ -39,9 +34,12 @@ templates = (
     (('pos',  0), ('pos',  1), ('pos',  2)),
     )
 
+
+import crfutils
+
 def feature_extractor(X):
-    # Apply feature templates to obtain features (in fact, attributes)
-    template.apply(X, templates)
+    # Apply attribute templates to obtain features (in fact, attributes)
+    crfutils.apply_templates(X, templates)
     if X:
 	# Append BOS and EOS features manually
         X[0]['F'].append('__BOS__')     # BOS feature

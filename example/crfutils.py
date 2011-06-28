@@ -6,6 +6,32 @@ Copyright 2010,2011 Naoaki Okazaki.
 import optparse
 import sys
 
+def apply_templates(X, templates):
+    """
+    Generate features for an item sequence by applying feature templates.
+    A feature template consists of a tuple of (name, offset) pairs,
+    where name and offset specify a field name and offset from which
+    the template extracts a feature value. Generated features are stored
+    in the 'F' field of each item in the sequence.
+
+    @type   X:      list of mapping objects
+    @param  X:      The item sequence.
+    @type   template:   tuple of (str, int)
+    @param  template:   The feature template.
+    """
+    for template in templates:
+        name = '|'.join(['%s[%d]' % (f, o) for f, o in template])
+        for t in range(len(X)):
+            values = []
+            for field, offset in template:
+                p = t + offset
+                if p not in range(len(X)):
+                    values = []
+                    break
+                values.append(X[p][field])
+            if values:
+                X[t]['F'].append('%s=%s' % (name, '|'.join(values)))
+
 def readiter(fi, names, sep=' '):
     """
     Return an iterator for item sequences read from a file object.
