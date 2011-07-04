@@ -8,9 +8,9 @@
 %include "std_vector.i"
 %include "exception.i"
 
-%template(Item) std::vector<CRFSuite::Attribute>;
-%template(ItemSequence) std::vector<CRFSuite::Item>;
-%template(StringList) std::vector<std::string>;
+%rename(Item) std::vector<CRFSuite::Attribute>;
+%rename(ItemSequence) std::vector<CRFSuite::Item>;
+%rename(StringList) std::vector<std::string>;
 
 %feature("director") Trainer;
 

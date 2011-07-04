@@ -3,7 +3,7 @@
 lib_LTLIBRARIES = libcrfsuite.la
 
 EXTRA_DIST = \
-	crf.vcproj 
+	crf.vcxproj 
 
 libcrfsuite_la_SOURCES = \
 	src/dictionary.c \

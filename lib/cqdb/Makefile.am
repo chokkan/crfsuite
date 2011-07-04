@@ -3,7 +3,7 @@
 lib_LTLIBRARIES = libcqdb.la
 
 EXTRA_DIST = \
-	cqdb.vcproj \
+	cqdb.vcxproj \
 	COPYING
 
 libcqdb_la_SOURCES = \

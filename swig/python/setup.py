@@ -25,10 +25,11 @@ crfsuite_module = Extension(
         'crfsuite.cpp',
         'export_wrap.cpp',
         ],
-    include_dirs=[get_includedir(),],
+#    include_dirs=['../../include',],
     extra_link_args=['-shared'],
-    library_dirs=[get_librarydir(),],
+#    library_dirs=['../../lib/crf',],
     libraries=['crfsuite'],
+#    extra_objects=['../../lib/crf/libcrfsuite.la'],
     language='c++',
     )
 

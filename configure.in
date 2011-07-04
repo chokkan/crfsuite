@@ -27,7 +27,7 @@ AC_ISC_POSIX
 dnl ------------------------------------------------------------------
 dnl Initialization for automake
 dnl ------------------------------------------------------------------
-AM_INIT_AUTOMAKE(crfsuite, 0.11)
+AM_INIT_AUTOMAKE(crfsuite, 0.12)
 AC_CONFIG_HEADERS(config.h)
 AM_MAINTAINER_MODE
 AM_C_PROTOTYPES
@@ -36,7 +36,7 @@ AM_C_PROTOTYPES
 dnl ------------------------------------------------------------------
 dnl Checks for program
 dnl ------------------------------------------------------------------
-dnl AM_PROG_CC_C_O
+AM_PROG_CC_C_O
 AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -137,9 +137,11 @@ dnl ------------------------------------------------------------------
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(INCLUDES)
+AC_SUBST(includedir)
+AC_SUBST(libdir)
 
 dnl ------------------------------------------------------------------
 dnl Output the configure results.
 dnl ------------------------------------------------------------------
-AC_CONFIG_FILES(Makefile genbinary.sh include/Makefile lib/cqdb/Makefile lib/crf/Makefile frontend/Makefile)
+AC_CONFIG_FILES(Makefile genbinary.sh include/Makefile lib/cqdb/Makefile lib/crf/Makefile frontend/Makefile swig/Makefile)
 AC_OUTPUT

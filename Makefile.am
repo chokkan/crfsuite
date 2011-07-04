@@ -1,6 +1,6 @@
 # $Id$
 
-SUBDIRS = include lib/cqdb lib/crf frontend
+SUBDIRS = include lib/cqdb lib/crf frontend swig
 
 docdir = $(prefix)/share/doc/@PACKAGE@
 doc_DATA = README INSTALL COPYING AUTHORS ChangeLog
