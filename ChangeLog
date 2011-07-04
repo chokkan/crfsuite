@@ -1,6 +1,6 @@
-2011-03-19  Naoaki Okazaki  <okazaki at chokkan org>
+2011-07-04  Naoaki Okazaki  <okazaki at chokkan org>
 	* CRFsuite 0.12
-	- [CORE] Optimized routines for speeding up training.
+	- [CORE] Optimized the implementation for faster training; approximately 1.4-1.5 x speed up.
 	- [CORE] Faster routine for computing exp(x) using SSE2.
 	- [CORE] Restructured the source code to separate routines for CRF graphical models and training algorithms; this is an initial attempt for implementing CRFs with different feature types (e.g., 2nd-order CRF, 1st-order transition features conditioned on observations) and different training algorithms.
 	- [CORE] Implemented new training algorithms: Averaged Perceptron, Passive Aggressive, and Adaptive Regularization of Weights (AROW).
@@ -8,10 +8,11 @@
 	- [CORE] Fixed some memory-leak problems.
 	- [CORE] Reduced memory usage in training.
 	- [CORE] Fixed a crash problem when the model file does not exist in tagging.
-	- [FRONTEND:LEARN] Training and test sets are maintained by group numbers; specify the group number for hold-out evaluation with "-t" option.
+	- [FRONTEND:LEARN] Training and test sets are maintained by group numbers; specify the group number for hold-out evaluation with "-e" option.
 	- [FRONTEND:LEARN] Training algorithm is now specified by "-a" option instead of "-p algorithm=".
-	- [FRONTEND:LEARN] Renamed some training parameters; for example, an L2 regularization coefficient is specified by "c2" instead of "regularization.sigma" (c2 = 0.5 / sigma * sigma).
+	- [FRONTEND:LEARN] Renamed some training parameters; for example, an L2 regularization coefficient is specified by "c2" instead of "regularization.sigma" (c2 = 0.5 / sigma * sigma; c1 = 1.0 / sigma).
 	- [FRONTEND:LEARN] Show the list of parameters, default values, and descriptions with "-H" option.
+	- [FRONTEND:LEARN] Removed the support of comment lines for simplicity; one may forget to escape '#' characters in a data set. CRFsuite now does not handle '#' as a special character.
 	- [FRONTEND:TAGGER] Output probabilities of predicted sequences with "-p" option.
 	- [FRONTEND:TAGGER] Output marginal probabilities of predicted items with "-i" option.
 	- [API] Numerous changes in API for the enhancements.
@@ -19,7 +20,9 @@
 	- [API] Renamed the prefix "crf_" to "crfsuite_" in structure and function names.
 	- [API] Implemented a high-level and easy-to-use API for C++/SWIG (crfsuite.hpp and crfsuite_api.hpp).
 	- [API] Implemented the Python SWIG module and sample programs; writing a tagger is very easy with this module.
-	- [SAMPLE] A new sample: Named Entity Recognition (NER) using the CoNLL2003 data set.
+	- [SAMPLE] Rewritten samples.
+	- [SAMPLE] A sample program (template.py) for using feature templates that are compatible with CRF++.
+	- [SAMPLE] New samples in example directory: Named Entity Recognition (ner.py) using the CoNLL2003 data set, and part-of-speech tagging (pos.py).
 	- [OTHER] Updated the MSVC solution file to MSVC 2010.
 
 	

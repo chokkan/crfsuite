@@ -9,8 +9,11 @@ EXTRA_DIST = \
 	crfsuite.sln \
 	autogen.sh \
 	win32/stdint.h \
-	example/CoNLL2000/to_crfsuite.py \
-	example/CoNLL2000/crfsuite_to_flexcrf.py
+	example/crfutils.py \
+	example/template.py \
+	example/pos.py \
+	example/ner.py \
+	example/chunking.py
 
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
