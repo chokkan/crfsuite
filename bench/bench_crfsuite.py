@@ -39,6 +39,7 @@ if __name__ == '__main__':
     for name, param in params.iteritems():
         model = OUTDIR + name + '.model'
         trlog = OUTDIR + name + '.tr.log'
+        trtxt = LOGDIR + 'crfsuite-' + name + '.txt'
         tglog = OUTDIR + name + '.tg.log'
 
         s = string.Template(
@@ -55,6 +56,10 @@ if __name__ == '__main__':
         fe.write('\n')
         #os.system(cmd)
 
+        fo = open(trtxt, 'w')
+        fo.write('$ %s\n' % cmd)
+        fo.write(open(trlog, 'r').read())
+
         s = string.Template(
             '$crfsuite tag -m $model -qt test.crfsuite > $tglog'
             )
@@ -70,6 +75,7 @@ if __name__ == '__main__':
 
         D = analyze_log(open(trlog), training_patterns)
         D.update(analyze_log(open(tglog), tagging_patterns))
+        D['logfile'] = trtxt
         R[name] = D
 
     print repr(R)

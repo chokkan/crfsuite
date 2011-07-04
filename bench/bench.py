@@ -1,6 +1,8 @@
 import re
 import collections
 
+LOGDIR='log/'
+
 def seconds(s):
     p = s.find(':')
     q = s.find(':', p+1)
@@ -32,7 +34,12 @@ def analyze_log(fi, patterns):
         for name, (regex, index, cast, func) in P.iteritems():
             m = regex.search(line)
             if m is not None:
-                D[name].append(cast(m.group(index)))
+                if isinstance(index, tuple):
+                    for i in index:
+                        D[name].append(cast(m.group(i)))
+                elif isinstance(index, int):
+                    D[name].append(cast(m.group(index)))
+
 
     R = {}
     for name, (regex, index, cast, func) in P.iteritems():

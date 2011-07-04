@@ -10,7 +10,7 @@ OUTDIR='wapiti/'
 
 training_patterns = (
     ('num_features', r'nb features: (\d+)', 1, int, last),
-    ('time', r'^Done!([\d.]+)', 1, float, last),
+    ('time', r'^([\d.]+)user ([\d.]+)system', (1, 2), float, sum),
     ('iterations', r'\[\s*(\d+)\]', 1, int, last),
     ('update', r'time=([\d.]+)', 1, float, min),
     ('loss', r'obj=([\d.]+)', 1, float, last),
@@ -22,7 +22,7 @@ tagging_patterns = (
 
 params = {
     'lbfgs': '-a l-bfgs --rho2 0.70710678118654746 --maxiter 1000 --stopeps 0.00001 --stopwin 10',
-#    'rprop': '-a rprop --rho2 0.70710678118654746 --maxiter 1000',
+    'rprop': '-a rprop --rho3 0.70710678118654746 --maxiter 1000',
 }
 
 if __name__ == '_main__':
@@ -35,6 +35,7 @@ if __name__ == '__main__':
     for name, param in params.iteritems():
         model = OUTDIR + name + '.model'
         trlog = OUTDIR + name + '.tr.log'
+        trtxt = LOGDIR + 'wapiti-' + name + '.txt'
         tglog = OUTDIR + name + '.tg.log'
 
         s = string.Template(
@@ -49,7 +50,11 @@ if __name__ == '__main__':
 
         fe.write(cmd)
         fe.write('\n')
-        os.system(cmd)
+        #os.system(cmd)
+
+        fo = open(trtxt, 'w')
+        fo.write('$ %s\n' % cmd)
+        fo.write(open(trlog, 'r').read())
 
         s = string.Template(
             '$wapiti label -m $model test.txt | ./accuracy.py > $tglog'
@@ -62,10 +67,11 @@ if __name__ == '__main__':
 
         fe.write(cmd)
         fe.write('\n')
-        os.system(cmd)
+        #os.system(cmd)
 
         D = analyze_log(open(trlog), training_patterns)
         D.update(analyze_log(open(tglog), tagging_patterns))
+        D['logfile'] = trtxt
         R[name] = D
 
     print repr(R)

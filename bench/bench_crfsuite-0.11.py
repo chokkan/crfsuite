@@ -10,7 +10,7 @@ OUTDIR='crfsuite-0.11/'
 
 training_patterns = (
     ('num_features', r'^Number of features: (\d+)', 1, int, last),
-    ('time', r'^Total seconds required for training: ([\d.]+)', 1, float, last),
+    ('time', r'^Total seconds required for L-BFGS: ([\d.]+)', 1, float, last),
     ('iterations', r'^\*\*\*\*\* (Iteration|Epoch) #(\d+)', 2, int, last),
     ('update', r'^Seconds required for this iteration: ([\d.]+)', 1, float, min),
     ('loss', r'^Log-likelihood: -([\d.]+)', 1, float, last),
@@ -35,6 +35,7 @@ if __name__ == '__main__':
     for name, param in params.iteritems():
         model = OUTDIR + name + '.model'
         trlog = OUTDIR + name + '.tr.log'
+        trtxt = LOGDIR + 'crfsuite0.11-' + name + '.txt'
         tglog = OUTDIR + name + '.tg.log'
 
         s = string.Template(
@@ -49,7 +50,11 @@ if __name__ == '__main__':
 
         fe.write(cmd)
         fe.write('\n')
-        os.system(cmd)
+        #os.system(cmd)
+
+        fo = open(trtxt, 'w')
+        fo.write('$ %s\n' % cmd)
+        fo.write(open(trlog, 'r').read())
 
         s = string.Template(
             '$crfsuite tag -m $model -qt test.crfsuite > $tglog'
@@ -62,10 +67,11 @@ if __name__ == '__main__':
 
         fe.write(cmd)
         fe.write('\n')
-        os.system(cmd)
+        #os.system(cmd)
 
         D = analyze_log(open(trlog), training_patterns)
         D.update(analyze_log(open(tglog), tagging_patterns))
+        D['logfile'] = trtxt
         R[name] = D
 
     print repr(R)
