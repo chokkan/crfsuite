@@ -130,8 +130,12 @@ def main(feature_extractor, fields='w pos y', sep=' '):
 
     # Parse the command-line arguments.
     parser = optparse.OptionParser(usage="""usage: %prog [options]
-This utility reads a data set from STDIN, and outputs features (without -t
-option) or tagging results (with -t option) to STDOUT."""
+This utility reads a data set from STDIN, and outputs attributes to STDOUT.
+Each line of a data set must consist of field values separated by SEPARATOR
+characters. The names and order of field values can be specified by -f option.
+The separator character can be specified with -s option. Instead of outputting
+attributes, this utility tags the input data when a model file is specified by
+-t option (CRFsuite Python module must be installed)."""
         )
     parser.add_option(
         '-t', dest='model',
@@ -139,7 +143,7 @@ option) or tagging results (with -t option) to STDOUT."""
         )
     parser.add_option(
         '-f', dest='fields', default=fields,
-        help='specify the column names of input data [default: "%default"]'
+        help='specify field names of input data [default: "%default"]'
         )
     parser.add_option(
         '-s', dest='separator', default=sep,
