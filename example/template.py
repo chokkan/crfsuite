@@ -57,13 +57,28 @@ def readiter(fi, sep=None):
             X.append(item)
 
 if __name__ == '__main__':
+    import optparse
+
     fi = sys.stdin
     fo = sys.stdout
 
-    F = FeatureExtractor()
-    F.read(open(sys.argv[1]))
+    # Parse the command-line arguments.
+    parser = optparse.OptionParser(usage="""usage: %prog <template>
+This utility reads a data set from STDIN, applies feature templates compatible
+with CRF++, and outputs attributes to STDOUT. Each line of a data set must
+consist of field values separated by SEPARATOR characters (customizable with
+-s option)."""
+        )
+    parser.add_option(
+        '-s', dest='separator', default='\t',
+        help='specify the separator of columns of input data [default: "\\t"]'
+        )
+    (options, args) = parser.parse_args()
 
-    for inst in readiter(fi):
+    F = FeatureExtractor()
+    F.read(open(args[0]))
+
+    for inst in readiter(fi, options.separator):
         for t in range(len(inst)):
             F.apply(inst, t)
             fo.write('%s' % inst[t]['y'])

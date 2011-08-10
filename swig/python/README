@@ -36,7 +36,7 @@ $HOME/local directory, run:
 
 $ python setup.py build_ext --include-dir=$HOME/local/include --library-dirs=$HOME/local/lib
 
-Be sure to LD_LIBRARY_PATH so that the Python binding can find the shared
+Be sure to set LD_LIBRARY_PATH so that the Python binding can find the shared
 library of CRFsuite (crfsuite.so). For example,
 
 $ export LD_LIBRARY_PATH=$HOME/local/lib
@@ -62,9 +62,31 @@ file or directory
 * NOTES FOR TESTING THE PYTHON MODULE WITHOUT INSTALLING IT
 
 Adding "--inplace" option to the command-line argument of setup.py builds
-crfsuite.py and _crfsuite.so in the current directory. If these files are
-placed on the directory included in the module path of Python (e.g., the
-current directory where a Python process is created), one can try the
-module without running "python setup.py install"
+_crfsuite.so in the current directory. If these files are placed on the
+directory included in the module path of Python (e.g., the current directory
+where a Python process is created), one can try the module without running
+"python setup.py install"
 
 $ python setup.py build_ext --inplace
+
+
+
+* NOTES FOR GENERATING WRAPPER CODE USING SWIG.
+
+The script "prepare.sh" can generate a SWIG wrapper with "--swig" option.
+$ ./prepare.sh --swig
+
+However, we may get a compiling error for the wrapper code (export_wrap.cpp)
+even with the latest version of SWIG (2.0.4):
+
+export_wrap.cpp:5019: error: redefinition of ?struct swig::traits<std::vector<
+CRFSuite::Attribute, std::allocator<CRFSuite::Attribute> > >
+export_wrap.cpp:4918: error: previous definition of ?struct swig::traits<std::
+vector<CRFSuite::Attribute, std::allocator<CRFSuite::Attribute> > >
+error: command 'g++' failed with exit status 1
+
+Having no idea how to fix this problem elegantly, I simply remove the latter
+definition from export_wrap.cpp manually. This is why I end up including
+the wrapper code into the source repository.
+
+

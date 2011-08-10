@@ -404,7 +404,7 @@ int main_learn(int argc, char *argv[], const char *argv0)
     /* Start training. */
     if (opt.cross_validation) {
         for (i = 0;i < groups;++i) {
-            fprintf(fpo, "===== Cross validation (%d/%d) =====", i+1, groups);
+            fprintf(fpo, "===== Cross validation (%d/%d) =====\n", i+1, groups);
             if (ret = trainer->train(trainer, &data, "", i)) {
                 goto force_exit;
             }

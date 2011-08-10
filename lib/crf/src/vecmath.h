@@ -36,7 +36,9 @@
 #include <math.h>
 #include <memory.h>
 
+#ifdef  USE_SSE
 #include <emmintrin.h>
+#endif/*USE_SSE*/
 
 #ifdef _MSC_VER
 #include <malloc.h>
@@ -169,6 +171,8 @@ inline static floatval_t vecsumlog(floatval_t* x, const int n)
     return s;
 }
 
+#ifdef  USE_SSE
+
 inline static void vecexp(double *values, const int n)
 {
     int i;
@@ -202,8 +206,8 @@ inline static void vecexp(double *values, const int n)
         /* Load four double values. */
         xmm0 = _mm_load_pd(maxlog);
         xmm1 = _mm_load_pd(minlog);
-		x1 = _mm_load_pd(values+i);
-		x2 = _mm_load_pd(values+i+2);
+        x1 = _mm_load_pd(values+i);
+        x2 = _mm_load_pd(values+i+2);
         x1 = _mm_min_pd(x1, xmm0);
         x2 = _mm_min_pd(x2, xmm0);
         x1 = _mm_max_pd(x1, xmm1);
@@ -317,10 +321,21 @@ inline static void vecexp(double *values, const int n)
         a2 = _mm_mul_pd(a2, p2);
 
         /* Store the results. */
-		_mm_store_pd(values+i, a1);
-		_mm_store_pd(values+i+2, a2);
+        _mm_store_pd(values+i, a1);
+        _mm_store_pd(values+i+2, a2);
     }
 }
 
+#else
+
+inline static void vecexp(double *values, const int n)
+{
+    int i;
+    for (i = 0;i < n;++i) {
+        values[i] = exp(values[i]);
+    }
+}
+
+#endif /*USE_SSE*/
 
 #endif/*__VECMATH_H__*/
