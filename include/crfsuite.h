@@ -249,7 +249,7 @@ typedef struct {
 
 
 /**
- * \addtogroup crfsuite_object CRFSuite objects
+ * \addtogroup crfsuite_object
  * @{
  */
 
@@ -718,7 +718,7 @@ struct tag_crfsuite_params {
 
 
 /**
- * \addtogroup crfsuite_object Creating instances of objects
+ * \addtogroup crfsuite_object
  * @{
  */
 
@@ -1047,11 +1047,11 @@ int crfsuite_interlocked_decrement(int *count);
 This document describes information for using
 <a href="http://www.chokkan.org/software/crfsuite">CRFsuite</a> from external
 programs. CRFsuite provides two APIs:
-- C API: low-level and complete interface, which is used by the official
-  frontend program.
-- C++/SWIG API: high-level and easy-to-use interface for a number of
-  programming languages (e.g, C++ and Python), which is a wrapper for the C
-  API.
+- @link crfsuite_api C API @endlink: low-level and complete interface, which
+  is used by the official frontend program.
+- @link crfsuite_hpp_api C++/SWIG API @endlink: high-level and easy-to-use
+  interface for a number of programming languages (e.g, C++ and Python),
+  which is a wrapper for the C API.
 
 */
 

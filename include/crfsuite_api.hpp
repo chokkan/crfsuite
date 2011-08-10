@@ -66,31 +66,49 @@ typedef struct tag_crfsuite_params crfsuite_params_t;
 #endif/*__CRFSUITE_H__*/
 
 /** 
- * \addtogroup crfsuite_hpp_api CRFSuite C++/SWIG API
- *
- *  The CRFSuite C++/SWIG API provides a high-level and easy-to-use library
- *  module for a number of programming languages. The C++ API is a wrapper
- *  for CRFSuite C API. The same API is available for other languages
- *  (e.g., Python and Ruby) supported by SWIG.
- *
- *  @section cpp C++ API
- *
- *  The C++ library is implemented in two header files, crfsuite_api.hpp
- *  and crfsuite.hpp. One can use the C++ API only by including crfsuite.hpp
- *  and by linking a program with libcrfsuite library.
- *
- *  @section swig SWIG API
- *
- *  SWIG modules provides the same API as C++.
- *
- * @{
+\page crfsuite_hpp_api CRFSuite C++/SWIG API
+
+@section crfsuite_hpp_api_intro Introduction
+
+The CRFSuite C++/SWIG API provides a high-level and easy-to-use library module
+for a number of programming languages. The C++/SWIG API is a wrapper for the
+CRFSuite C API.
+- @link crfsuite_hpp_api_doc API documentation @endlink
+
+@section crfsuite_hpp_api_cpp C++ API
+
+The C++ library is implemented in two header files, crfsuite_api.hpp and
+crfsuite.hpp. One can use the C++ API only by including crfsuite.hpp. The C++
+library has a dependency to the CRFSuite C library, which means that the
+C header file (crfsuite.h) and libcrfsuite library are necessary.
+
+@section crfsuite_hpp_api_swig SWIG API
+
+The SWIG API is identical to the C++ API. Currently, the CRFsuite distribution
+includes a Python module for CRFsuite. Please read README under swig/python
+directory for the information to build the Python module.
+
+@subsection crfsuite_hpp_api_sample Sample code
+
+This code demonstrates how to use the crfsuite.Trainer object. The script
+reads a training data from STDIN, trains a model using 'l2sgd' algorithm,
+and stores the model to a file (the first argument of the commend line).
+
+@include swig/python/sample_train.py
+
+This code demonstrates how to use the crfsuite.Tagger object. The script
+loads a model from a file (the first argument of the commend line), reads
+a data from STDIN, predicts label sequences.
+
+@include swig/python/sample_tag.py
+
  */
 
 namespace CRFSuite
 {
 
-/** 
- * \addtogroup crfsuite_hpp_dataset Data structures
+/**
+ * \addtogroup crfsuite_hpp_api_doc Data structures
  * @{
  */
 
@@ -147,7 +165,6 @@ typedef std::vector<Item>  ItemSequence;
  */
 typedef std::vector<std::string> StringList;
 
-/**@} */
 
 
 
@@ -368,13 +385,6 @@ public:
     double marginal(const std::string& y, const int t);
 };
 
-
-
-/** 
- * \addtogroup crfsuite_hpp_misc Miscellaneous functions
- * @{
- */
-
 /**
  * Obtain the version number of the library.
  *  @return std::string     The version string.
@@ -386,7 +396,5 @@ std::string version();
 
 
 };
-
-/** @} */
 
 #endif/*__CRFSUITE_API_HPP__*/
