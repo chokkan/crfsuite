@@ -1,4 +1,4 @@
-2011-07-04  Naoaki Okazaki  <okazaki at chokkan org>
+2011-08-11  Naoaki Okazaki  <okazaki at chokkan org>
 	* CRFsuite 0.12
 	- [CORE] Optimized the implementation for faster training; approximately 1.4-1.5 x speed up.
 	- [CORE] Faster routine for computing exp(x) using SSE2.
