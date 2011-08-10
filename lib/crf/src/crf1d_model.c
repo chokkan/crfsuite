@@ -722,11 +722,14 @@ crf1dm_t* crf1dm_new(const char *filename)
     fseek(fp, 0, SEEK_SET);
 
     model->buffer = model->buffer_orig = (uint8_t*)malloc(model->size + 16);
-    while ((uint32_t)model->buffer % 16 != 0) {
+    while ((uintptr_t)model->buffer % 16 != 0) {
         ++model->buffer;
     }
 
-    fread(model->buffer, 1, model->size, fp);
+    if (fread(model->buffer, 1, model->size, fp) != model->size) {
+        free(model->buffer_orig);
+        goto error_exit;
+    }
     fclose(fp);
 
     /* Write the file header. */
