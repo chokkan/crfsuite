@@ -34,14 +34,10 @@ option for the configure script, please specify the include and library
 directories to setup.py; for example, if you have installed CRFsuite into
 $HOME/local directory, run:
 
-$ python setup.py build_ext --include-dir=$HOME/local/include --library-dirs=$HOME/local/lib
+$ python setup.py build_ext --include-dir=$HOME/local/include --library-dirs=$HOME/local/lib -R $HOME/local/lib
 
-Be sure to set LD_LIBRARY_PATH so that the Python binding can find the shared
-library of CRFsuite (crfsuite.so). For example,
-
-$ export LD_LIBRARY_PATH=$HOME/local/lib
-
-Otherwise, you will get this kind of an error:
+If you forget to specify "-R PATH_TO_CRFSUITE_LIBRARY" to the arguments,
+you may get this kind of error:
 
 $ python
 Python 2.6.6 (r266:84292, Sep 15 2010, 16:22:56)
@@ -56,6 +52,13 @@ Traceback (most recent call last):
     _mod = imp.load_module('_crfsuite', fp, pathname, description)
 ImportError: libcrfsuite-0.12.so: cannot open shared object file: No such
 file or directory
+
+This error reports that CRFsuite Python module could not resolve the reference
+to the CRFsuite library (libcrfsuite-0.12.so). If you encounter this problem,
+please rebuild the Python module with "-R PATH_TO_CRFSUITE_LIBRARY".
+Alternatively, you can specify a search path for libraries:
+
+$ export LD_LIBRARY_PATH=$HOME/local/lib
 
 
 
