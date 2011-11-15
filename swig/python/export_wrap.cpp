@@ -5015,6 +5015,14 @@ SWIGINTERN void std_vector_Sl_CRFSuite_Attribute_Sg__append(std::vector< CRFSuit
       self->push_back(x);
     }
 
+/*  namespace swig {
+    template <>  struct traits<CRFSuite::Item > {
+      typedef pointer_category category;
+      static const char* type_name() { return"CRFSuite::Item"; }
+    };
+  }*/
+
+
       namespace swig {
 	template <>  struct traits<std::vector<CRFSuite::Item, std::allocator< CRFSuite::Item > > > {
 	  typedef pointer_category category;

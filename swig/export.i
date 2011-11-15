@@ -1,4 +1,8 @@
+#if defined(SWIGPYTHON)
 %module(directors="1") crfsuite
+#else
+%module(directors="1") CRFSuite
+#endif
 
 %{
 #include "crfsuite_api.hpp"
