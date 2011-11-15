@@ -12,6 +12,17 @@
 %include "std_vector.i"
 %include "exception.i"
 
+#ifdef SWIGPERL
+// PERL5 Scalar value -> STL std::string
+%typemap(in) const std::string& ($basetype temp) {
+    STRLEN len;
+    char *s = SvPV($input, len);
+    temp.assign(s, len);
+    $1 = &temp;
+}
+%typemap(freearg) const std::string& ""
+#endif
+
 %template(Item) std::vector<CRFSuite::Attribute>;
 %template(ItemSequence) std::vector<CRFSuite::Item>;
 %template(StringList) std::vector<std::string>;
