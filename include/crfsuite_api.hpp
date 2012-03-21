@@ -34,6 +34,7 @@
 #include <string>
 #include <stdexcept>
 #include <vector>
+#include <cstdarg>
 
 #ifndef __CRFSUITE_H__
 
