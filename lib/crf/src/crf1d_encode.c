@@ -831,7 +831,7 @@ static int encoder_objective_and_gradients_batch(encoder_t *self, dataset_t *ds,
         /* Compute the probability of the input sequence on the model. */
         logp = crf1dc_score(crf1de->ctx, seq->labels) - crf1dc_lognorm(crf1de->ctx);
         /* Update the log-likelihood. */
-        logl += logp;
+        logl += logp * seq->weight;
 
         /* Update the model expectations of features. */
         crf1de_model_expectation(crf1de, seq, g, seq->weight);
@@ -906,13 +906,14 @@ static int encoder_partition_factor(encoder_t *self, floatval_t *ptr_pf)
 }
 
 /* LEVEL_INSTANCE -> LEVEL_MARGINAL. */
-static int encoder_objective_and_gradients(encoder_t *self, floatval_t *f, floatval_t *g, floatval_t gain)
+static int encoder_objective_and_gradients(encoder_t *self, floatval_t *f, floatval_t *g, floatval_t gain, floatval_t weight)
 {
     crf1de_t *crf1de = (crf1de_t*)self->internal;
     set_level(self, LEVEL_MARGINAL);
+    gain *= weight;
     crf1de_observation_expectation(crf1de, self->inst, self->inst->labels, g, gain);
     crf1de_model_expectation(crf1de, self->inst, g, -gain);
-    *f = -crf1dc_score(crf1de->ctx,  self->inst->labels) + crf1dc_lognorm(crf1de->ctx);
+    *f = (-crf1dc_score(crf1de->ctx,  self->inst->labels) + crf1dc_lognorm(crf1de->ctx)) * weight;
     return 0;
 }
 
