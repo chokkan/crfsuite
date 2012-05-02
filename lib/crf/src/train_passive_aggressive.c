@@ -376,9 +376,9 @@ int crfsuite_train_passive_aggressive(
                         w[k] += tau * delta[k]
                         ws[k] += tau * u * delta[k]
                  */
-                delta_add(&dc, w, ws, tau, u);
+                delta_add(&dc, w, ws, tau * inst->weight, u);
 
-                sum_loss += cost;
+                sum_loss += cost * inst->weight;
             }
             ++u;
         }
