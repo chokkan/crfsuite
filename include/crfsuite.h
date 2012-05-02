@@ -54,7 +54,7 @@ extern "C" {
  */
 
 /** Version number of CRFSuite library. */
-#define CRFSUITE_VERSION    "0.12"
+#define CRFSUITE_VERSION    "0.12.1"
 
 /** Copyright string of CRFSuite library. */
 #define CRFSUITE_COPYRIGHT  "Copyright (c) 2007-2011 Naoaki Okazaki"
@@ -160,6 +160,8 @@ typedef struct {
     crfsuite_item_t  *items;
     /** Array of the label sequence. */
     int         *labels;
+    /** Instance weight. */
+    floatval_t  weight;
     /** Group ID of the instance. */
 	int         group;
 } crfsuite_instance_t;

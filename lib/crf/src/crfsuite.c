@@ -155,6 +155,7 @@ int  crfsuite_item_empty(crfsuite_item_t* item)
 void crfsuite_instance_init(crfsuite_instance_t* inst)
 {
     memset(inst, 0, sizeof(*inst));
+    inst->weight = 1.;
 }
 
 void crfsuite_instance_init_n(crfsuite_instance_t* inst, int num_items)
@@ -186,6 +187,7 @@ void crfsuite_instance_copy(crfsuite_instance_t* dst, const crfsuite_instance_t*
     dst->cap_items = src->cap_items;
     dst->items = (crfsuite_item_t*)calloc(dst->num_items, sizeof(crfsuite_item_t));
     dst->labels = (int*)calloc(dst->num_items, sizeof(int));
+    dst->weight = src->weight;
     dst->group = src->group;
     for (i = 0;i < dst->num_items;++i) {
         crfsuite_item_copy(&dst->items[i], &src->items[i]);
@@ -200,11 +202,13 @@ void crfsuite_instance_swap(crfsuite_instance_t* x, crfsuite_instance_t* y)
     x->cap_items = y->cap_items;
     x->items = y->items;
     x->labels = y->labels;
+    x->weight = y->weight;
     x->group = y->group;
     y->num_items = tmp.num_items;
     y->cap_items = tmp.cap_items;
     y->items = tmp.items;
     y->labels = tmp.labels;
+    y->weight = tmp.weight;
     y->group = tmp.group;
 }
 

@@ -308,8 +308,8 @@ int crfsuite_train_arow(
             d = diff(inst->labels, viterbi, inst->num_items);
             if (0 < d) {
                 floatval_t alpha, frac;
-                floatval_t sc, norm2;
-                floatval_t tau, cost;
+                floatval_t sc;
+                floatval_t cost;
 
                 /*
                     Compute the cost of this instance.

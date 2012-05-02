@@ -834,7 +834,7 @@ static int encoder_objective_and_gradients_batch(encoder_t *self, dataset_t *ds,
         logl += logp;
 
         /* Update the model expectations of features. */
-        crf1de_model_expectation(crf1de, seq, g, 1.);
+        crf1de_model_expectation(crf1de, seq, g, seq->weight);
     }
 
     *f = -logl;

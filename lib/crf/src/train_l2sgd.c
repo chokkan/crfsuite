@@ -289,7 +289,7 @@ l2sgd_calibration(
     const training_option_t* opt
     )
 {
-    int i, s;
+    int i;
     int dec = 0, ok, trials = 1;
     int num = opt->calibration_candidates;
     clock_t clk_begin = clock();

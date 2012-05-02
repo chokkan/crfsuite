@@ -573,7 +573,7 @@ Among the various ports of L-BFGS, this library provides several features:
   The library is thread-safe, which is the secondary gain from the callback
   interface.
 - <b>Cross platform.</b> The source code can be compiled on Microsoft Visual
-  Studio 2005, GNU C Compiler (gcc), etc.
+  Studio 2010, GNU C Compiler (gcc), etc.
 - <b>Configurable precision</b>: A user can choose single-precision (float)
   or double-precision (double) accuracy by changing ::LBFGS_FLOAT macro.
 - <b>SSE/SSE2 optimization</b>:
@@ -592,12 +592,20 @@ This library is used by:
 
 @section download Download
 
-- <a href="http://www.chokkan.org/software/dist/liblbfgs-1.9.tar.gz">Source code</a>
+- <a href="https://github.com/downloads/chokkan/liblbfgs/liblbfgs-1.10.tar.gz">Source code</a>
+- <a href="https://github.com/chokkan/liblbfgs">GitHub repository</a>
 
 libLBFGS is distributed under the term of the
 <a href="http://opensource.org/licenses/mit-license.php">MIT license</a>.
 
 @section changelog History
+- Version 1.10 (2010-12-22):
+    - Fixed compiling errors on Mac OS X; this patch was kindly submitted by
+      Nic Schraudolph.
+    - Reduced compiling warnings on Mac OS X; this patch was kindly submitted
+      by Tamas Nepusz.
+    - Replaced memalign() with posix_memalign().
+    - Updated solution and project files for Microsoft Visual Studio 2010.
 - Version 1.9 (2010-01-29):
     - Fixed a mistake in checking the validity of the parameters "ftol" and
       "wolfe"; this was discovered by Kevin S. Van Horn.
@@ -718,6 +726,7 @@ Special thanks go to:
     - Yoshimasa Tsuruoka and Daisuke Okanohara for technical information about
       OWL-QN
     - Takashi Imamichi for the useful enhancements of the backtracking method
+    - Kevin S. Van Horn, Nic Schraudolph, and Tamas Nepusz for bug fixes
 
 Finally I would like to thank the original author, Jorge Nocedal, who has been
 distributing the effieicnt and explanatory implementation in an open source

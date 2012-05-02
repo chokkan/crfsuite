@@ -34,6 +34,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <crfsuite.h>
 #include "iwa.h"
@@ -106,7 +107,13 @@ int read_data(FILE *fpi, FILE *fpo, crfsuite_data_t* data, int group)
             break;
         case IWA_ITEM:
             if (lid == -1) {
-                lid = labels->get(labels, token->attr);
+                if (strncmp(token->attr, "@weight:", 8) == 0) {
+                    /* Instance weighting. */
+                    inst.weight = atof(token->attr+8);
+                } else {
+                    /* Label. */
+                    lid = labels->get(labels, token->attr);
+                }
             } else {
                 crfsuite_attribute_init(&cont);
                 cont.aid = attrs->get(attrs, token->attr);
@@ -124,6 +131,7 @@ int read_data(FILE *fpi, FILE *fpo, crfsuite_data_t* data, int group)
             crfsuite_data_append(data, &inst);
             crfsuite_instance_finish(&inst);
             inst.group = group;
+            inst.weight = 1.;
             ++n;
             break;
         }
