@@ -324,14 +324,14 @@ int crfsuite_train_arow(
                     For every feature k on the correct path:
                         delta[k] += 1;
                  */
-                dc.c = 1;
+                dc.c = inst->weight;
                 gm->features_on_path(gm, inst, inst->labels, delta_collect, &dc);
 
                 /*
                     For every feature k on the Viterbi path:
                         delta[k] -= 1;
                  */
-                dc.c = -1;
+                dc.c = -inst->weight;
                 gm->features_on_path(gm, inst, viterbi, delta_collect, &dc);
 
                 delta_finalize(&dc);
@@ -361,7 +361,7 @@ int crfsuite_train_arow(
                     cov[k] = 1.0 / ((1.0 / cov[k]) + prod[k] / opt.gamma);
                 }
 
-                sum_loss += cost;
+                sum_loss += cost * inst->weight;
             }
         }
 
