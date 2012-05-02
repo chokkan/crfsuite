@@ -178,20 +178,20 @@ int crfsuite_train_averaged_perceptron(
                     For every feature k on the correct path:
                         w[k] += 1; ws[k] += c;
                  */
-                ud.c = 1;
-                ud.cs = c;
+                ud.c = inst->weight;
+                ud.cs = c * inst->weight;
                 gm->features_on_path(gm, inst, inst->labels, update_weights, &ud);
 
                 /*
                     For every feature k on the Viterbi path:
                         w[k] -= 1; ws[k] -= c;
                  */
-                ud.c = -1;
-                ud.cs = -c;
+                ud.c = -inst->weight;
+                ud.cs = -c * inst->weight;
                 gm->features_on_path(gm, inst, viterbi, update_weights, &ud);
 
                 /* We define the loss as the ratio of wrongly predicted labels. */
-                loss += d / (floatval_t)inst->num_items;
+                loss += d / (floatval_t)inst->num_items * inst->weight;
             }
 
             ++c;
