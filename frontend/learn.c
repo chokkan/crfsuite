@@ -111,7 +111,7 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
             opt->type = mystrdup("crf1d");
         } else {
             fprintf(stderr, "ERROR: Unknown graphical model: %s\n", arg);
-            return 1;
+            return -1;
         }
 
     ON_OPTION_WITH_ARG(SHORTOPT('a') || LONGOPT("algorithm"))
@@ -132,7 +132,7 @@ BEGIN_OPTION_MAP(parse_learn_options, learn_option_t)
             opt->algorithm = mystrdup("arow");
         } else {
             fprintf(stderr, "ERROR: Unknown algorithm: %s\n", arg);
-            return 1;
+            return -1;
         }
 
     ON_OPTION_WITH_ARG(SHORTOPT('p') || LONGOPT("set"))
