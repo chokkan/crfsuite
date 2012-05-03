@@ -365,6 +365,11 @@ int main_learn(int argc, char *argv[], const char *argv0)
         fprintf(fpo, "[%d] %s\n", i-arg_used+1, argv[i]);
         clk_begin = clock();
         n = read_data(fp, fpo, &data, i-arg_used);
+        if (n == -1) {
+            fclose(fp);
+            ret = 1;
+            goto force_exit;
+        }
         clk_current = clock();
         fprintf(fpo, "Number of instances: %d\n", n);
         fprintf(fpo, "Seconds required: %.3f\n", (clk_current - clk_begin) / (double)CLOCKS_PER_SEC);

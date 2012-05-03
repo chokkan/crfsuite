@@ -107,9 +107,17 @@ int read_data(FILE *fpi, FILE *fpo, crfsuite_data_t* data, int group)
             break;
         case IWA_ITEM:
             if (lid == -1) {
-                if (strncmp(token->attr, "@weight:", 8) == 0) {
-                    /* Instance weighting. */
-                    inst.weight = atof(token->attr+8);
+                if (strncmp(token->attr, "@", 1) == 0) {
+                    /* Declaration. */
+                    if (strcmp(token->attr, "@weight") == 0) {
+                        /* Instance weighting. */
+                        inst.weight = atof(token->value);
+                    } else {
+                        /* Unrecognized declaration. */
+                        fprintf(fpo, "\n");
+                        fprintf(fpo, "ERROR: unrecognized declaration: %s\n", token->attr);
+                        return -1;
+                    }
                 } else {
                     /* Label. */
                     lid = labels->get(labels, token->attr);
