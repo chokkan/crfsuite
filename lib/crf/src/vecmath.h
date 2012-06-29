@@ -40,7 +40,7 @@
 #include <emmintrin.h>
 #endif/*USE_SSE*/
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 #include <malloc.h>
 #else
 #include <stdlib.h>
