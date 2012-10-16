@@ -5,7 +5,7 @@ CRFsuite Python module via SWIG
 0. Build CRFsuite and install it (the library and include files are necessary)
 
 1. Generate a SWIG wrapper
-$ ./prepare.sh --swig
+$ ./prepare.sh
 
 2. Build the binding.
 $ python setup.py build_ext
