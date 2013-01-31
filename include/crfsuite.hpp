@@ -323,6 +323,57 @@ StringList Tagger::labels()
     return lseq;
 }
 
+// HCCHO: Set label biases
+void Tagger::set_bias(const std::string &bias_opt)
+{
+    crfsuite_dictionary_t   *labels = NULL;
+    model->get_labels(model, &labels);
+
+    float *lbwv = (float*) calloc(labels->num(labels), sizeof(float));
+    std::string   str_bias, str_label, str_weight;
+    std::string   one_bias, sep;
+    int   lid = -1;
+    float w = 0.0;
+
+    // 1. Initialize the weight vector
+    for (int idx = 0; idx < labels->num(labels); ++idx) {
+        lbwv[idx] = 0.0;
+    }
+
+    // 2. Set the weight vector
+    if (bias_opt != "") {
+        std::istringstream ss(bias_opt);
+        while (!ss.eof()) {
+            std::string one_bias;
+            getline( ss, one_bias, ',' );
+
+            size_t pos = 0;
+            if ((pos = one_bias.find(":")) == std::string::npos) {
+                std::cerr << "There is no separator : between the label name and its bias weight!" << std::endl;
+                exit(1);
+            }else {
+                // Split the label and its bias
+                str_label  = one_bias.substr(0, pos);
+                str_weight = one_bias.substr(pos+1, std::string::npos);
+
+                // Convert the label into the corresponding index and the bias into float value
+                lid = labels->to_id(labels, str_label.c_str());
+                w = atof(str_weight.c_str());
+                if (lid < 0)
+                    continue;
+
+                // Set the bias in the bias weight vector
+                lbwv[lid] = w;
+            }
+        }
+    }
+
+    // 3. Set the bias weight
+    tagger->set_bias(tagger, lbwv, labels->num(labels));
+
+    free(lbwv);
+}
+
 StringList Tagger::tag(const ItemSequence& xseq)
 {
     set(xseq);

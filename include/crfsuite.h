@@ -40,7 +40,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdarg.h>
 
-/** 
+/**
  * \addtogroup crfsuite_api CRFSuite C API
  * @{
  *
@@ -48,7 +48,7 @@ extern "C" {
  *  CRFSuite in C language.
  */
 
-/** 
+/**
  * \addtogroup crfsuite_misc Miscellaneous definitions and functions
  * @{
  */
@@ -273,7 +273,7 @@ struct tag_crfsuite_model {
      * Pointer to the internal data (internal use only).
      */
     void *internal;
-    
+
     /**
      * Reference counter (internal use only).
      */
@@ -341,7 +341,7 @@ struct tag_crfsuite_trainer {
      * Pointer to the internal data (internal use only).
      */
     void *internal;
-    
+
     /**
      * Reference counter (internal use only).
      */
@@ -425,6 +425,12 @@ struct tag_crfsuite_tagger {
      */
     int (*set)(crfsuite_tagger_t* tagger, crfsuite_instance_t *inst);
 
+    /**
+     * HCCHO: Set a bias weight vector
+     * @param  tagger       The pointer to this tagger instance.
+     * @param  bias         Bias weight vector in float type
+     */
+    int  (*set_bias)(crfsuite_tagger_t* tagger, float* bias, int num);
     /**
      * Obtain the number of items in the current instance.
      *  @param  tagger      The pointer to this tagger instance.
@@ -1018,7 +1024,7 @@ void crfsuite_evaluation_output(crfsuite_evaluation_t* eval, crfsuite_dictionary
 
 
 
-/** 
+/**
  * \addtogroup crfsuite_misc Miscellaneous definitions and functions
  * @{
  */

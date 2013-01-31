@@ -175,6 +175,11 @@ typedef struct {
      */
     floatval_t *mexp_trans;
 
+    /**
+     * HCCHO: Label bias given as a command line option
+     */
+    float *bias;
+
 } crf1d_context_t;
 
 #define    MATRIX(p, xl, x, y)        ((p)[(xl) * (y) + (x)])

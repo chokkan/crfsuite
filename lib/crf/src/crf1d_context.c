@@ -52,7 +52,7 @@ crf1d_context_t* crf1dc_new(int flag, int L, int T)
 {
     int ret = 0;
     crf1d_context_t* ctx = NULL;
-    
+
     ctx = (crf1d_context_t*)calloc(1, sizeof(crf1d_context_t));
     if (ctx != NULL) {
         ctx->flag = flag;
@@ -142,6 +142,8 @@ void crf1dc_delete(crf1d_context_t* ctx)
         free(ctx->mexp_trans);
         _aligned_free(ctx->exp_trans);
         free(ctx->trans);
+        // HCCHO: Free the label bias weight variable
+        free(ctx->bias);
     }
     free(ctx);
 }
@@ -367,7 +369,7 @@ void crf1dc_marginal_without_beta(crf1d_context_t* ctx)
     fwd = ALPHA_SCORE(ctx, T-1);
     prob = STATE_MEXP(ctx, T-1);
     veccopy(prob, fwd, L);
-    
+
     /*
         Repeat the following computation for t = T-1,T-2, ..., 1.
             1) Compute p(t-1,i,t,j) using p(t,j)
@@ -479,7 +481,8 @@ floatval_t crf1dc_viterbi(crf1d_context_t* ctx, int *labels)
     cur = ALPHA_SCORE(ctx, 0);
     state = STATE_SCORE(ctx, 0);
     for (j = 0;j < L;++j) {
-        cur[j] = state[j];
+        // HCCHO: cur[j] = state[j];
+        cur[j] = state[j] + (ctx->bias)[j];
     }
 
     /* Compute the scores at (t, *). */
@@ -496,7 +499,8 @@ floatval_t crf1dc_viterbi(crf1d_context_t* ctx, int *labels)
             for (i = 0;i < L;++i) {
                 /* Transit from (t-1, i) to (t, j). */
                 trans = TRANS_SCORE(ctx, i);
-                score = prev[i] + trans[j];
+                // HCCHO: score = prev[i] + trans[j];
+                score = prev[i] + trans[j] + (ctx->bias)[j];
 
                 /* Store this path if it has the maximum score. */
                 if (max_score < score) {
@@ -605,7 +609,7 @@ void crf1dc_debug_context(FILE *fp)
         for (y2 = 0;y2 < L;++y2) {
             for (y3 = 0;y3 < L;++y3) {
                 floatval_t logp;
-                
+
                 labels[0] = y1;
                 labels[1] = y2;
                 labels[2] = y3;
@@ -629,7 +633,7 @@ void crf1dc_debug_context(FILE *fp)
         a = ALPHA_SCORE(ctx, 0)[y1];
         b = BETA_SCORE(ctx, 0)[y1];
         c = 1. / ctx->scale_factor[0];
-        
+
         fprintf(fp, "Check for the marginal probability (0,%d)... ", y1);
         check_values(fp, a * b * c, s / norm);
     }
@@ -646,7 +650,7 @@ void crf1dc_debug_context(FILE *fp)
         a = ALPHA_SCORE(ctx, 1)[y2];
         b = BETA_SCORE(ctx, 1)[y2];
         c = 1. / ctx->scale_factor[1];
-        
+
         fprintf(fp, "Check for the marginal probability (1,%d)... ", y2);
         check_values(fp, a * b * c, s / norm);
     }
@@ -663,7 +667,7 @@ void crf1dc_debug_context(FILE *fp)
         a = ALPHA_SCORE(ctx, 2)[y3];
         b = BETA_SCORE(ctx, 2)[y3];
         c = 1. / ctx->scale_factor[2];
-        
+
         fprintf(fp, "Check for the marginal probability (2,%d)... ", y3);
         check_values(fp, a * b * c, s / norm);
     }
