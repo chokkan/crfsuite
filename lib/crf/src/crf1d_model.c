@@ -702,15 +702,9 @@ int crf1dmw_put_feature(crf1dmw_t* writer, int fid, const crf1dm_feature_t* f)
 
 crf1dm_t* crf1dm_new(const char *filename)
 {
-    FILE *fp = NULL;
-    uint8_t* p = NULL;
-    crf1dm_t *model = NULL;
-    header_t *header = NULL;
-
-    model = (crf1dm_t*)calloc(1, sizeof(crf1dm_t));
-    if (model == NULL) {
-        goto error_exit;
-    }
+    uint8_t* bytes = NULL;
+    uint32_t size;
+    FILE* fp;
 
     fp = fopen(filename, "rb");
     if (fp == NULL) {
@@ -718,20 +712,63 @@ crf1dm_t* crf1dm_new(const char *filename)
     }
 
     fseek(fp, 0, SEEK_END);
-    model->size = (uint32_t)ftell(fp);
+    size = (uint32_t)ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    model->buffer = model->buffer_orig = (uint8_t*)malloc(model->size + 16);
-    while ((uintptr_t)model->buffer % 16 != 0) {
-        ++model->buffer;
-    }
+    bytes = (uint8_t*)malloc(size);
 
-    if (fread(model->buffer, 1, model->size, fp) != model->size) {
-        free(model->buffer_orig);
+    if (fread(bytes, 1, size, fp) != size) {
+        free(bytes);
         goto error_exit;
     }
     fclose(fp);
 
+    return crf1dm_new_from_ptr(bytes, size, 1);
+
+error_exit:
+    if (bytes != NULL) {
+        free(bytes);
+    }
+    if (fp != NULL) {
+        fclose(fp);
+    }
+    return NULL;
+}
+
+crf1dm_t* crf1dm_new_from_ptr(void* memory, int length, int freeIt)
+{
+    crf1dm_t* model = (crf1dm_t*)calloc(1, sizeof(crf1dm_t));
+    if (model == NULL) {
+        if (freeIt) free(memory);
+        goto error_exit;
+    }
+
+    // if the memory address is not evenly divisable by 16, then we will have
+    // to copy it.
+    if ( (uintptr_t)memory % 16 != 0 ) {
+        fprintf(stderr, "crf1dm_new_from_ptr: Memory was not evenly divisable by 16. Copying\n");
+        model->buffer_orig = (uint8_t*)malloc(length + 16);
+        model->buffer = model->buffer_orig;
+        while ((uintptr_t)model->buffer % 16 != 0) {
+            ++model->buffer;
+        }
+
+        memcpy(model->buffer, memory, length);
+
+        if (freeIt) {
+            free(memory);
+        }
+
+        freeIt = 1;
+    } else {
+        model->buffer = (uint8_t*)memory;
+        if (freeIt) {
+            model->buffer_orig = model->buffer;
+        }
+    }
+
+    uint8_t* p = NULL;
+    header_t *header = NULL;
     /* Write the file header. */
     header = (header_t*)calloc(1, sizeof(header_t));
 
@@ -750,6 +787,12 @@ crf1dm_t* crf1dm_new(const char *filename)
     p += read_uint32(p, &header->off_attrrefs);
     model->header = header;
 
+    if (model->header->size > length) {
+        fprintf(stderr, "crf1dm_new_from_ptr: Model is %d bytes long, "
+                "but only %d were given.\n", header->size, length);
+        goto error_exit;
+    }
+
     model->labels = cqdb_reader(
         model->buffer + header->off_labels,
         model->size - header->off_labels
@@ -764,10 +807,13 @@ crf1dm_t* crf1dm_new(const char *filename)
 
 error_exit:
     if (model != NULL) {
+        free(model->buffer_orig);
+
+        if (model->header != NULL) {
+            free(model->header);
+        }
+
         free(model);
-    }
-    if (fp != NULL) {
-        fclose(fp);
     }
     return NULL;
 }

@@ -747,6 +747,20 @@ int crfsuite_create_instance(const char *iid, void **ptr);
 int crfsuite_create_instance_from_file(const char *filename, void **ptr);
 
 /**
+ * Create an instance of a model object from a pointer to memory.
+ *  @param  memory      The memory containing the contents of the saved model.
+ *                      This memory will not be copied, and must remain valid
+ *                      until the instance is destroyed.
+ *  @param  length      The length of the saved model, in bytes
+ *  @param  ptr         The pointer to \c void* that points to the
+ *                      instance of the model object if successful,
+ *                      *ptr points to \c NULL otherwise.
+ *  @return int         \c 0 if this function creates an object successfully,
+ *                      \c 1 otherwise.
+ */
+int crfsuite_create_instance_from_ptr(const void *memory, int length, void **ptr);
+
+/**
  * Create instances of tagging object from a model file.
  *  @param  filename    The filename of the model.
  *  @param  ptr_tagger  The pointer to \c void* that points to the
