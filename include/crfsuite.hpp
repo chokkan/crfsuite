@@ -570,7 +570,7 @@ std::string version()
     return CRFSUITE_VERSION;
 }
 
-};
+}
 
 #endif/*__CRFSUITE_HPP__*/
 

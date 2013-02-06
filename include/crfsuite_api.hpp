@@ -336,7 +336,7 @@ public:
      *                      \c false otherwise 
      *  @throw  std::runtime_error      An internal error in the model.
      */
-    bool open(const std::string& name);
+    bool open(const void* memory, int length);
 
     /**
      * Close the model.
@@ -408,6 +408,6 @@ std::string version();
 
 
 
-};
+}
 
 #endif/*__CRFSUITE_API_HPP__*/
