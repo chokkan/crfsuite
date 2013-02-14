@@ -188,13 +188,9 @@ output_result(
 
         if (opt->marginal_all) {
             for (l = 0;l < labels->num(labels);++l) {
-                if (0 < l) {
-                    fprintf(fpo, "\t");
-                }
-
                 tagger->marginal_point(tagger, l, i, &prob);
                 labels->to_string(labels, l, &label);
-                fprintf(fpo, "%s:%f", label, prob);
+                fprintf(fpo, "\t%s:%f", label, prob);
                 labels->free(labels, label);
             }
         }
