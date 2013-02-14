@@ -166,6 +166,7 @@ output_result(
     if (opt->probability) {
         floatval_t lognorm;
         tagger->lognorm(tagger, &lognorm);
+	fprintf(fpo, "@score\t%f\t%f\n", score, lognorm);
         fprintf(fpo, "@probability\t%f\n", exp(score - lognorm));
     }
 
