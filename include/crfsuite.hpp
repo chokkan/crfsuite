@@ -37,6 +37,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
+#include <cstdlib>
 
 #include <crfsuite.h>
 #include "crfsuite_api.hpp"
