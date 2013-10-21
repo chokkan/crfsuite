@@ -34,7 +34,7 @@
 #include <config.h>
 #endif/*HAVE_CONFIG_H*/
 
-#include <os.h>
+#include "os.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -276,10 +276,10 @@ int crfsuite_train_passive_aggressive(
     exchange_options(params, &opt, -1);
 
     /* Allocate arrays. */
-    w = (floatval_t*)calloc(sizeof(floatval_t), K);
-    ws = (floatval_t*)calloc(sizeof(floatval_t), K);
-    wa = (floatval_t*)calloc(sizeof(floatval_t), K);
-    viterbi = (int*)calloc(sizeof(int), T);
+	w = (floatval_t*)calloc(K, sizeof(floatval_t));
+	ws = (floatval_t*)calloc(K, sizeof(floatval_t));
+	wa = (floatval_t*)calloc(K, sizeof(floatval_t));
+	viterbi = (int*)calloc(T, sizeof(int));
     if (w == NULL || ws == NULL || wa == NULL || viterbi == NULL) {
         ret = CRFSUITEERR_OUTOFMEMORY;
         goto error_exit;

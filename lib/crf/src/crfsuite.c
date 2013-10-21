@@ -30,7 +30,7 @@
 
 /* $Id$ */
 
-#include <os.h>
+#include "os.h"
 
 #include <stdarg.h>
 #include <stdio.h>

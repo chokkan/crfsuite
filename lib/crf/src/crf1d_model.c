@@ -417,7 +417,7 @@ int crf1dmw_open_labelrefs(crf1dmw_t* writer, int num_labels)
     }
 
     /* Allocate a feature reference array. */
-    href = (featureref_header_t*)calloc(size, 1);
+	href = (featureref_header_t*)calloc(1, size);
     if (href == NULL) {
         return CRFSUITEERR_OUTOFMEMORY;
     }
@@ -524,7 +524,7 @@ int crf1dmw_open_attrrefs(crf1dmw_t* writer, int num_attrs)
     }
 
     /* Allocate a feature reference array. */
-    href = (featureref_header_t*)calloc(size, 1);
+	href = (featureref_header_t*)calloc(1, size);
     if (href == NULL) {
         return CRFSUITEERR_OUTOFMEMORY;
     }
@@ -629,7 +629,7 @@ int crf1dmw_open_features(crf1dmw_t* writer)
     }
 
     /* Allocate a feature chunk header. */
-    hfeat = (feature_header_t*)calloc(sizeof(feature_header_t), 1);
+	hfeat = (feature_header_t*)calloc(1, sizeof(feature_header_t));
     if (hfeat == NULL) {
         return CRFSUITEERR_OUTOFMEMORY;
     }

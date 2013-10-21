@@ -34,7 +34,7 @@
 #include <config.h>
 #endif/*HAVE_CONFIG_H*/
 
-#include <os.h>
+#include "os.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -261,10 +261,10 @@ int crfsuite_train_arow(
     exchange_options(params, &opt, -1);
 
     /* Allocate arrays. */
-    mean = (floatval_t*)calloc(sizeof(floatval_t), K);
-    cov = (floatval_t*)calloc(sizeof(floatval_t), K);
-    prod = (floatval_t*)calloc(sizeof(floatval_t), K);
-    viterbi = (int*)calloc(sizeof(int), T);
+	mean = (floatval_t*)calloc(K, sizeof(floatval_t));
+	cov = (floatval_t*)calloc(K, sizeof(floatval_t));
+	prod = (floatval_t*)calloc(K, sizeof(floatval_t));
+	viterbi = (int*)calloc(T, sizeof(int));
     if (mean == NULL || cov == NULL || prod == NULL || viterbi == NULL) {
         ret = CRFSUITEERR_OUTOFMEMORY;
         goto error_exit;

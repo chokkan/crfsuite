@@ -34,7 +34,7 @@
 #include <config.h>
 #endif/*HAVE_CONFIG_H*/
 
-#include <os.h>
+#include "os.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -240,14 +240,14 @@ int crfsuite_train_lbfgs(
     lbfgs_parameter_init(&lbfgsparam);
 
     /* Allocate an array that stores the current weights. */ 
-    w = (floatval_t*)calloc(sizeof(floatval_t), K);
+	w = (floatval_t*)calloc(K, sizeof(floatval_t));
     if (w == NULL) {
 		ret = CRFSUITEERR_OUTOFMEMORY;
 		goto error_exit;
     }
  
     /* Allocate an array that stores the best weights. */ 
-    lbfgsi.best_w = (floatval_t*)calloc(sizeof(floatval_t), K);
+	lbfgsi.best_w = (floatval_t*)calloc(K, sizeof(floatval_t));
     if (lbfgsi.best_w == NULL) {
 		ret = CRFSUITEERR_OUTOFMEMORY;
 		goto error_exit;
