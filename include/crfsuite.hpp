@@ -229,7 +229,12 @@ std::string Trainer::help(const std::string& name)
     std::string str;
     crfsuite_params_t* params = tr->params(tr);
     char *_str = NULL;
-    params->help(params, name.c_str(), NULL, &_str);
+    if (params->help(params, name.c_str(), NULL, &_str) != 0) {
+        std::stringstream ss;
+        ss << "Parameter not found: " << name;
+        params->release(params);
+        throw std::invalid_argument(ss.str());
+    }
     str = _str;
     params->free(params, _str);
     params->release(params);
