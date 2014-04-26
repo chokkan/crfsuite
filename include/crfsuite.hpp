@@ -175,6 +175,18 @@ int Trainer::train(const std::string& model, int holdout)
 {
     int ret;
 
+    if (tr == NULL) {
+        std::stringstream ss;
+        ss << "The trainer is not initialized. Call Trainer::select before Trainer::train.";
+        throw std::invalid_argument(ss.str());
+    }
+
+    if (data->attrs == NULL || data->labels == NULL) {
+        std::stringstream ss;
+        ss << "The data is empty. Call Trainer::append before Trainer::train.";
+        throw std::invalid_argument(ss.str());
+    }
+
     // Run the training algorithm.
     ret = tr->train(tr, data, model.c_str(), holdout);
 
