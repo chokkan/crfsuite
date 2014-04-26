@@ -744,6 +744,7 @@ crf1dm_t* crf1dm_new(const char *filename)
 
     if (memcmp((void*)header->magic, (void*)FILEMAGIC, sizeof(header->magic))) {
         free(model->buffer_orig);
+        free(model->header);
         goto error_exit;
     }
 
