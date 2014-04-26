@@ -721,6 +721,10 @@ crf1dm_t* crf1dm_new(const char *filename)
     model->size = (uint32_t)ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
+    if (model->size <= sizeof(header_t)) {
+        goto error_exit;
+    }
+
     model->buffer = model->buffer_orig = (uint8_t*)malloc(model->size + 16);
     while ((uintptr_t)model->buffer % 16 != 0) {
         ++model->buffer;
@@ -737,6 +741,12 @@ crf1dm_t* crf1dm_new(const char *filename)
 
     p = model->buffer;
     p += read_uint8_array(p, header->magic, sizeof(header->magic));
+
+    if (memcmp((void*)header->magic, (void*)FILEMAGIC, sizeof(header->magic))) {
+        free(model->buffer_orig);
+        goto error_exit;
+    }
+
     p += read_uint32(p, &header->size);
     p += read_uint8_array(p, header->type, sizeof(header->type));
     p += read_uint32(p, &header->version);
