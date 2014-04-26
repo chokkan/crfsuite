@@ -760,6 +760,12 @@ crf1dm_t* crf1dm_new(const char *filename)
     p += read_uint32(p, &header->off_attrrefs);
     model->header = header;
 
+    if (model->size < header->off_labels || model->size < header->off_attrs) {
+        free(model->buffer_orig);
+        free(model->header);
+        goto error_exit;
+    }
+
     model->labels = cqdb_reader(
         model->buffer + header->off_labels,
         model->size - header->off_labels
