@@ -324,8 +324,6 @@ struct tag_crfsuite_model {
      * Print the model in human-readable format.
      *  @param  model       The pointer to this model instance.
      *  @param  fpo         The FILE* pointer.
-     *  @param  ptr_attrs   The pointer that receives a crfsuite_dictionary_t
-     *                      pointer.
      *  @return int         The status code.
      */
     int (*dump)(crfsuite_model_t* model, FILE *fpo);
