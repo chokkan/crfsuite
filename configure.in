@@ -30,8 +30,6 @@ dnl ------------------------------------------------------------------
 AM_INIT_AUTOMAKE(crfsuite, 0.12)
 AC_CONFIG_HEADERS(config.h)
 AM_MAINTAINER_MODE
-AM_C_PROTOTYPES
-
 
 dnl ------------------------------------------------------------------
 dnl Checks for program
