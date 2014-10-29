@@ -43,4 +43,4 @@ libcrfsuite_la_LIBADD = \
 	$(top_builddir)/lib/cqdb/libcqdb.la
 
 AM_CFLAGS = @CFLAGS@
-INCLUDES = @INCLUDES@
+AM_CPPFLAGS = @INCLUDES@
