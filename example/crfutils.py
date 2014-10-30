@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 A miscellaneous utility for sequential labeling.
 Copyright 2010,2011 Naoaki Okazaki.
