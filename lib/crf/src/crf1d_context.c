@@ -97,6 +97,7 @@ int crf1dc_set_num_items(crf1d_context_t* ctx, int T)
         free(ctx->row);
         free(ctx->beta_score);
         free(ctx->alpha_score);
+        free(ctx->state);
 
         ctx->alpha_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
         if (ctx->alpha_score == NULL) return CRFSUITEERR_OUTOFMEMORY;
