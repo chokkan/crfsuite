@@ -34,7 +34,7 @@
 #include <config.h>
 #endif/*HAVE_CONFIG_H*/
 
-#include <os.h>
+#include "os.h"
 
 #include <math.h>
 #include <stdio.h>

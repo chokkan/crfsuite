@@ -91,7 +91,7 @@
 #include <config.h>
 #endif/*HAVE_CONFIG_H*/
 
-#include <os.h>
+#include "os.h"
 
 #include <float.h>
 #include <stdio.h>
@@ -458,7 +458,7 @@ int crfsuite_train_l2sgd(
     exchange_options(params, &opt, -1);
 
     /* Allocate arrays. */
-    w = (floatval_t*)calloc(sizeof(floatval_t), K);
+	w = (floatval_t*)calloc(K, sizeof(floatval_t));
     if (w == NULL) {
         ret = CRFSUITEERR_OUTOFMEMORY;
         goto error_exit;

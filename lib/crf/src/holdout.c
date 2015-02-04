@@ -34,7 +34,7 @@
 #include <config.h>
 #endif/*HAVE_CONFIG_H*/
 
-#include <os.h>
+#include "os.h"
 
 #include <stdlib.h>
 #include <crfsuite.h>

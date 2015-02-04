@@ -217,7 +217,7 @@ RUMAVL *rumavl_new (size_t reclen,
 	return NULL;
 
     if (alloc == NULL)
-	tree = malloc(sizeof(RUMAVL));
+	tree = (RUMAVL*)malloc(sizeof(RUMAVL));
     else
 	tree = alloc(NULL, sizeof(RUMAVL), udata);
 

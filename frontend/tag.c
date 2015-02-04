@@ -30,7 +30,7 @@
 
 /* $Id$ */
 
-#include <os.h>
+#include "os.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -329,7 +329,7 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
             if (!crfsuite_instance_empty(&inst)) {
                 /* Initialize the object to receive the tagging result. */
                 floatval_t score = 0;
-                int *output = calloc(sizeof(int), inst.num_items);
+				int *output = (int*)calloc(inst.num_items, sizeof(int));
 
                 /* Set the instance to the tagger. */
                 if ((ret = tagger->set(tagger, &inst))) {
