@@ -732,7 +732,7 @@ crf1dm_t* crf1dm_new(const char *filename)
     }
     fclose(fp);
 
-    /* Write the file header. */
+    /* Read the file header. */
     header = (header_t*)calloc(1, sizeof(header_t));
 
     p = model->buffer;
