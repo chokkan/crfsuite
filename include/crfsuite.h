@@ -730,8 +730,9 @@ struct tag_crfsuite_params {
  *  @param  ptr         The pointer to \c void* that points to the
  *                      instance of the object if successful,
  *                      *ptr points to \c NULL otherwise.
- *  @return int         \c 0 if this function creates an object successfully,
- *                      \c 1 otherwise.
+ *  @return int         \c 1 if this function creates an object successfully,
+ *                      \c 0 otherwise. Note that this is inconsistent with the
+ *                      other CRFsuite API calls.
  */
 int crfsuite_create_instance(const char *iid, void **ptr);
 
