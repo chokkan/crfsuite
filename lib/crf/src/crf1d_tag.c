@@ -177,14 +177,18 @@ static crf1dt_t *crf1dt_new(crf1dm_t* crf1dm)
 
 static int tagger_addref(crfsuite_tagger_t* tagger)
 {
-    /* This object is owned only by a crfsuite_model_t object. */
-    return tagger->nref;
+    return crfsuite_interlocked_increment(&tagger->nref);
 }
 
 static int tagger_release(crfsuite_tagger_t* tagger)
 {
-    /* This object is owned only by a crfsuite_model_t object. */
-    return tagger->nref;
+    int count = crfsuite_interlocked_decrement(&tagger->nref);
+    if (count == 0) {
+        /* This instance is being destroyed. */
+        crf1dt_delete((crf1dt_t*)tagger->internal);
+        free(tagger);
+    }
+    return count;
 }
 
 static int tagger_set(crfsuite_tagger_t* tagger, crfsuite_instance_t *inst)
@@ -366,7 +370,6 @@ typedef struct {
 
     crfsuite_dictionary_t*    attrs;
     crfsuite_dictionary_t*    labels;
-    crfsuite_tagger_t*        tagger;
 } model_internal_t;
 
 static int model_addref(crfsuite_model_t* model)
@@ -380,8 +383,6 @@ static int model_release(crfsuite_model_t* model)
     if (count == 0) {
         /* This instance is being destroyed. */
         model_internal_t* internal = (model_internal_t*)model->internal;
-        crf1dt_delete((crf1dt_t*)internal->tagger->internal);
-        free(internal->tagger);
         free(internal->labels);
         free(internal->attrs);
         crf1dm_close(internal->crf1dm);
@@ -393,10 +394,45 @@ static int model_release(crfsuite_model_t* model)
 
 static int model_get_tagger(crfsuite_model_t* model, crfsuite_tagger_t** ptr_tagger)
 {
+    int ret = 0;
+    crf1dt_t *crf1dt = NULL;
+    crfsuite_tagger_t *tagger = NULL;
     model_internal_t* internal = (model_internal_t*)model->internal;
-    /* We don't increment the reference counter. */
-    *ptr_tagger = internal->tagger;
+
+    /* Construct a tagger based on the model. */
+    crf1dt = crf1dt_new(internal->crf1dm);
+    if (crf1dt == NULL) {
+        ret = CRFSUITEERR_OUTOFMEMORY;
+        goto error_exit;
+    }
+
+    /* Create an instance of tagger object. */
+    tagger = (crfsuite_tagger_t*)calloc(1, sizeof(crfsuite_tagger_t));
+    if (tagger == NULL) {
+        ret = CRFSUITEERR_OUTOFMEMORY;
+        goto error_exit;
+    }
+    tagger->internal = crf1dt;
+    tagger->nref = 1;
+    tagger->addref = tagger_addref;
+    tagger->release = tagger_release;
+    tagger->set = tagger_set;
+    tagger->length = tagger_length;
+    tagger->viterbi = tagger_viterbi;
+    tagger->score = tagger_score;
+    tagger->lognorm = tagger_lognorm;
+    tagger->marginal_point = tagger_marginal_point;
+    tagger->marginal_path = tagger_marginal_path;
+
+    *ptr_tagger = tagger;
     return 0;
+
+error_exit:
+    free(tagger);
+    if (crf1dt != NULL) {
+        crf1dt_delete(crf1dt);
+    }
+    return ret;
 }
 
 static int model_get_labels(crfsuite_model_t* model, crfsuite_dictionary_t** ptr_labels)
@@ -425,23 +461,14 @@ static int model_dump(crfsuite_model_t* model, FILE *fpo)
 static int crf1m_model_create(crf1dm_t *crf1dm, void** ptr_model)
 {
     int ret = 0;
-    crf1dt_t *crf1dt = NULL;
     crfsuite_model_t *model = NULL;
     model_internal_t *internal = NULL;
-    crfsuite_tagger_t *tagger = NULL;
     crfsuite_dictionary_t *attrs = NULL, *labels = NULL;
 
     *ptr_model = NULL;
 
     if (crf1dm == NULL) {
         ret = CRFSUITEERR_INCOMPATIBLE;
-        goto error_exit;
-    }
-
-    /* Construct a tagger based on the model. */
-    crf1dt = crf1dt_new(crf1dm);
-    if (crf1dt == NULL) {
-        ret = CRFSUITEERR_OUTOFMEMORY;
         goto error_exit;
     }
 
@@ -484,29 +511,10 @@ static int crf1m_model_create(crf1dm_t *crf1dm, void** ptr_model)
     labels->num = model_labels_num;
     labels->free = model_labels_free;
 
-    /* Create an instance of tagger object. */
-    tagger = (crfsuite_tagger_t*)calloc(1, sizeof(crfsuite_tagger_t));
-    if (tagger == NULL) {
-        ret = CRFSUITEERR_OUTOFMEMORY;
-        goto error_exit;
-    }
-    tagger->internal = crf1dt;
-    tagger->nref = 1;
-    tagger->addref = tagger_addref;
-    tagger->release = tagger_release;
-    tagger->set = tagger_set;
-    tagger->length = tagger_length;
-    tagger->viterbi = tagger_viterbi;
-    tagger->score = tagger_score;
-    tagger->lognorm = tagger_lognorm;
-    tagger->marginal_point = tagger_marginal_point;
-    tagger->marginal_path = tagger_marginal_path;
-
     /* Set the internal data for the model object. */
     internal->crf1dm = crf1dm;
     internal->attrs = attrs;
     internal->labels = labels;
-    internal->tagger = tagger;
 
     /* Create an instance of model object. */
     model = (crfsuite_model_t*)calloc(1, sizeof(crfsuite_model_t));
@@ -527,12 +535,8 @@ static int crf1m_model_create(crf1dm_t *crf1dm, void** ptr_model)
     return 0;
 
 error_exit:
-    free(tagger);
     free(labels);
     free(attrs);
-    if (crf1dt != NULL) {
-        crf1dt_delete(crf1dt);
-    }
     if (crf1dm != NULL) {
         crf1dm_close(crf1dm);
     }
