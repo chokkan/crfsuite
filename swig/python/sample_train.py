@@ -18,7 +18,7 @@ def instances(fi):
         line = line.strip('\n')
         if not line:
         	# An empty line presents an end of a sequence.
-            yield xseq, tuple(yseq)
+            yield xseq, yseq
             xseq = crfsuite.ItemSequence()
             yseq = crfsuite.StringList()
             continue
