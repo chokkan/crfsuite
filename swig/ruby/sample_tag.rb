@@ -19,13 +19,13 @@ def instances(fi)
       fields = line.split("\t")
       item = Crfsuite::Item.new
       fields.drop(1).each do |field|
-        p = field.rindex(':')
-        if p.nil?
+        idx = field.rindex(':')
+        if idx.nil?
           # Unweighted (weight=1) attribute.
           item << Crfsuite::Attribute.new(field)
         else
           # Weighted attribute
-          item << Crfsuite::Attribute.new(field[0..p-1], float(field[p+1..-1]))
+          item << Crfsuite::Attribute.new(field[0..idx-1], float(field[idx+1..-1]))
         end
       end
 
