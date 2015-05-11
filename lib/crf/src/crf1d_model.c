@@ -228,8 +228,8 @@ crf1dmw_t* crf1mmw(const char *filename)
 
     /* Fill the members in the header. */
     header = &writer->header;
-    strncpy(header->magic, FILEMAGIC, 4);
-    strncpy(header->type, MODELTYPE, 4);
+    memcpy(header->magic, FILEMAGIC, 4);
+    memcpy(header->type, MODELTYPE, 4);
     header->version = VERSION_NUMBER;
 
     /* Advance the file position to skip the file header. */
@@ -435,7 +435,7 @@ int crf1dmw_open_labelrefs(crf1dmw_t* writer, int num_labels)
     fseek(fp, size, SEEK_CUR);
 
     /* Fill members in the feature reference header. */
-    strncpy(href->chunk, CHUNK_LABELREF, 4);
+    memcpy(href->chunk, CHUNK_LABELREF, 4);
     href->size = 0;
     href->num = num_labels;
 
@@ -542,7 +542,7 @@ int crf1dmw_open_attrrefs(crf1dmw_t* writer, int num_attrs)
     fseek(fp, size, SEEK_CUR);
 
     /* Fill members in the feature reference header. */
-    strncpy(href->chunk, CHUNK_ATTRREF, 4);
+    memcpy(href->chunk, CHUNK_ATTRREF, 4);
     href->size = 0;
     href->num = num_attrs;
 
@@ -637,7 +637,7 @@ int crf1dmw_open_features(crf1dmw_t* writer)
     writer->header.off_features = (uint32_t)ftell(fp);
     fseek(fp, CHUNK_SIZE, SEEK_CUR);
 
-    strncpy(hfeat->chunk, CHUNK_FEATURE, 4);
+    memcpy(hfeat->chunk, CHUNK_FEATURE, 4);
     writer->hfeat = hfeat;
 
     writer->state = WSTATE_FEATURES;
@@ -841,6 +841,7 @@ int crf1dm_get_labelref(crf1dm_t* model, int lid, feature_refs_t* ref)
 {
     uint8_t *p = model->buffer;
     uint32_t offset;
+    uint32_t num_features;
 
     p += model->header->off_labelrefs;
     p += CHUNK_SIZE;
@@ -848,7 +849,8 @@ int crf1dm_get_labelref(crf1dm_t* model, int lid, feature_refs_t* ref)
     read_uint32(p, &offset);
 
     p = model->buffer + offset;
-    p += read_uint32(p, &ref->num_features);
+    p += read_uint32(p, &num_features);
+    ref->num_features = num_features;
     ref->fids = (int*)p;
     return 0;
 }
@@ -857,6 +859,7 @@ int crf1dm_get_attrref(crf1dm_t* model, int aid, feature_refs_t* ref)
 {
     uint8_t *p = model->buffer;
     uint32_t offset;
+    uint32_t num_features;
 
     p += model->header->off_attrrefs;
     p += CHUNK_SIZE;
@@ -864,7 +867,8 @@ int crf1dm_get_attrref(crf1dm_t* model, int aid, feature_refs_t* ref)
     read_uint32(p, &offset);
 
     p = model->buffer + offset;
-    p += read_uint32(p, &ref->num_features);
+    p += read_uint32(p, &num_features);
+    ref->num_features = num_features;
     ref->fids = (int*)p;
     return 0;
 }
