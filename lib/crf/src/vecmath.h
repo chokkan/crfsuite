@@ -46,10 +46,17 @@
 #include <stdlib.h>
 static inline void *_aligned_malloc(size_t size, size_t alignment)
 {
+#if __STDC_VERSION__ >= 201112L
+    return aligned_alloc(alignment, size);
+#elif _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600
     void *p;
     int ret = posix_memalign(&p, alignment, size);
     return (ret == 0) ? p : 0;
+#else
+    return memalign(alignment, size);
+#endif
 }
+
 static inline void _aligned_free(void *p)
 {
     free(p);
