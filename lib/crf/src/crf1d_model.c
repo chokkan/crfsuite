@@ -32,9 +32,9 @@
 
 #include "os.h"
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <cqdb.h>
 
@@ -910,18 +910,18 @@ void crf1dm_dump(crf1dm_t* crf1dm, FILE *fp)
     fprintf(fp, "FILEHEADER = {\n");
     fprintf(fp, "  magic: %c%c%c%c\n",
         hfile->magic[0], hfile->magic[1], hfile->magic[2], hfile->magic[3]);
-    fprintf(fp, "  size: %d\n", hfile->size);
+    fprintf(fp, "  size: %" PRIu32 "\n", hfile->size);
     fprintf(fp, "  type: %c%c%c%c\n",
         hfile->type[0], hfile->type[1], hfile->type[2], hfile->type[3]);
-    fprintf(fp, "  version: %d\n", hfile->version);
-    fprintf(fp, "  num_features: %d\n", hfile->num_features);
-    fprintf(fp, "  num_labels: %d\n", hfile->num_labels);
-    fprintf(fp, "  num_attrs: %d\n", hfile->num_attrs);
-    fprintf(fp, "  off_features: 0x%X\n", hfile->off_features);
-    fprintf(fp, "  off_labels: 0x%X\n", hfile->off_labels);
-    fprintf(fp, "  off_attrs: 0x%X\n", hfile->off_attrs);
-    fprintf(fp, "  off_labelrefs: 0x%X\n", hfile->off_labelrefs);
-    fprintf(fp, "  off_attrrefs: 0x%X\n", hfile->off_attrrefs);
+    fprintf(fp, "  version: %" PRIu32 "\n", hfile->version);
+    fprintf(fp, "  num_features: %" PRIu32 "\n", hfile->num_features);
+    fprintf(fp, "  num_labels: %" PRIu32 "\n", hfile->num_labels);
+    fprintf(fp, "  num_attrs: %" PRIu32 "\n", hfile->num_attrs);
+    fprintf(fp, "  off_features: 0x%" PRIX32 "\n", hfile->off_features);
+    fprintf(fp, "  off_labels: 0x%" PRIX32 "\n", hfile->off_labels);
+    fprintf(fp, "  off_attrs: 0x%" PRIX32 "\n", hfile->off_attrs);
+    fprintf(fp, "  off_labelrefs: 0x%" PRIX32 "\n", hfile->off_labelrefs);
+    fprintf(fp, "  off_attrrefs: 0x%" PRIX32 "\n", hfile->off_attrrefs);
     fprintf(fp, "}\n");
     fprintf(fp, "\n");
 
@@ -935,7 +935,7 @@ void crf1dm_dump(crf1dm_t* crf1dm, FILE *fp)
             fprintf(fp, "WARNING: inconsistent label CQDB\n");
         }
 #endif
-        fprintf(fp, "  %5d: %s\n", i, str);
+        fprintf(fp, "  %5" PRIu32 ": %s\n", i, str);
     }
     fprintf(fp, "}\n");
     fprintf(fp, "\n");
@@ -950,7 +950,7 @@ void crf1dm_dump(crf1dm_t* crf1dm, FILE *fp)
             fprintf(fp, "WARNING: inconsistent attribute CQDB\n");
         }
 #endif
-        fprintf(fp, "  %5d: %s\n", i, str);
+        fprintf(fp, "  %5" PRIu32 ": %s\n", i, str);
     }
     fprintf(fp, "}\n");
     fprintf(fp, "\n");
