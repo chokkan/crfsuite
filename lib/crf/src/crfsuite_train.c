@@ -84,12 +84,16 @@ static void crfsuite_train_delete(crfsuite_trainer_t* self)
 {
     crfsuite_train_internal_t *tr = (crfsuite_train_internal_t*)self->internal;
     if (tr != NULL) {
+        if (tr->gm != NULL) {
+            tr->gm->release(tr->gm);
+        }
         if (tr->params != NULL) {
             tr->params->release(tr->params);
         }
         free(tr->lg);
         free(tr);
     }
+    free(self);
 }
 
 static int crfsuite_train_addref(crfsuite_trainer_t* tr)
@@ -207,6 +211,10 @@ static int crfsuite_train_train(
         gm->save_model(gm, filename, w, lg);
     }
 
+    if (0 <= holdout) {
+        dataset_finish(&testset);
+    }
+    dataset_finish(&trainset);
     free(w);
 
     return 0;

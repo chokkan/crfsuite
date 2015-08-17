@@ -84,8 +84,10 @@ static int params_release(crfsuite_params_t* params)
             free(pars->params[i].val_s);
             free(pars->params[i].help);
         }
+        free(pars->params);
         free(pars);
     }
+    free(params);
     return count;
 }
 

@@ -98,6 +98,8 @@ static void crf1de_init(crf1de_t *crf1de)
 
 static void crf1de_finish(crf1de_t *crf1de)
 {
+    int i;
+
     if (crf1de->ctx != NULL) {
         crf1dc_delete(crf1de->ctx);
         crf1de->ctx = NULL;
@@ -107,10 +109,16 @@ static void crf1de_finish(crf1de_t *crf1de)
         crf1de->features = NULL;
     }
     if (crf1de->attributes != NULL) {
+        for (i = 0; i < crf1de->num_attributes; ++i) {
+            free(crf1de->attributes[i].fids);
+        }
         free(crf1de->attributes);
         crf1de->attributes = NULL;
     }
     if (crf1de->forward_trans != NULL) {
+        for (i = 0; i < crf1de->num_labels; ++i) {
+            free(crf1de->forward_trans[i].fids);
+        }
         free(crf1de->forward_trans);
         crf1de->forward_trans = NULL;
     }
@@ -917,6 +925,14 @@ static int encoder_objective_and_gradients(encoder_t *self, floatval_t *f, float
     return 0;
 }
 
+static void encoder_release(encoder_t *self)
+{
+    crf1de_t *crf1de = (crf1de_t*)self->internal;
+    crf1de_finish(crf1de);
+    free(crf1de);
+    free(self);
+}
+
 encoder_t *crf1d_create_encoder()
 {
     encoder_t *self = (encoder_t*)calloc(1, sizeof(encoder_t));
@@ -936,6 +952,7 @@ encoder_t *crf1d_create_encoder()
             self->viterbi = encoder_viterbi;
             self->partition_factor = encoder_partition_factor;
             self->objective_and_gradients = encoder_objective_and_gradients;
+            self->release = encoder_release;
             self->internal = enc;
         }
     }
