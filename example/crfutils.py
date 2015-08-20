@@ -19,13 +19,14 @@ def apply_templates(X, templates):
     @type   template:   tuple of (str, int)
     @param  template:   The feature template.
     """
+    rangeX = {i:1 for i in range(len(X))}
     for template in templates:
         name = '|'.join(['%s[%d]' % (f, o) for f, o in template])
-        for t in range(len(X)):
+        for t in rangeX:
             values = []
             for field, offset in template:
                 p = t + offset
-                if p not in range(len(X)):
+                if p not in rangeX:
                     values = []
                     break
                 values.append(X[p][field])
