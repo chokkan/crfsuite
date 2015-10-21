@@ -700,10 +700,8 @@ int crf1dmw_put_feature(crf1dmw_t* writer, int fid, const crf1dm_feature_t* f)
     return 0;
 }
 
-crf1dm_t* crf1dm_new(const char *filename)
+static crf1dm_t* crf1dm_new_impl(uint8_t* buffer_orig, const uint8_t* buffer, uint32_t size)
 {
-    FILE *fp = NULL;
-    uint8_t* buffer = NULL;
     const uint8_t* p = NULL;
     crf1dm_t *model = NULL;
     header_t *header = NULL;
@@ -713,31 +711,15 @@ crf1dm_t* crf1dm_new(const char *filename)
         goto error_exit;
     }
 
-    fp = fopen(filename, "rb");
-    if (fp == NULL) {
-        goto error_exit;
-    }
-
-    fseek(fp, 0, SEEK_END);
-    model->size = (uint32_t)ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-
-    buffer = model->buffer_orig = (uint8_t*)malloc(model->size + 16);
-    /* Align buffer to 16 bytes. */
-    while ((uintptr_t)buffer % 16 != 0) {
-        ++buffer;
-    }
+    model->buffer_orig = buffer_orig;
     model->buffer = buffer;
 
-    if (fread(buffer, 1, model->size, fp) != model->size) {
-        free(model->buffer_orig);
+    header = (header_t*)calloc(1, sizeof(header_t));
+    if (header == NULL) {
         goto error_exit;
     }
-    fclose(fp);
 
-    /* Write the file header. */
-    header = (header_t*)calloc(1, sizeof(header_t));
-
+    /* Read the file header. */
     p = model->buffer;
     p += read_uint8_array(p, header->magic, sizeof(header->magic));
     p += read_uint32(p, &header->size);
@@ -766,13 +748,56 @@ crf1dm_t* crf1dm_new(const char *filename)
     return model;
 
 error_exit:
-    if (model != NULL) {
-        free(model);
+    free(header);
+    free(model);
+    free(buffer_orig);
+    return NULL;
+}
+
+crf1dm_t* crf1dm_new(const char *filename)
+{
+    FILE *fp = NULL;
+    uint32_t size = 0;
+    uint8_t* buffer_orig = NULL;
+    uint8_t* buffer = NULL;
+
+    fp = fopen(filename, "rb");
+    if (fp == NULL) {
+        goto error_exit;
     }
+
+    fseek(fp, 0, SEEK_END);
+    size = (uint32_t)ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    buffer = buffer_orig = (uint8_t*)malloc(size + 16);
+    if (buffer_orig = NULL) {
+        goto error_exit;
+    }
+
+    /* Align the buffer to 16 bytes. */
+    while ((uintptr_t)buffer % 16 != 0) {
+        ++buffer;
+    }
+
+    if (fread(buffer, 1, size, fp) != size) {
+        goto error_exit;
+    }
+    fclose(fp);
+
+    return crf1dm_new_impl(buffer_orig, buffer, size);
+
+error_exit:
+    free(buffer_orig);
     if (fp != NULL) {
         fclose(fp);
     }
     return NULL;
+}
+
+crf1dm_t* crf1dm_new_from_memory(const void *data, size_t size)
+{
+    return crf1dm_new_impl(NULL, data, size);
 }
 
 void crf1dm_close(crf1dm_t* model)
