@@ -89,12 +89,12 @@ typedef struct {
 } feature_header_t;
 
 struct tag_crf1dm {
-    uint8_t*    buffer_orig;
-    uint8_t*    buffer;
-    uint32_t    size;
-    header_t*   header;
-    cqdb_t*     labels;
-    cqdb_t*     attrs;
+    uint8_t*       buffer_orig;
+    const uint8_t* buffer;
+    uint32_t       size;
+    header_t*      header;
+    cqdb_t*        labels;
+    cqdb_t*        attrs;
 };
 
 struct tag_crf1dmw {
@@ -122,7 +122,7 @@ static int write_uint8(FILE *fp, uint8_t value)
     return fwrite(&value, sizeof(value), 1, fp) == 1 ? 0 : 1;
 }
 
-static int read_uint8(uint8_t* buffer, uint8_t* value)
+static int read_uint8(const uint8_t* buffer, uint8_t* value)
 {
     *value = *buffer;
     return sizeof(*value);
@@ -138,7 +138,7 @@ static int write_uint32(FILE *fp, uint32_t value)
     return fwrite(buffer, sizeof(uint8_t), 4, fp) == 4 ? 0 : 1;
 }
 
-static int read_uint32(uint8_t* buffer, uint32_t* value)
+static int read_uint32(const uint8_t* buffer, uint32_t* value)
 {
     *value  = ((uint32_t)buffer[0]);
     *value |= ((uint32_t)buffer[1] << 8);
@@ -157,7 +157,7 @@ static int write_uint8_array(FILE *fp, uint8_t *array, size_t n)
     return ret;
 }
 
-static int read_uint8_array(uint8_t* buffer, uint8_t *array, size_t n)
+static int read_uint8_array(const uint8_t* buffer, uint8_t *array, size_t n)
 {
     size_t i;
     int ret = 0;
@@ -194,7 +194,7 @@ static void write_float(FILE *fp, floatval_t value)
     fwrite(buffer, sizeof(uint8_t), 8, fp);
 }
 
-static int read_float(uint8_t* buffer, floatval_t* value)
+static int read_float(const uint8_t* buffer, floatval_t* value)
 {
     uint64_t iv;
     iv  = ((uint64_t)buffer[0]);
@@ -703,7 +703,8 @@ int crf1dmw_put_feature(crf1dmw_t* writer, int fid, const crf1dm_feature_t* f)
 crf1dm_t* crf1dm_new(const char *filename)
 {
     FILE *fp = NULL;
-    uint8_t* p = NULL;
+    uint8_t* buffer = NULL;
+    const uint8_t* p = NULL;
     crf1dm_t *model = NULL;
     header_t *header = NULL;
 
@@ -721,12 +722,14 @@ crf1dm_t* crf1dm_new(const char *filename)
     model->size = (uint32_t)ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    model->buffer = model->buffer_orig = (uint8_t*)malloc(model->size + 16);
-    while ((uintptr_t)model->buffer % 16 != 0) {
-        ++model->buffer;
+    buffer = model->buffer_orig = (uint8_t*)malloc(model->size + 16);
+    /* Align buffer to 16 bytes. */
+    while ((uintptr_t)buffer % 16 != 0) {
+        ++buffer;
     }
+    model->buffer = buffer;
 
-    if (fread(model->buffer, 1, model->size, fp) != model->size) {
+    if (fread(buffer, 1, model->size, fp) != model->size) {
         free(model->buffer_orig);
         goto error_exit;
     }
@@ -786,8 +789,9 @@ void crf1dm_close(crf1dm_t* model)
     }
     if (model->buffer_orig != NULL) {
         free(model->buffer_orig);
-        model->buffer_orig = model->buffer = NULL;
+        model->buffer_orig = NULL;
     }
+    model->buffer = NULL;
     free(model);
 }
 
@@ -839,7 +843,7 @@ const char *crf1dm_to_attr(crf1dm_t* model, int aid)
 
 int crf1dm_get_labelref(crf1dm_t* model, int lid, feature_refs_t* ref)
 {
-    uint8_t *p = model->buffer;
+    const uint8_t *p = model->buffer;
     uint32_t offset;
 
     p += model->header->off_labelrefs;
@@ -855,7 +859,7 @@ int crf1dm_get_labelref(crf1dm_t* model, int lid, feature_refs_t* ref)
 
 int crf1dm_get_attrref(crf1dm_t* model, int aid, feature_refs_t* ref)
 {
-    uint8_t *p = model->buffer;
+    const uint8_t *p = model->buffer;
     uint32_t offset;
 
     p += model->header->off_attrrefs;
@@ -880,7 +884,7 @@ int crf1dm_get_featureid(feature_refs_t* ref, int i)
 
 int crf1dm_get_feature(crf1dm_t* model, int fid, crf1dm_feature_t* f)
 {
-    uint8_t *p = NULL;
+    const uint8_t *p = NULL;
     uint32_t val = 0;
     uint32_t offset = model->header->off_features + CHUNK_SIZE;
     offset += FEATURE_SIZE * fid;
