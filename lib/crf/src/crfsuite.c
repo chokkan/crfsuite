@@ -99,7 +99,7 @@ void crfsuite_item_init(crfsuite_item_t* item)
 void crfsuite_item_init_n(crfsuite_item_t* item, int num_contents)
 {
     crfsuite_item_init(item);
-    item->num_contents = num_contents;
+    item->num_contents = 0;
     item->cap_contents = num_contents;
     item->contents = (crfsuite_attribute_t*)calloc(num_contents, sizeof(crfsuite_attribute_t));
 }
@@ -161,7 +161,7 @@ void crfsuite_instance_init(crfsuite_instance_t* inst)
 void crfsuite_instance_init_n(crfsuite_instance_t* inst, int num_items)
 {
     crfsuite_instance_init(inst);
-    inst->num_items = num_items;
+    inst->num_items = 0;
     inst->cap_items = num_items;
     inst->items = (crfsuite_item_t*)calloc(num_items, sizeof(crfsuite_item_t));
     inst->labels = (int*)calloc(num_items, sizeof(int));
@@ -241,7 +241,7 @@ void crfsuite_data_init(crfsuite_data_t* data)
 void crfsuite_data_init_n(crfsuite_data_t* data, int n)
 {
     crfsuite_data_init(data);
-    data->num_instances = n;
+    data->num_instances = 0;
     data->cap_instances = n;
     data->instances = (crfsuite_instance_t*)calloc(n, sizeof(crfsuite_instance_t));
 }
