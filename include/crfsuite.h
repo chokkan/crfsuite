@@ -754,7 +754,7 @@ int crfsuite_create_instance_from_file(const char *filename, void **ptr);
  *  @param  ptr         The pointer to \c void* that points to the
  *                      instance of the model object if successful,
  *                      *ptr points to \c NULL otherwise.
- *  @return int         \c 0 if this function creates an obejct successfully,
+ *  @return int         \c 0 if this function creates an object successfully,
  *                      \c 1 otherwise
  */
 int crfsuite_create_instance_from_memory(const void *data, size_t size, void **ptr);

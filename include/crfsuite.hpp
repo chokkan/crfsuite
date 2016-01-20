@@ -281,6 +281,26 @@ bool Tagger::open(const std::string& name)
     return true;
 }
 
+bool Tagger::open(const void* data, std::size_t size)
+{
+    int ret;
+
+    // Close the model if it is already opened.
+    this->close();
+
+    // Open the model.
+    if ((ret = crfsuite_create_instance_from_memory(data, size, (void**)&model))) {
+        return false;
+    }
+
+    // Obtain the tagger interface.
+    if ((ret = model->get_tagger(model, &tagger))) {
+        throw std::runtime_error("Failed to obtain the tagger interface");
+    }
+
+    return true;
+}
+
 void Tagger::close()
 {
     if (tagger != NULL) {
