@@ -327,6 +327,18 @@ public:
     bool open(const std::string& name);
 
     /**
+     * Open a model using a pointer to the contents of a saved model.
+     *  @param  memory      The memory containing the contents of the saved model.
+     *                      This memory will not be copied, and must remain valid
+     *                      until the instance is destroyed.
+     *  @param  length      The length of the saved model, in bytes
+     *  @return bool        \c true if the model file is successfully opened,
+     *                      \c false otherwise
+     *  @throw  std::runtime_error      An internal error in the model.
+     */
+    bool open(const void* memory, int length);
+  
+    /**
      * Open a model from memory.
      *  @param  data        A pointer to the model data.
      *                      Must be 16-byte aligned.
