@@ -1,0 +1,33 @@
+CRFsuite Ruby module via SWIG
+
+* HOW TO BUILD
+
+0. Build CRFsuite and install it (the library and include files are necessary)
+
+1. Generate a SWIG wrapper
+$ ./prepare.sh --swig
+
+2. Build the binding.
+$ ruby extconf.rb
+
+3. Install the binding.
+$ make install
+
+4. Run the binding.
+$ irb
+irb(main):001:0> require 'crfsuite'
+
+
+* SAMPLE PROGRAMS
+Refer to sample_train.rb and sample_test.rb
+
+
+
+* NOTES FOR INSTALLING CRFSUITE IN A NON-DEFAULT DIRECTORY
+
+If you have changed the installation directory of CRFsuite using --prefix
+option for the configure script, please specify the include and library
+directories to setup.py; for example, if you have installed CRFsuite into
+$HOME/local directory, run:
+
+$ ruby extconf.rb --with-crfsuite-include=$HOME/local/include --with-crfsuite-lib=$HOME/local/lib

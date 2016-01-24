@@ -1,7 +1,7 @@
-#if defined(SWIGPYTHON)
-%module(directors="1") crfsuite
-#else
+#if defined(SWIGPERL)
 %module(directors="1") CRFSuite
+#else
+%module(directors="1") crfsuite
 #endif
 
 %{
