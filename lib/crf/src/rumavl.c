@@ -831,6 +831,7 @@ static RUMAVL_NODE *node_new(RUMAVL *tree, const void *record)
  *--------------------------------------------------------------------------*/
 static void node_destroy (RUMAVL *tree, RUMAVL_NODE *node)
 {
+    mem_free(tree, node->rec);
     mem_free(tree, node);
 }
 

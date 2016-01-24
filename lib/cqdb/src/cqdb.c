@@ -268,6 +268,7 @@ int cqdb_writer_close(cqdb_writer_t* dbw)
 
     /* Initialize the file header. */
     strncpy((char*)header.chunkid, CHUNKID, 4);
+    header.flag = 0;
     header.byteorder = BYTEORDER_CHECK;
     header.bwd_offset = 0;
     header.bwd_size = dbw->bwd_num;
