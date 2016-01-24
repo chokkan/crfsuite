@@ -239,8 +239,9 @@ int crfsuite_train_lbfgs(
 	memset(&opt, 0, sizeof(opt));
     lbfgs_parameter_init(&lbfgsparam);
 
-    /* Allocate an array that stores the current weights. */ 
-    w = (floatval_t*)calloc(sizeof(floatval_t), K);
+    /* Allocate an array that stores the current weights. As per the liblbfgs
+     * documentation, this needs to be allocated with lbfgs_malloc. */
+    w = lbfgs_malloc(K);
     if (w == NULL) {
 		ret = CRFSUITEERR_OUTOFMEMORY;
 		goto error_exit;
@@ -318,21 +319,21 @@ int crfsuite_train_lbfgs(
         logging(lg, "L-BFGS terminated with error code (%d)\n", lbret);
     }
 
-	/* Restore the feature weights of the last call of lbfgs_progress(). */
-	veccopy(w, lbfgsi.best_w, K);
+    /* Set the best_w array (allocated by us) as the result array, which the
+     * callee can safely `free`. */
+    *ptr_w = lbfgsi.best_w;
 
 	/* Report the run-time for the training. */
     logging(lg, "Total seconds required for training: %.3f\n", (clock() - begin) / (double)CLOCKS_PER_SEC);
     logging(lg, "\n");
 
-	/* Exit with success. */
-	free(lbfgsi.best_w);
-    *ptr_w = w;
+    /* Exit with success. */
+    lbfgs_free(w);
     return 0;
 
 error_exit:
 	free(lbfgsi.best_w);
-	free(w);
+	lbfgs_free(w);
 	*ptr_w = NULL;
 	return ret;
 }
