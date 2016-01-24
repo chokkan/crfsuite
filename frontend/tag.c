@@ -141,7 +141,8 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
     fprintf(fp, "    -t, --test          Report the performance of the model on the data\n");
     fprintf(fp, "    -r, --reference     Output the reference labels in the input data\n");
     fprintf(fp, "    -p, --probability   Output the probability of the label sequences\n");
-    fprintf(fp, "    -i, --marginal      Output the marginal probabilities of items\n");
+    fprintf(fp, "    -i, --marginal      Output the marginal probabilitiy of items for their predicted label\n");
+    fprintf(fp, "    -l, --marginal-all  Output the marginal probabilities of items for all labels\n");
     fprintf(fp, "    -q, --quiet         Suppress tagging results (useful for test mode)\n");
     fprintf(fp, "    -h, --help          Show the usage of this command and exit\n");
 }
