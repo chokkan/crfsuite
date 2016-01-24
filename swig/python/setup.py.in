@@ -8,7 +8,7 @@ import sys
 import os.path
 
 def get_rootdir():
-    return '/usr/local/'
+    return '@prefix@'
 def get_includedir():
     return os.path.join(get_rootdir(), 'include')
 def get_librarydir():

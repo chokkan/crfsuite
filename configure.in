@@ -144,5 +144,5 @@ AC_SUBST(libdir)
 dnl ------------------------------------------------------------------
 dnl Output the configure results.
 dnl ------------------------------------------------------------------
-AC_CONFIG_FILES(Makefile genbinary.sh include/Makefile lib/cqdb/Makefile lib/crf/Makefile frontend/Makefile swig/Makefile swig/perl/Makefile.PL)
+AC_CONFIG_FILES(Makefile genbinary.sh include/Makefile lib/cqdb/Makefile lib/crf/Makefile frontend/Makefile swig/Makefile swig/python/setup.py swig/perl/Makefile.PL)
 AC_OUTPUT
