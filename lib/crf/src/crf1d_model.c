@@ -713,7 +713,12 @@ static crf1dm_t* crf1dm_new_impl(uint8_t* buffer_orig, const uint8_t* buffer, ui
 
     model->buffer_orig = buffer_orig;
     model->buffer = buffer;
+    model->size = size;
 
+    if (model->size <= sizeof(header_t)) {
+      goto error_exit;
+    }
+    
     header = (header_t*)calloc(1, sizeof(header_t));
     if (header == NULL) {
         goto error_exit;
