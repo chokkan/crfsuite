@@ -18,4 +18,4 @@ libcqdb_la_LDFLAGS = \
 libcqdb_la_CFLAGS = -I./include
 
 AM_CFLAGS = @CFLAGS@
-INCLUDES = @INCLUDES@
+AM_CPPFLAGS = @INCLUDES@
