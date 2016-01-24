@@ -48,7 +48,7 @@ static int progress(FILE *fpo, int prev, int current)
                 fprintf(fpo, "%d", prev / 10);
                 fflush(fpo);
             } else {
-                fprintf(fpo, ".", prev / 10);
+                fprintf(fpo, ".");
                 fflush(fpo);
             }
         }
