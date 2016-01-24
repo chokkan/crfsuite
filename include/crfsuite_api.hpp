@@ -320,7 +320,7 @@ public:
      * Open a model file.
      *  @param  name        The file name of the model file.
      *  @return bool        \c true if the model file is successfully opened,
-     *                      \c false otherwise (e.g., when the mode file is
+     *                      \c false otherwise (e.g., when the model file is
      *                      not found).
      *  @throw  std::runtime_error      An internal error in the model.
      */
