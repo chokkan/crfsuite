@@ -327,6 +327,18 @@ public:
     bool open(const std::string& name);
 
     /**
+     * Open a model from memory.
+     *  @param  data        A pointer to the model data.
+     *                      Must be 16-byte aligned.
+     *  @param  size        A size (in bytes) of the model data.
+     *  @return bool        \c true if the model file is successfully opened,
+     *                      \c false otherwise (e.g., when the mode file is
+     *                      not found).
+     *  @throw  std::runtime_error      An internal error in the model.
+     */
+    bool open(const void* data, std::size_t size);
+
+    /**
      * Close the model.
      */
     void close();

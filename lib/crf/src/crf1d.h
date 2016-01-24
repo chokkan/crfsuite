@@ -334,6 +334,7 @@ int crf1dmw_close_features(crf1dmw_t* writer);
 int crf1dmw_put_feature(crf1dmw_t* writer, int fid, const crf1dm_feature_t* f);
 
 crf1dm_t* crf1dm_new(const char *filename);
+crf1dm_t* crf1dm_new_from_memory(const void *data, size_t size);
 void crf1dm_close(crf1dm_t* model);
 int crf1dm_get_num_attrs(crf1dm_t* model);
 int crf1dm_get_num_labels(crf1dm_t* model);

@@ -181,7 +181,7 @@ typedef struct tag_cqdb cqdb_t;        /**< Typedef of a CQDB reader. */
  *    @param    size        The size of the memory block.
  *    @retval    cqdb_t*        The pointer to the ::cqdb_t instance.
  */
-cqdb_t* cqdb_reader(void *buffer, size_t size);
+cqdb_t* cqdb_reader(const void *buffer, size_t size);
 
 /**
  * Delete the CQDB reader.
