@@ -408,6 +408,6 @@ std::string version();
 
 
 
-};
+}
 
 #endif/*__CRFSUITE_API_HPP__*/
