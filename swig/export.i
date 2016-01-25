@@ -23,10 +23,6 @@
 %typemap(freearg) const std::string& ""
 #endif
 
-%template(Item) std::vector<CRFSuite::Attribute>;
-%template(ItemSequence) std::vector<CRFSuite::Item>;
-%template(StringList) std::vector<std::string>;
-
 %feature("director") Trainer;
 
 %exception {
@@ -45,3 +41,6 @@
 
 %include "crfsuite_api.hpp"
 
+%template(Item) std::vector<CRFSuite::Attribute>;
+%template(ItemSequence) std::vector<CRFSuite::Item>;
+%template(StringList) std::vector<std::string>;
