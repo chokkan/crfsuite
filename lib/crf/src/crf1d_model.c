@@ -32,9 +32,9 @@
 
 #include "os.h"
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <cqdb.h>
 
@@ -228,8 +228,8 @@ crf1dmw_t* crf1mmw(const char *filename)
 
     /* Fill the members in the header. */
     header = &writer->header;
-    strncpy(header->magic, FILEMAGIC, 4);
-    strncpy(header->type, MODELTYPE, 4);
+    memcpy(header->magic, FILEMAGIC, 4);
+    memcpy(header->type, MODELTYPE, 4);
     header->version = VERSION_NUMBER;
 
     /* Advance the file position to skip the file header. */
@@ -435,7 +435,7 @@ int crf1dmw_open_labelrefs(crf1dmw_t* writer, int num_labels)
     fseek(fp, size, SEEK_CUR);
 
     /* Fill members in the feature reference header. */
-    strncpy(href->chunk, CHUNK_LABELREF, 4);
+    memcpy(href->chunk, CHUNK_LABELREF, 4);
     href->size = 0;
     href->num = num_labels;
 
@@ -542,7 +542,7 @@ int crf1dmw_open_attrrefs(crf1dmw_t* writer, int num_attrs)
     fseek(fp, size, SEEK_CUR);
 
     /* Fill members in the feature reference header. */
-    strncpy(href->chunk, CHUNK_ATTRREF, 4);
+    memcpy(href->chunk, CHUNK_ATTRREF, 4);
     href->size = 0;
     href->num = num_attrs;
 
@@ -637,7 +637,7 @@ int crf1dmw_open_features(crf1dmw_t* writer)
     writer->header.off_features = (uint32_t)ftell(fp);
     fseek(fp, CHUNK_SIZE, SEEK_CUR);
 
-    strncpy(hfeat->chunk, CHUNK_FEATURE, 4);
+    memcpy(hfeat->chunk, CHUNK_FEATURE, 4);
     writer->hfeat = hfeat;
 
     writer->state = WSTATE_FEATURES;
@@ -875,6 +875,7 @@ int crf1dm_get_labelref(crf1dm_t* model, int lid, feature_refs_t* ref)
 {
     const uint8_t *p = model->buffer;
     uint32_t offset;
+    uint32_t num_features;
 
     p += model->header->off_labelrefs;
     p += CHUNK_SIZE;
@@ -882,7 +883,8 @@ int crf1dm_get_labelref(crf1dm_t* model, int lid, feature_refs_t* ref)
     read_uint32(p, &offset);
 
     p = model->buffer + offset;
-    p += read_uint32(p, &ref->num_features);
+    p += read_uint32(p, &num_features);
+    ref->num_features = num_features;
     ref->fids = (int*)p;
     return 0;
 }
@@ -891,6 +893,7 @@ int crf1dm_get_attrref(crf1dm_t* model, int aid, feature_refs_t* ref)
 {
     const uint8_t *p = model->buffer;
     uint32_t offset;
+    uint32_t num_features;
 
     p += model->header->off_attrrefs;
     p += CHUNK_SIZE;
@@ -898,7 +901,8 @@ int crf1dm_get_attrref(crf1dm_t* model, int aid, feature_refs_t* ref)
     read_uint32(p, &offset);
 
     p = model->buffer + offset;
-    p += read_uint32(p, &ref->num_features);
+    p += read_uint32(p, &num_features);
+    ref->num_features = num_features;
     ref->fids = (int*)p;
     return 0;
 }
@@ -940,18 +944,18 @@ void crf1dm_dump(crf1dm_t* crf1dm, FILE *fp)
     fprintf(fp, "FILEHEADER = {\n");
     fprintf(fp, "  magic: %c%c%c%c\n",
         hfile->magic[0], hfile->magic[1], hfile->magic[2], hfile->magic[3]);
-    fprintf(fp, "  size: %d\n", hfile->size);
+    fprintf(fp, "  size: %" PRIu32 "\n", hfile->size);
     fprintf(fp, "  type: %c%c%c%c\n",
         hfile->type[0], hfile->type[1], hfile->type[2], hfile->type[3]);
-    fprintf(fp, "  version: %d\n", hfile->version);
-    fprintf(fp, "  num_features: %d\n", hfile->num_features);
-    fprintf(fp, "  num_labels: %d\n", hfile->num_labels);
-    fprintf(fp, "  num_attrs: %d\n", hfile->num_attrs);
-    fprintf(fp, "  off_features: 0x%X\n", hfile->off_features);
-    fprintf(fp, "  off_labels: 0x%X\n", hfile->off_labels);
-    fprintf(fp, "  off_attrs: 0x%X\n", hfile->off_attrs);
-    fprintf(fp, "  off_labelrefs: 0x%X\n", hfile->off_labelrefs);
-    fprintf(fp, "  off_attrrefs: 0x%X\n", hfile->off_attrrefs);
+    fprintf(fp, "  version: %" PRIu32 "\n", hfile->version);
+    fprintf(fp, "  num_features: %" PRIu32 "\n", hfile->num_features);
+    fprintf(fp, "  num_labels: %" PRIu32 "\n", hfile->num_labels);
+    fprintf(fp, "  num_attrs: %" PRIu32 "\n", hfile->num_attrs);
+    fprintf(fp, "  off_features: 0x%" PRIX32 "\n", hfile->off_features);
+    fprintf(fp, "  off_labels: 0x%" PRIX32 "\n", hfile->off_labels);
+    fprintf(fp, "  off_attrs: 0x%" PRIX32 "\n", hfile->off_attrs);
+    fprintf(fp, "  off_labelrefs: 0x%" PRIX32 "\n", hfile->off_labelrefs);
+    fprintf(fp, "  off_attrrefs: 0x%" PRIX32 "\n", hfile->off_attrrefs);
     fprintf(fp, "}\n");
     fprintf(fp, "\n");
 
@@ -965,7 +969,7 @@ void crf1dm_dump(crf1dm_t* crf1dm, FILE *fp)
             fprintf(fp, "WARNING: inconsistent label CQDB\n");
         }
 #endif
-        fprintf(fp, "  %5d: %s\n", i, str);
+        fprintf(fp, "  %5" PRIu32 ": %s\n", i, str);
     }
     fprintf(fp, "}\n");
     fprintf(fp, "\n");
@@ -980,7 +984,7 @@ void crf1dm_dump(crf1dm_t* crf1dm, FILE *fp)
             fprintf(fp, "WARNING: inconsistent attribute CQDB\n");
         }
 #endif
-        fprintf(fp, "  %5d: %s\n", i, str);
+        fprintf(fp, "  %5" PRIu32 ": %s\n", i, str);
     }
     fprintf(fp, "}\n");
     fprintf(fp, "\n");
