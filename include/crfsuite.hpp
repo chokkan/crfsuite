@@ -278,6 +278,27 @@ Tagger::~Tagger()
     this->close();
 }
 
+bool Tagger::open(const void* memory, int length)
+{
+    int ret;
+
+    // Close the model if it is already opened.
+    this->close();
+
+    // Open the model file.
+    if ((ret = crfsuite_create_instance_from_ptr(memory, length, (void**)&model))) {
+        return false;
+    }
+
+    // Obtain the tagger interface.
+    if ((ret = model->get_tagger(model, &tagger))) {
+        throw std::runtime_error("Failed to obtain the tagger interface");
+    }
+
+    return true;
+
+}
+
 bool Tagger::open(const std::string& name)
 {
     int ret;
@@ -587,7 +608,7 @@ std::string version()
     return CRFSUITE_VERSION;
 }
 
-};
+}
 
 #endif/*__CRFSUITE_HPP__*/
 
