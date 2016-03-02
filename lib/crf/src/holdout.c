@@ -77,4 +77,5 @@ void holdout_evaluation(
     /* Report the performance. */
     crfsuite_evaluation_finalize(&eval);
     crfsuite_evaluation_output(&eval, ds->data->labels, lg->func, lg->instance);
+	if(viterbi)free(viterbi);
 }
