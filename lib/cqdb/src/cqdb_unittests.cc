@@ -165,7 +165,13 @@ class CqdbTest : public ::testing::Test {
 };
 
 TEST_F(CqdbTest, testWriteRead) {
-  testWrite();
-  testRead();
+  int rc;
+
+  rc = testWrite();
+  ASSERT_EQ(0, rc);  // Use ASSERT because writing the file is needed to continue.
+
+  rc = testRead();
+  EXPECT_EQ(0, rc);  // Use EXPECT - no side-effects from this check are needed.
+
   unlink(DBNAME);
 }
