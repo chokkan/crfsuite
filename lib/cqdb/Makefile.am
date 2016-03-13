@@ -1,5 +1,4 @@
 # $Id:$
-
 lib_LTLIBRARIES = libcqdb.la
 
 EXTRA_DIST = \
@@ -16,6 +15,13 @@ libcqdb_la_LDFLAGS = \
 	-release @VERSION@
 
 libcqdb_la_CFLAGS = -I./include
+
+bin_PROGRAMS = cqdbtest
+TESTS = cqdbtest
+cqdbtest_SOURCES = src/cqdb_unittests.cc
+cqdbtest_LDFLAGS = $(GTEST_LDFLAGS)
+cqdbtest_LDADD = libcqdb.la $(GTEST_LIBS)
+cqdbtest_CPPFLAGS = -I./include $(GTEST_CPPFLAGS)
 
 AM_CFLAGS = @CFLAGS@
 AM_CPPFLAGS = @INCLUDES@

@@ -34,6 +34,10 @@
 #ifndef    __CQDB_H__
 #define    __CQDB_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** @file */
 
 
@@ -520,5 +524,9 @@ existing database libraries for implementing a static quark database.
 - <a href="http://www.burtleburtle.net/bob/hash/index.html">Hash Functions and Block Ciphers</a> by Bob Jenkins.
 
 */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif/*__CQDB_H__*/
