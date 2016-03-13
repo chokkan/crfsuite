@@ -13,7 +13,6 @@ dnl ------------------------------------------------------------------
 AC_PREREQ(2.59)
 AC_INIT(crfsuite, 0.12)
 AC_CONFIG_SRCDIR([frontend/main.c])
-AC_CONFIG_MACRO_DIR([m4])
 
 dnl ------------------------------------------------------------------
 dnl Checks for system
@@ -143,11 +142,6 @@ AC_SUBST(includedir)
 AC_SUBST(libdir)
 
 dnl ------------------------------------------------------------------
-dnl Output the configure results.
-dnl ------------------------------------------------------------------
-AC_CONFIG_FILES(Makefile genbinary.sh include/Makefile lib/cqdb/Makefile lib/crf/Makefile frontend/Makefile swig/Makefile swig/python/setup.py swig/perl/Makefile.PL)
-
-dnl ------------------------------------------------------------------
 dnl googletest support
 dnl ------------------------------------------------------------------
 GTEST_CPPFLAGS="-I\$(top_srcdir)/googletest/googletest/include"
@@ -158,4 +152,8 @@ AC_SUBST([GTEST_CPPFLAGS])
 AC_SUBST([GTEST_LDFLAGS])
 AC_SUBST([GTEST_LIBS])
 
+dnl ------------------------------------------------------------------
+dnl Output the configure results.
+dnl ------------------------------------------------------------------
+AC_CONFIG_FILES(Makefile genbinary.sh include/Makefile lib/cqdb/Makefile lib/crf/Makefile frontend/Makefile swig/Makefile swig/python/setup.py swig/perl/Makefile.PL)
 AC_OUTPUT
