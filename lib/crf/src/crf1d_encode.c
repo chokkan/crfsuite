@@ -34,6 +34,8 @@
 #include <config.h>
 #endif/*HAVE_CONFIG_H*/
 
+#include <omp.h>
+
 #include <os.h>
 
 #include <stdio.h>
@@ -136,6 +138,7 @@ static void crf1de_state_score(
     const int L = crf1de->num_labels;
 
     /* Loop over the items in the sequence. */
+    #pragma omp parallel for private(i,r)
     for (t = 0;t < T;++t) {
         const crfsuite_item_t *item = &inst->items[t];
         floatval_t *state = STATE_SCORE(ctx, t);
@@ -178,6 +181,7 @@ crf1de_state_score_scaled(
     }
 
     /* Loop over the items in the sequence. */
+    #pragma omp parallel for private(i,r)
     for (t = 0;t < T;++t) {
         const crfsuite_item_t *item = &inst->items[t];
         floatval_t *state = STATE_SCORE(ctx, t);
@@ -211,6 +215,7 @@ crf1de_transition_score(
     const int L = crf1de->num_labels;
 
     /* Compute transition scores between two labels. */
+    #pragma omp parallel for private(r)
     for (i = 0;i < L;++i) {
         floatval_t *trans = TRANS_SCORE(ctx, i);
         const feature_refs_t *edge = TRANSITION(crf1de, i);
@@ -241,6 +246,7 @@ crf1de_transition_score_scaled(
     }
 
     /* Compute transition scores between two labels. */
+    #pragma omp parallel for private(r)
     for (i = 0;i < L;++i) {
         floatval_t *trans = TRANS_SCORE(ctx, i);
         const feature_refs_t *edge = TRANSITION(crf1de, i);
