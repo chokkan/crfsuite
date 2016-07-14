@@ -274,6 +274,7 @@ crf1de_features_on_path(
     const int L = crf1de->num_labels;
 
     /* Loop over the items in the sequence. */
+	#pragma omp parallel for private(c,r) firstprivate(i)
     for (t = 0;t < T;++t) {
         const crfsuite_item_t *item = &inst->items[t];
         const int j = labels[t];
@@ -327,6 +328,7 @@ crf1de_observation_expectation(
     const int L = crf1de->num_labels;
 
     /* Loop over the items in the sequence. */
+    #pragma omp parallel for private(c,r) firstprivate(i)
     for (t = 0;t < T;++t) {
         const crfsuite_item_t *item = &inst->items[t];
         const int j = labels[t];
@@ -380,6 +382,7 @@ crf1de_model_expectation(
     const int T = inst->num_items;
     const int L = crf1de->num_labels;
 
+    #pragma omp parallel for private(c,r)
     for (t = 0;t < T;++t) {
         floatval_t *prob = STATE_MEXP(ctx, t);
 
@@ -401,6 +404,7 @@ crf1de_model_expectation(
     }
 
     /* Loop over the labels (t, i) */
+    #pragma omp parallel for private(r)
     for (i = 0;i < L;++i) {
         const floatval_t *prob = TRANS_MEXP(ctx, i);
         const feature_refs_t *edge = TRANSITION(crf1de, i);
