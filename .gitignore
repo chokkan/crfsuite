@@ -1,0 +1,15 @@
+**/.deps
+**/setup.py
+**/Makefile*
+autom4te.cache
+m4
+config*
+aclocal.m4
+compile
+depcomp
+genbinary.sh
+install-sh
+libtool
+ltmain.sh
+missing
+stamp-h1
