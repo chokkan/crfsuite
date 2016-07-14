@@ -1,5 +1,8 @@
 **/.deps
 **/.libs
+**/*.la
+**/*.lo
+**/*.o
 **/setup.py
 **/Makefile*
 autom4te.cache
@@ -7,6 +10,7 @@ m4
 config*
 aclocal.m4
 compile
+crfsuite
 depcomp
 genbinary.sh
 install-sh
