@@ -1,11 +1,11 @@
-#### Installation instructions for Mac OS X El Capitan with homebrew gcc-6 OpenMP
+#### Installation instructions for Mac OS X El Capitan with homebrew clang-omp
 ```Shell
 > brew install autoconf
 > brew install automake
 > brew install libtool
-> brew install gcc --without-multilib
+> brew install clang-omp
 > ./autogen.sh
-> ./configure CC=gcc-6
+> ./configure CC=clang-omp
 > make
 > make install
 ```
