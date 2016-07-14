@@ -34,6 +34,8 @@
 #include <config.h>
 #endif/*HAVE_CONFIG_H*/
 
+#include <omp.h>
+
 #include <os.h>
 
 #include <stdio.h>
@@ -75,7 +77,7 @@ typedef struct {
     logging_t *lg;
     floatval_t c2;
     floatval_t* best_w;
-    clock_t begin;
+    double begin;
 } lbfgs_internal_t;
 
 static lbfgsfloatval_t lbfgs_evaluate(
@@ -121,7 +123,7 @@ static int lbfgs_progress(
     int ls)
 {
     int i, num_active_features = 0;
-    clock_t duration, clk = clock();
+    double duration, clk = omp_get_wtime();
     lbfgs_internal_t *lbfgsi = (lbfgs_internal_t*)instance;
     dataset_t *testset = lbfgsi->testset;
     encoder_t *gm = lbfgsi->gm;
@@ -145,7 +147,7 @@ static int lbfgs_progress(
     logging(lg, "Active features: %d\n", num_active_features);
     logging(lg, "Line search trials: %d\n", ls);
     logging(lg, "Line search step: %f\n", step);
-    logging(lg, "Seconds required for this iteration: %.3f\n", duration / (double)CLOCKS_PER_SEC);
+    logging(lg, "Seconds required for this iteration: %.3f\n", duration);
 
     /* Send the tagger with the current parameters. */
     if (testset != NULL) {
@@ -225,7 +227,7 @@ int crfsuite_train_lbfgs(
 {
     int ret = 0, lbret;
     floatval_t *w = NULL;
-    clock_t begin = clock();
+    double begin = omp_get_wtime();
     const int N = trainset->num_instances;
     const int L = trainset->data->labels->num(trainset->data->labels);
     const int A =  trainset->data->attrs->num(trainset->data->attrs);
@@ -299,7 +301,7 @@ int crfsuite_train_lbfgs(
     lbfgsi.lg = lg;
 
     /* Call the L-BFGS solver. */
-    lbfgsi.begin = clock();
+    lbfgsi.begin = omp_get_wtime();
     lbret = lbfgs(
         K,
         w,
@@ -324,7 +326,7 @@ int crfsuite_train_lbfgs(
     *ptr_w = lbfgsi.best_w;
 
 	/* Report the run-time for the training. */
-    logging(lg, "Total seconds required for training: %.3f\n", (clock() - begin) / (double)CLOCKS_PER_SEC);
+    logging(lg, "Total seconds required for training: %.3f\n", omp_get_wtime() - begin);
     logging(lg, "\n");
 
     /* Exit with success. */
