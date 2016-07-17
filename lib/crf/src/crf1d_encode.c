@@ -382,7 +382,7 @@ crf1de_model_expectation(
     const int T = inst->num_items;
     const int L = crf1de->num_labels;
 
-    #pragma omp parallel for private(c,r)
+    #pragma omp parallel for private(a,c,r,attr,trans,item)
     for (t = 0;t < T;++t) {
         floatval_t *prob = STATE_MEXP(ctx, t);
 
