@@ -398,6 +398,7 @@ crf1de_model_expectation(
             for (r = 0;r < attr->num_features;++r) {
                 int fid = attr->fids[r];
                 crf1df_feature_t *f = FEATURE(crf1de, fid);
+                #pragma omp atomic
                 w[fid] += prob[f->dst] * value * scale;
             }
         }
