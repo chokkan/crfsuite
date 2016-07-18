@@ -382,7 +382,9 @@ crf1de_model_expectation(
     const int T = inst->num_items;
     const int L = crf1de->num_labels;
 
-    #pragma omp parallel for private(a,c,r,attr,trans,item)
+    #pragma omp parallel private(a,c,r,attr,trans,item)
+    {
+    #pragma omp for
     for (t = 0;t < T;++t) {
         floatval_t *prob = STATE_MEXP(ctx, t);
 
@@ -405,7 +407,7 @@ crf1de_model_expectation(
     }
 
     /* Loop over the labels (t, i) */
-    #pragma omp parallel for private(r)
+    #pragma omp for
     for (i = 0;i < L;++i) {
         const floatval_t *prob = TRANS_MEXP(ctx, i);
         const feature_refs_t *edge = TRANSITION(crf1de, i);
@@ -415,6 +417,7 @@ crf1de_model_expectation(
             crf1df_feature_t *f = FEATURE(crf1de, fid);
             w[fid] += prob[f->dst] * scale;
         }
+    }
     }
 }
 
@@ -849,6 +852,7 @@ static int encoder_objective_and_gradients_batch(encoder_t *self, dataset_t *ds,
 
         /* Compute the probability of the input sequence on the model. */
         logp = crf1dc_score(crf1de->ctx, seq->labels) - crf1dc_lognorm(crf1de->ctx);
+
         /* Update the log-likelihood. */
         logl += logp * seq->weight;
 
