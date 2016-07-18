@@ -68,7 +68,9 @@ static inline void _aligned_free(void *p)
 
 inline static void veczero(floatval_t *x, const int n)
 {
-    memset(x, 0, sizeof(floatval_t) * n);
+    if (n) {
+        memset(x, 0, sizeof(floatval_t) * n);
+    }
 }
 
 inline static void vecset(floatval_t *x, const floatval_t a, const int n)
@@ -81,7 +83,9 @@ inline static void vecset(floatval_t *x, const floatval_t a, const int n)
 
 inline static void veccopy(floatval_t *y, const floatval_t *x, const int n)
 {
-    memcpy(y, x, sizeof(floatval_t) * n);
+    if (n) {
+        memcpy(y, x, sizeof(floatval_t) * n);
+    }
 }
 
 inline static void vecadd(floatval_t *y, const floatval_t *x, const int n)
