@@ -776,7 +776,7 @@ crf1dm_t* crf1dm_new(const char *filename)
     fseek(fp, 0, SEEK_SET);
 
     buffer = buffer_orig = (uint8_t*)malloc(size + 16);
-    if (buffer_orig = NULL) {
+    if (buffer_orig == NULL) {
         goto error_exit;
     }
 
