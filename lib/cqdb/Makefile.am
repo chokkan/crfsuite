@@ -15,7 +15,7 @@ libcqdb_la_LDFLAGS = \
 	-no-undefined \
 	-release @VERSION@
 
-libcqdb_la_CFLAGS = -I./include
+libcqdb_la_CFLAGS = -I$(abs_srcdir)/include
 
 AM_CFLAGS = @CFLAGS@
 AM_CPPFLAGS = @INCLUDES@
