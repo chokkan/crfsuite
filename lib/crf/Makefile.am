@@ -33,7 +33,7 @@ libcrfsuite_la_SOURCES = \
 	src/crfsuite_train.c \
 	src/crfsuite.c
 
-libcrfsuite_la_CFLAGS = -I$(top_builddir)/lib/cqdb/include
+libcrfsuite_la_CFLAGS = -I$(abs_top_srcdir)/lib/cqdb/include
 
 libcrfsuite_la_LDFLAGS = \
 	-no-undefined \
