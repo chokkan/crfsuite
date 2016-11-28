@@ -44,9 +44,9 @@ AC_PROG_LN_S
 dnl ------------------------------------------------------------------
 dnl Initialization for variables
 dnl ------------------------------------------------------------------
-CFLAGS="-std=c99 ${ac_save_CFLAGS}"
-LDFLAGS="${ac_save_LDFLAGS}"
-INCLUDES="-I\$(top_srcdir) -I\$(top_srcdir)/include -I\$(srcdir)"
+CFLAGS="-std=c99 ${CFLAGS}"
+LDFLAGS="${LDFLAGS}"
+INCLUDES="${INCLUDES} -I\$(top_srcdir) -I\$(top_srcdir)/include -I\$(srcdir)"
 
 
 dnl ------------------------------------------------------------------
