@@ -468,6 +468,7 @@ floatval_t crf1dc_viterbi(crf1d_context_t* ctx, int *labels)
     int i, j, t;
     int *back = NULL;
     floatval_t max_score, score, *cur = NULL;
+    int argmax_score;
     const floatval_t *prev = NULL, *state = NULL, *trans = NULL;
     const int T = ctx->num_items;
     const int L = ctx->num_labels;
@@ -493,7 +494,7 @@ floatval_t crf1dc_viterbi(crf1d_context_t* ctx, int *labels)
         /* Compute the score of (t, j). */
         for (j = 0;j < L;++j) {
             max_score = -FLOAT_MAX;
-
+            argmax_score = -1;
             for (i = 0;i < L;++i) {
                 /* Transit from (t-1, i) to (t, j). */
                 trans = TRANS_SCORE(ctx, i);
@@ -502,10 +503,11 @@ floatval_t crf1dc_viterbi(crf1d_context_t* ctx, int *labels)
                 /* Store this path if it has the maximum score. */
                 if (max_score < score) {
                     max_score = score;
-                    /* Backward link (#t, #j) -> (#t-1, #i). */
-                    back[j] = i;
+                    argmax_score = i;
                 }
             }
+            /* Backward link (#t, #j) -> (#t-1, #i). */
+            if (argmax_score >= 0) back[j] = argmax_score;
             /* Add the state score on (t, j). */
             cur[j] = max_score + state[j];
         }
