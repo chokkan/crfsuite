@@ -48,7 +48,7 @@ static int progress(FILE *fpo, int prev, int current)
                 fprintf(fpo, "%d", prev / 10);
                 fflush(fpo);
             } else {
-                fprintf(fpo, ".", prev / 10);
+                fprintf(fpo, ".");
                 fflush(fpo);
             }
         }
@@ -116,6 +116,7 @@ int read_data(FILE *fpi, FILE *fpo, crfsuite_data_t* data, int group)
                         /* Unrecognized declaration. */
                         fprintf(fpo, "\n");
                         fprintf(fpo, "ERROR: unrecognized declaration: %s\n", token->attr);
+                        iwa_delete(iwa);
                         return -1;
                     }
                 } else {
@@ -147,6 +148,8 @@ int read_data(FILE *fpi, FILE *fpo, crfsuite_data_t* data, int group)
 
     progress(fpo, prev, 100);
     fprintf(fpo, "\n");
+
+    iwa_delete(iwa);
 
     return n;
 }

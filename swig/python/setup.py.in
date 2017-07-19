@@ -8,7 +8,7 @@ import sys
 import os.path
 
 def get_rootdir():
-    return '/home/users/okazaki/local'
+    return '@prefix@'
 def get_includedir():
     return os.path.join(get_rootdir(), 'include')
 def get_librarydir():
@@ -25,9 +25,9 @@ crfsuite_module = Extension(
         'crfsuite.cpp',
         'export_wrap.cpp',
         ],
-#    include_dirs=['../../include',],
+    include_dirs=[get_includedir(),],
     extra_link_args=['-shared'],
-#    library_dirs=['../../lib/crf',],
+    library_dirs=[get_librarydir(),],
     libraries=['crfsuite'],
 #    extra_objects=['../../lib/crf/libcrfsuite.la'],
     language='c++',

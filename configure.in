@@ -11,7 +11,7 @@ dnl ------------------------------------------------------------------
 dnl Initialization for autoconf
 dnl ------------------------------------------------------------------
 AC_PREREQ(2.59)
-AC_INIT
+AC_INIT(crfsuite, 0.12)
 AC_CONFIG_SRCDIR([frontend/main.c])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -27,10 +27,9 @@ AC_ISC_POSIX
 dnl ------------------------------------------------------------------
 dnl Initialization for automake
 dnl ------------------------------------------------------------------
-AM_INIT_AUTOMAKE(crfsuite, 0.12)
+AM_INIT_AUTOMAKE
 AC_CONFIG_HEADERS(config.h)
 AM_MAINTAINER_MODE
-AM_C_PROTOTYPES
 
 
 dnl ------------------------------------------------------------------
@@ -145,5 +144,5 @@ AC_SUBST(libdir)
 dnl ------------------------------------------------------------------
 dnl Output the configure results.
 dnl ------------------------------------------------------------------
-AC_CONFIG_FILES(Makefile genbinary.sh include/Makefile lib/cqdb/Makefile lib/crf/Makefile frontend/Makefile swig/Makefile swig/perl/Makefile.PL)
+AC_CONFIG_FILES(Makefile genbinary.sh include/Makefile lib/cqdb/Makefile lib/crf/Makefile frontend/Makefile swig/Makefile swig/python/setup.py swig/perl/Makefile.PL)
 AC_OUTPUT

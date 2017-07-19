@@ -97,6 +97,7 @@ int crf1dc_set_num_items(crf1d_context_t* ctx, int T)
         free(ctx->row);
         free(ctx->beta_score);
         free(ctx->alpha_score);
+        free(ctx->state);
 
         ctx->alpha_score = (floatval_t*)calloc(T * L, sizeof(floatval_t));
         if (ctx->alpha_score == NULL) return CRFSUITEERR_OUTOFMEMORY;
@@ -517,6 +518,9 @@ floatval_t crf1dc_viterbi(crf1d_context_t* ctx, int *labels)
     /* Find the node (#T, #i) that reaches EOS with the maximum score. */
     max_score = -FLOAT_MAX;
     prev = ALPHA_SCORE(ctx, T-1);
+    /* Set a score for T-1 to be overwritten later. Just in case we don't
+       end up with something beating -FLOAT_MAX. */
+    labels[T-1] = 0;
     for (i = 0;i < L;++i) {
         if (max_score < prev[i]) {
             max_score = prev[i];

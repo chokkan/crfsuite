@@ -1,7 +1,7 @@
-#if defined(SWIGPYTHON)
-%module(directors="1") crfsuite
-#else
+#if defined(SWIGPERL)
 %module(directors="1") CRFSuite
+#else
+%module(directors="1") crfsuite
 #endif
 
 %{
@@ -23,10 +23,6 @@
 %typemap(freearg) const std::string& ""
 #endif
 
-%template(Item) std::vector<CRFSuite::Attribute>;
-%template(ItemSequence) std::vector<CRFSuite::Item>;
-%template(StringList) std::vector<std::string>;
-
 %feature("director") Trainer;
 
 %exception {
@@ -45,3 +41,6 @@
 
 %include "crfsuite_api.hpp"
 
+%template(Item) std::vector<CRFSuite::Attribute>;
+%template(ItemSequence) std::vector<CRFSuite::Item>;
+%template(StringList) std::vector<std::string>;

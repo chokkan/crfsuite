@@ -158,6 +158,7 @@ struct tag_encoder
 
     int (*save_model)(encoder_t *self, const char *filename, const floatval_t *w, logging_t *lg);
 
+    void (*release)(encoder_t *self);
 };
 
 /**

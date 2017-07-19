@@ -176,6 +176,18 @@ int Trainer::train(const std::string& model, int holdout)
 {
     int ret;
 
+    if (tr == NULL) {
+        std::stringstream ss;
+        ss << "The trainer is not initialized. Call Trainer::select before Trainer::train.";
+        throw std::invalid_argument(ss.str());
+    }
+
+    if (data->attrs == NULL || data->labels == NULL) {
+        std::stringstream ss;
+        ss << "The data is empty. Call Trainer::append before Trainer::train.";
+        throw std::invalid_argument(ss.str());
+    }
+
     // Run the training algorithm.
     ret = tr->train(tr, data, model.c_str(), holdout);
 
@@ -230,7 +242,12 @@ std::string Trainer::help(const std::string& name)
     std::string str;
     crfsuite_params_t* params = tr->params(tr);
     char *_str = NULL;
-    params->help(params, name.c_str(), NULL, &_str);
+    if (params->help(params, name.c_str(), NULL, &_str) != 0) {
+        std::stringstream ss;
+        ss << "Parameter not found: " << name;
+        params->release(params);
+        throw std::invalid_argument(ss.str());
+    }
     str = _str;
     params->free(params, _str);
     params->release(params);
@@ -271,6 +288,26 @@ bool Tagger::open(const std::string& name)
 
     // Open the model file.
     if ((ret = crfsuite_create_instance_from_file(name.c_str(), (void**)&model))) {
+        return false;
+    }
+
+    // Obtain the tagger interface.
+    if ((ret = model->get_tagger(model, &tagger))) {
+        throw std::runtime_error("Failed to obtain the tagger interface");
+    }
+
+    return true;
+}
+
+bool Tagger::open(const void* data, std::size_t size)
+{
+    int ret;
+
+    // Close the model if it is already opened.
+    this->close();
+
+    // Open the model.
+    if ((ret = crfsuite_create_instance_from_memory(data, size, (void**)&model))) {
         return false;
     }
 
@@ -470,6 +507,7 @@ StringList Tagger::viterbi()
     }
 
     labels->release(labels);
+    delete[] path;
     return yseq;
 }
 
@@ -601,7 +639,7 @@ std::string version()
     return CRFSUITE_VERSION;
 }
 
-};
+}
 
 #endif/*__CRFSUITE_HPP__*/
 

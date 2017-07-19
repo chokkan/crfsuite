@@ -54,10 +54,10 @@ extern "C" {
  */
 
 /** Version number of CRFSuite library. */
-#define CRFSUITE_VERSION    "0.12.1"
+#define CRFSUITE_VERSION    "0.12.2"
 
 /** Copyright string of CRFSuite library. */
-#define CRFSUITE_COPYRIGHT  "Copyright (c) 2007-2011 Naoaki Okazaki"
+#define CRFSUITE_COPYRIGHT  "Copyright (c) 2007-2013 Naoaki Okazaki"
 
 /** Type of a float value. */
 typedef double floatval_t;
@@ -324,8 +324,6 @@ struct tag_crfsuite_model {
      * Print the model in human-readable format.
      *  @param  model       The pointer to this model instance.
      *  @param  fpo         The FILE* pointer.
-     *  @param  ptr_attrs   The pointer that receives a crfsuite_dictionary_t
-     *                      pointer.
      *  @return int         The status code.
      */
     int (*dump)(crfsuite_model_t* model, FILE *fpo);
@@ -427,8 +425,8 @@ struct tag_crfsuite_tagger {
 
     /**
      * HCCHO: Set a bias weight vector
-     * @param  tagger       The pointer to this tagger instance.
-     * @param  bias         Bias weight vector in float type
+     *  @param  tagger      The pointer to this tagger instance.
+     *  @param  bias        Bias weight vector in float type
      */
     int  (*set_bias)(crfsuite_tagger_t* tagger, float* bias, int num);
     /**
@@ -736,8 +734,9 @@ struct tag_crfsuite_params {
  *  @param  ptr         The pointer to \c void* that points to the
  *                      instance of the object if successful,
  *                      *ptr points to \c NULL otherwise.
- *  @return int         \c 0 if this function creates an object successfully,
- *                      \c 1 otherwise.
+ *  @return int         \c 1 if this function creates an object successfully,
+ *                      \c 0 otherwise. Note that this is inconsistent with the
+ *                      other CRFsuite API calls.
  */
 int crfsuite_create_instance(const char *iid, void **ptr);
 
@@ -751,6 +750,19 @@ int crfsuite_create_instance(const char *iid, void **ptr);
  *                      \c 1 otherwise.
  */
 int crfsuite_create_instance_from_file(const char *filename, void **ptr);
+
+/**
+ * Create an instance of a model object from a model in memory.
+ *  @param  data        A pointer to the model data.
+ *                      Must be 16-byte aligned.
+ *  @param  size        A size (in bytes) of the model data.
+ *  @param  ptr         The pointer to \c void* that points to the
+ *                      instance of the model object if successful,
+ *                      *ptr points to \c NULL otherwise.
+ *  @return int         \c 0 if this function creates an object successfully,
+ *                      \c 1 otherwise
+ */
+int crfsuite_create_instance_from_memory(const void *data, size_t size, void **ptr);
 
 /**
  * Create instances of tagging object from a model file.

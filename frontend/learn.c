@@ -95,7 +95,10 @@ static void learn_option_finish(learn_option_t* opt)
 {
     int i;
 
+    free(opt->logbase);
     free(opt->model);
+    free(opt->algorithm);
+    free(opt->type);
 
     for (i = 0;i < opt->num_params;++i) {
         free(opt->params[i]);

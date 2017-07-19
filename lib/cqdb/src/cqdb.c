@@ -100,15 +100,15 @@ struct tag_cqdb_writer {
  * Constant quark database (CQDB).
  */
 struct tag_cqdb {
-    uint8_t*    buffer;         /**< Pointer to the memory block. */
-    size_t      size;           /**< Size of the memory block. */
+    const uint8_t* buffer;         /**< Pointer to the memory block. */
+    size_t         size;           /**< Size of the memory block. */
 
-    header_t    header;         /**< Chunk header. */
-    table_t     ht[NUM_TABLES]; /**< Hash tables (string -> id). */
+    header_t       header;         /**< Chunk header. */
+    table_t        ht[NUM_TABLES]; /**< Hash tables (string -> id). */
 
-    uint32_t*   bwd;            /**< Array for backward look-up (id -> string). */
+    uint32_t*      bwd;            /**< Array for backward look-up (id -> string). */
 
-    int         num;            /**< Number of key/data pairs. */
+    int            num;            /**< Number of key/data pairs. */
 };
 
 
@@ -268,6 +268,7 @@ int cqdb_writer_close(cqdb_writer_t* dbw)
 
     /* Initialize the file header. */
     strncpy((char*)header.chunkid, CHUNKID, 4);
+    header.flag = 0;
     header.byteorder = BYTEORDER_CHECK;
     header.bwd_offset = 0;
     header.bwd_size = dbw->bwd_num;
@@ -397,7 +398,7 @@ error_exit:
 
 
 
-static uint32_t read_uint32(uint8_t* p)
+static uint32_t read_uint32(const uint8_t* p)
 {
     uint32_t value;
     value  = ((uint32_t)p[0]);
@@ -407,7 +408,7 @@ static uint32_t read_uint32(uint8_t* p)
     return value;
 }
 
-static uint8_t *read_tableref(tableref_t* ref, uint8_t *p)
+static const uint8_t *read_tableref(tableref_t* ref, const uint8_t *p)
 {
     ref->offset = read_uint32(p);
     p += sizeof(uint32_t);
@@ -416,7 +417,7 @@ static uint8_t *read_tableref(tableref_t* ref, uint8_t *p)
     return p;
 }
 
-static bucket_t* read_bucket(uint8_t* p, uint32_t num)
+static bucket_t* read_bucket(const uint8_t* p, uint32_t num)
 {
     uint32_t i;
     bucket_t *bucket = (bucket_t*)calloc(num, sizeof(bucket_t));
@@ -429,7 +430,7 @@ static bucket_t* read_bucket(uint8_t* p, uint32_t num)
     return bucket;
 }
 
-static uint32_t* read_backward_links(uint8_t* p, uint32_t num)
+static uint32_t* read_backward_links(const uint8_t* p, uint32_t num)
 {
     uint32_t i;
     uint32_t *bwd = (uint32_t*)calloc(num, sizeof(uint32_t));
@@ -440,7 +441,7 @@ static uint32_t* read_backward_links(uint8_t* p, uint32_t num)
     return bwd;
 }
 
-cqdb_t* cqdb_reader(void *buffer, size_t size)
+cqdb_t* cqdb_reader(const void *buffer, size_t size)
 {
     int i;
     cqdb_t* db = NULL;
@@ -457,7 +458,7 @@ cqdb_t* cqdb_reader(void *buffer, size_t size)
     
     db = (cqdb_t*)calloc(1, sizeof(cqdb_t));
     if (db != NULL) {
-        uint8_t* p = NULL;
+        const uint8_t* p = NULL;
 
         /* Set memory block and size. */
         db->buffer = buffer;
@@ -549,7 +550,7 @@ int cqdb_to_id(cqdb_t* db, const char *str)
             if (p->hash == hv) {
                 int value;
                 uint32_t ksize;
-                uint8_t *q = db->buffer + p->offset;
+                const uint8_t *q = db->buffer + p->offset;
                 value = (int)read_uint32(q);
                 q += sizeof(uint32_t);
                 ksize = read_uint32(q);
@@ -571,7 +572,7 @@ const char* cqdb_to_string(cqdb_t* db, int id)
     if (db->bwd != NULL && (uint32_t)id < db->header.bwd_size) {
         uint32_t offset = db->bwd[id];
         if (offset) {
-            uint8_t *p = db->buffer + offset;
+            const uint8_t *p = db->buffer + offset;
             p += sizeof(uint32_t);  /* Skip key data. */
             p += sizeof(uint32_t);  /* Skip value size. */
             return (const char *)p;
