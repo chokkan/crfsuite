@@ -116,7 +116,7 @@ static void crf1dt_transition_score(crf1dt_t* crf1dt)
             fid = crf1dm_get_featureid(&edge, r);
             crf1dm_get_feature(model, fid, &f);
             trans[f.dst] = f.weight;
-        }        
+        }
     }
 }
 
@@ -207,6 +207,19 @@ static int tagger_length(crfsuite_tagger_t* tagger)
     crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
     crf1d_context_t* ctx = crf1dt->ctx;
     return ctx->num_items;
+}
+
+// HCCHO: Allocate the bias weights to the bias member variable
+static int tagger_set_bias(crfsuite_tagger_t* tagger, float* bias, int num)
+{
+    crf1dt_t* crf1dt = (crf1dt_t*)tagger->internal;
+
+    crf1dt->ctx->bias = (float*) calloc(num, sizeof(float));
+    for (int i=0;i < num;++i) {
+        crf1dt->ctx->bias[i] = bias[i];
+    }
+
+    return 0;
 }
 
 static int tagger_viterbi(crfsuite_tagger_t* tagger, int *labels, floatval_t *ptr_score)

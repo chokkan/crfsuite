@@ -122,10 +122,18 @@ BEGIN_OPTION_MAP(parse_tagger_options, tagger_option_t)
     ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
         opt->help = 1;
 
-    ON_OPTION_WITH_ARG(SHORTOPT('p') || LONGOPT("param"))
-        opt->params = (char **)realloc(opt->params, sizeof(char*) * (opt->num_params + 1));
-        opt->params[opt->num_params] = mystrdup(arg);
-        ++opt->num_params;
+   // HCCHO: short option p overlaps with "p"robability
+   /*
+   ON_OPTION_WITH_ARG(SHORTOPT('p') || LONGOPT("param"))
+       opt->params = (char **)realloc(opt->params, sizeof(char*) * (opt->num_para#
+       opt->params[opt->num_params] = mystrdup(arg);
+       ++opt->num_params;
+   */
+   // HCCHO: changed its short and long option name to s and set following the op#
+   ON_OPTION_WITH_ARG(SHORTOPT('s') || LONGOPT("set"))
+       opt->params = (char **)realloc(opt->params, sizeof(char*) * (opt->num_params + 1));
+       opt->params[opt->num_params] = mystrdup(arg);
+       ++opt->num_params;
 
 END_OPTION_MAP()
 
@@ -144,6 +152,8 @@ static void show_usage(FILE *fp, const char *argv0, const char *command)
     fprintf(fp, "    -i, --marginal      Output the marginal probabilitiy of items for their predicted label\n");
     fprintf(fp, "    -l, --marginal-all  Output the marginal probabilities of items for all labels\n");
     fprintf(fp, "    -q, --quiet         Suppress tagging results (useful for test mode)\n");
+    fprintf(fp, "    -s, --set=NAME=VALUE    Set a pair of a parameter NAME and its VALUE\n");
+	fprintf(fp, "                              -s label_bias=[LABEL:WEIGHT][,LABEL:WEIGHT]*\n");
     fprintf(fp, "    -h, --help          Show the usage of this command and exit\n");
 }
 
@@ -237,6 +247,62 @@ static int message_callback(void *instance, const char *format, va_list args)
     return 0;
 }
 
+// HCCHO: Set the label bias weight vector for all labels
+// Note:
+//   1. Label index begins from 0 and increases one by one (See crf1dm_dump() function in /lib/crf/src/crf1d_model.c)
+//   2. The returned bias weight vector must be gotten free!
+float *get_bias_weights(crfsuite_dictionary_t *labels, tagger_option_t *opt)
+{
+    float *lbwv = (float*) calloc(labels->num(labels), sizeof(float));
+    char  *str_bias = NULL, *str_label = NULL, *str_weight = NULL;
+    char  *one_bias = NULL, *sep = NULL;
+    int   lid = -1;
+    float w = 0.0;
+
+    // 1. Initialize the weight vector
+    for (int idx = 0; idx < labels->num(labels); ++idx)
+        lbwv[idx] = 0.0;
+
+    // 2. Find the option
+    for (int idx = 0; idx < opt->num_params; ++idx) {
+        if (strncmp(opt->params[idx], "label_bias=", 11) == 0) {
+            str_bias = opt->params[idx];
+            break;
+        }
+    }
+
+    // 3. Set the weight vector
+    if (str_bias) {
+        one_bias = strtok(str_bias + 11, ",");
+        while (one_bias != NULL) {
+            if ((sep = strchr(one_bias, ':')) == NULL) {
+                printf("There is no separator : between the label name and its bias weight!");
+                exit(1);
+            }else {
+                // Split the label and its bias
+                sep[0] = '\0';
+                str_label  = mystrdup(one_bias);
+                str_weight = mystrdup(sep+1);
+                sep[0] = ':';
+
+                // Convert the label into the corresponding index and the bias into float value
+                lid = labels->to_id(labels, str_label);
+                w = atof(str_weight);
+
+                // Set the bias in the bias weight vector
+                lbwv[lid] = w;
+
+                free(str_label);
+                free(str_weight);
+
+                one_bias = strtok(NULL, ",");
+            }
+        }
+    }
+
+    return lbwv;
+}
+
 static int tag(tagger_option_t* opt, crfsuite_model_t* model)
 {
     int N = 0, L = 0, ret = 0, lid = -1;
@@ -251,6 +317,7 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
     crfsuite_tagger_t *tagger = NULL;
     crfsuite_dictionary_t *attrs = NULL, *labels = NULL;
     FILE *fp = NULL, *fpi = opt->fpi, *fpo = opt->fpo, *fpe = opt->fpe;
+	float *bias;   // HCCHO
 
     /* Obtain the dictionary interface representing the labels in the model. */
     if (ret = model->get_labels(model, &labels)) {
@@ -267,7 +334,14 @@ static int tag(tagger_option_t* opt, crfsuite_model_t* model)
         goto force_exit;
     }
 
-    /* Initialize the objects for instance and evaluation. */
+    // HCCHO: set the label bias weights in the tagger instance
+    bias = get_bias_weights(labels, opt);
+    if ((ret = tagger->set_bias(tagger, bias, labels->num(labels)))) {
+        goto force_exit;
+    }
+    free(bias);  bias=NULL;
+
+/* Initialize the objects for instance and evaluation. */
     L = labels->num(labels);
     crfsuite_instance_init(&inst);
     crfsuite_evaluation_init(&eval, L);

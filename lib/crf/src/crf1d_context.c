@@ -143,6 +143,8 @@ void crf1dc_delete(crf1d_context_t* ctx)
         free(ctx->mexp_trans);
         _aligned_free(ctx->exp_trans);
         free(ctx->trans);
+        // HCCHO: Free the label bias weight variable
+        free(ctx->bias);
     }
     free(ctx);
 }
@@ -480,7 +482,8 @@ floatval_t crf1dc_viterbi(crf1d_context_t* ctx, int *labels)
     cur = ALPHA_SCORE(ctx, 0);
     state = STATE_SCORE(ctx, 0);
     for (j = 0;j < L;++j) {
-        cur[j] = state[j];
+        // HCCHO: cur[j] = state[j];
+        cur[j] = state[j] + (ctx->bias)[j];
     }
 
     /* Compute the scores at (t, *). */
@@ -497,7 +500,8 @@ floatval_t crf1dc_viterbi(crf1d_context_t* ctx, int *labels)
             for (i = 0;i < L;++i) {
                 /* Transit from (t-1, i) to (t, j). */
                 trans = TRANS_SCORE(ctx, i);
-                score = prev[i] + trans[j];
+                // HCCHO: score = prev[i] + trans[j];
+                score = prev[i] + trans[j] + (ctx->bias)[j];
 
                 /* Store this path if it has the maximum score. */
                 if (max_score < score) {
