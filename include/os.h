@@ -47,6 +47,13 @@
 #define strdup      _strdup
 #define open        _open
 
+#if    _MSC_VER < 1900
+/* Pre Microsoft Visual C 2015 */
+
+#define isfinite    _finite
+#define snprintf    _snprintf
+#endif/*_MSC_VER < 1900 */ 
+
 #ifndef    __cplusplus
 /* Microsoft Visual C specific */
 
