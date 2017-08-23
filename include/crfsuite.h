@@ -37,6 +37,7 @@
 extern "C" {
 #endif/*__cplusplus*/
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -72,7 +73,7 @@ enum {
     /** Success. */
     CRFSUITE_SUCCESS = 0,
     /** Unknown error occurred. */
-    CRFSUITEERR_UNKNOWN = 0x80000000,
+    CRFSUITEERR_UNKNOWN = INT_MIN,
     /** Insufficient memory. */
     CRFSUITEERR_OUTOFMEMORY,
     /** Unsupported operation. */
