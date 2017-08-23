@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 A miscellaneous utility for sequential labeling.
 Copyright 2010,2011 Naoaki Okazaki.
@@ -21,17 +19,14 @@ def apply_templates(X, templates):
     @type   template:   tuple of (str, int)
     @param  template:   The feature template.
     """
-    
-    x_range = list(range(len(X)))
-    x_range_set = set(x_range)
-    
     for template in templates:
         name = '|'.join(['%s[%d]' % (f, o) for f, o in template])
-        for t in x_range:
+        X_len = len(X)
+        for t in range(X_len):
             values = []
             for field, offset in template:
                 p = t + offset
-                if p not in x_range_set:
+                if p < 0 or p >= X_len: 
                     values = []
                     break
                 values.append(X[p][field])
