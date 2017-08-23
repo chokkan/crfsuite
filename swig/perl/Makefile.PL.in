@@ -6,10 +6,11 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     'CC' => 'g++',
     'LD' => 'g++',
-    'NAME' => '@PACKAGE@',
+    'NAME' => 'CRFSuite',
     'VERSION' => '@VERSION@',
     'OBJECT' => 'crfsuite.o export_wrap.o',
     'OPTIMIZE' => '-O2',
     'INC' => '-I../../include',
+    'LIBS' => ['-lcrfsuite'],
     );
 
