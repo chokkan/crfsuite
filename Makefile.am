@@ -13,7 +13,10 @@ EXTRA_DIST = \
 	example/template.py \
 	example/pos.py \
 	example/ner.py \
-	example/chunking.py
+	example/chunking.py \
+	CMakeLists.txt \
+	crfsuiteConfig.cmake.in \
+	crfsuiteConfigVersion.cmake.in
 
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
