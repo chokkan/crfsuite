@@ -9,6 +9,7 @@ EXTRA_DIST = \
 	crfsuite.sln \
 	autogen.sh \
 	win32/stdint.h \
+	win32/inttypes.h \
 	example/crfutils.py \
 	example/template.py \
 	example/pos.py \
