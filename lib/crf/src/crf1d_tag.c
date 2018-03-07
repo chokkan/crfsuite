@@ -436,6 +436,7 @@ static int model_get_tagger(crfsuite_model_t* model, crfsuite_tagger_t** ptr_tag
     tagger->lognorm = tagger_lognorm;
     tagger->marginal_point = tagger_marginal_point;
     tagger->marginal_path = tagger_marginal_path;
+    tagger->set_bias = tagger_set_bias; // HCCHO
 
     *ptr_tagger = tagger;
     return 0;
