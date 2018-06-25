@@ -3,3 +3,5 @@
 ################################################################################
 
 /swig/dotnetcore/.vs/dotnetcore
+/swig/dotnetcore/obj
+/swig/dotnetcore/bin/Debug/netcoreapp2.1
