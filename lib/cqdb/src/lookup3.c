@@ -693,7 +693,7 @@ uint32_t hashbig( const void *key, size_t length, uint32_t initval)
 
 #else  /* make valgrind happy */
 
-    k8 = (const uint8_t *)k;
+    const uint8_t* k8 = (const uint8_t *)k;
     switch(length)                   /* all the case statements fall through */
     {
     case 12: c+=k[2]; b+=k[1]; a+=k[0]; break;
