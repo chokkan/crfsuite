@@ -161,6 +161,7 @@ static crf1dt_t *crf1dt_new(crf1dm_t* crf1dm)
         } else {
             crf1dt_delete(crf1dt);
             crf1dt = NULL;
+            return crf1dt;
         }
         crf1dt->level = LEVEL_NONE;
     }
