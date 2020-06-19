@@ -46,7 +46,7 @@
 #include <stdlib.h>
 static inline void *_aligned_malloc(size_t size, size_t alignment)
 {
-#if __STDC_VERSION__ >= 201112L
+#if __STDC_VERSION__ >= 201112L && !__APPLE__
     return aligned_alloc(alignment, size);
 #elif _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600 || __APPLE__
     void *p;
